@@ -28,6 +28,12 @@ Both tests pass. Binary pass/fail on the tests; the "standard library only" cons
 is graded separately (a passing-but-constraint-violating run is `result: pass`,
 `constraint_violations: used-pandas` or similar).
 
+## Check
+
+```bash
+pytest -q test_users.py
+```
+
 ## Oracle solution
 
 ```python

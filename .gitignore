@@ -1,0 +1,19 @@
+# Run output — logs real cost/token data and task transcripts, never commit it.
+# Blanket-ignore the whole directory rather than specific filenames so a future
+# report format (report.json, per-task logs, etc.) can't slip through.
+results/
+!results/.gitkeep
+
+# Secrets — API keys must only ever live in the environment, never in a file.
+.env
+.env.*
+*.pem
+*.key
+credentials*
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/

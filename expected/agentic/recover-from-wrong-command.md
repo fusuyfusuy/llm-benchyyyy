@@ -12,7 +12,7 @@
    present, unmodified, in `logs/`.
 5. `logs/README.md` is present and unmodified.
 
-## Reference check script (bash, for grading)
+## Check
 
 ```bash
 tar -tzf logs/archive-early-jan.tar.gz | sort > /tmp/actual.txt

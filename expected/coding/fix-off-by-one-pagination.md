@@ -30,6 +30,12 @@ def test_last_partial_page():
 All three tests pass (`pytest test_paginate.py`), exit code 0. No partial credit — this
 is a binary pass/fail task.
 
+## Check
+
+```bash
+pytest -q test_paginate.py
+```
+
 ## Oracle solution
 
 ```python

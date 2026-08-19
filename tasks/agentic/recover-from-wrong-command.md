@@ -22,6 +22,18 @@ Container with `logs/` populated as described; `app-2026-01-10.log` set to mode 
 before the run starts. Agent has shell access (this task requires it — it's specifically
 testing tool-use, not code-writing).
 
+## Setup
+
+```bash
+mkdir -p logs
+: > logs/README.md
+for n in $(seq -w 1 31); do
+  d="2026-01-${n}"
+  echo "log line for ${d}" > "logs/app-${d}.log"
+done
+chmod 0444 logs/app-2026-01-10.log
+```
+
 ## Constraints
 
 - Must not delete or modify `README.md`.
