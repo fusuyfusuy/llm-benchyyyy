@@ -31,7 +31,10 @@ RUN pip install --no-cache-dir --break-system-packages pytest
 # CLI harnesses that install cleanly as root via a package manager.
 RUN npm install -g @anthropic-ai/claude-code
 RUN npm install -g @openai/codex
-RUN npm install -g @mariozechner/pi-coding-agent
+# Same package the host runs (@earendil-works fork, not the original
+# @mariozechner one) -- benchmarking a different pi than the host uses would
+# measure the wrong harness.
+RUN npm install -g @earendil-works/pi-coding-agent
 
 # Claude Code refuses --dangerously-skip-permissions as root ("cannot be used
 # with root/sudo privileges") -- every harness in this system needs unattended

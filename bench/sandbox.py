@@ -17,16 +17,24 @@ from . import task as task_mod
 
 BASE_IMAGE = "llm-bench-harness"
 
-# Host config/credential dirs bind-mounted read-only into the container so CLI
+# Host config/credential dirs bind-mounted into the container so CLI
 # harnesses reuse the host's existing login instead of re-authenticating.
+# pi reads/writes auth, model-registry cache, settings, and session locks all
+# over ~/.pi/agent/, so that one is mounted READ-WRITE as a directory
+# (individual ro file mounts leave the root-owned parent unwritable ->
+# EACCES on settings.json.lock, and the registry cache never loads).
+# Everything else stays read-only.
 CREDENTIAL_MOUNTS = [
     ".claude",
     ".claude.json",
     ".antigravity",
     ".config/opencode",
     ".codex",
-    ".config/pi",
+    ".pi/agent",
 ]
+
+# Subset of CREDENTIAL_MOUNTS mounted read-write (see comment above).
+RW_MOUNTS = {".pi/agent"}
 
 
 @dataclass
@@ -77,7 +85,8 @@ def _docker_run_args(sb: Sandbox, extra_env: dict | None = None) -> list[str]:
     for rel in CREDENTIAL_MOUNTS:
         host_path = home / rel
         if host_path.exists():
-            args += ["-v", f"{host_path}:/home/ubuntu/{rel}:ro"]
+            suffix = "" if rel in RW_MOUNTS else ":ro"
+            args += ["-v", f"{host_path}:/home/ubuntu/{rel}{suffix}"]
     merged_env = {**sb.container_env, **(extra_env or {})}
     for k, v in merged_env.items():
         args += ["-e", f"{k}={v}"]
@@ -92,7 +101,17 @@ def run(
     timeout: int = 600,
 ) -> subprocess.CompletedProcess:
     args = _docker_run_args(sb, extra_env) + ["bash", "-lc", command]
-    return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    try:
+        return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        # A hung harness run is a data point (exit 124 = timeout convention),
+        # not a reason to crash the batch.
+        out = e.stdout.decode(errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+        err = e.stderr.decode(errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
+        return subprocess.CompletedProcess(
+            args, returncode=124, stdout=out,
+            stderr=f"{err}\nbench: timed out after {timeout}s",
+        )
 
 
 def exec_in(sb: Sandbox, command: str, timeout: int = 300) -> subprocess.CompletedProcess:

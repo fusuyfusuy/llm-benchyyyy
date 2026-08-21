@@ -18,8 +18,11 @@ class ExactMatchResult:
 def grade(spec: GradingSpec, response_text: str) -> ExactMatchResult:
     if spec.expected_value is None:
         raise ValueError(f"{spec.path}: exact-match grading but no expected value found")
-    m = _NUMBER_RE.search(response_text)
-    extracted = m.group(0).replace(",", "") if m else None
+    # Last number wins: models often restate given figures in prose before the
+    # final answer ("480 - 120 = 360, so 368 remain"), and the final answer is
+    # conventionally last.
+    matches = _NUMBER_RE.findall(response_text)
+    extracted = matches[-1].replace(",", "") if matches else None
     return ExactMatchResult(
         passed=extracted == spec.expected_value,
         extracted=extracted,

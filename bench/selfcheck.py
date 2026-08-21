@@ -10,6 +10,8 @@ from pathlib import Path
 
 from . import markdown as md
 from . import report as report_mod
+from . import results as results_mod
+from . import sandbox as sandbox_mod
 from . import task as task_mod
 from .grading import exact_match as exact_grade
 from .grading import spec as spec_mod
@@ -19,8 +21,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def check_markdown_helpers() -> None:
     text = "## A\nfoo\nbar\n## B\nbaz\n"
-    assert md.extract_section(text, "A").strip() == "foo\nbar"
-    assert md.extract_section(text, "B").strip() == "baz"
+    sec_a = md.extract_section(text, "A")
+    sec_b = md.extract_section(text, "B")
+    assert sec_a is not None and sec_a.strip() == "foo\nbar"
+    assert sec_b is not None and sec_b.strip() == "baz"
     assert md.extract_section(text, "C") is None
 
     bold = "**dimension(s):** raw model, coding harness\n**difficulty tier:** easy\n"
@@ -76,6 +80,41 @@ def check_exact_match() -> None:
     assert ok.passed
     bad = exact_grade.grade(spec, "380 units remain.")
     assert not bad.passed
+    # Last number wins: given figures restated in prose must not be graded.
+    preamble = exact_grade.grade(spec, "Starting from 480 units, after all movements 368 remain.")
+    assert preamble.passed and preamble.extracted == "368"
+
+
+def check_raw_api_path_containment() -> None:
+    import tempfile
+
+    from .harness import raw_api
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sb = sandbox_mod.Sandbox(workdir=Path(tmp))
+        outside = raw_api._execute_tool(sb, "read_file", {"path": "/etc/hostname"})
+        assert "error reading" in outside, outside
+        traversal = raw_api._execute_tool(sb, "write_file", {"path": "../escaped.txt", "content": "x"})
+        assert "error writing" in traversal, traversal
+        assert not (Path(tmp).parent / "escaped.txt").exists()
+        inside = raw_api._execute_tool(sb, "write_file", {"path": "ok.txt", "content": "fine"})
+        assert inside == "wrote ok.txt"
+        assert (Path(tmp) / "ok.txt").read_text() == "fine"
+
+
+def check_run_record_schema_version() -> None:
+    from dataclasses import asdict
+
+    from .results import RunRecord
+
+    r = RunRecord(
+        task_id="t", model="m", harness="h", harness_version="v", tool_access="a",
+        scaffold_notes="", trial_number=1, result="pass", grading_method="unit-test",
+        constraint_violations="", wall_clock_seconds=1.0,
+        input_tokens=None, output_tokens=None, cached_tokens=None,
+        cost_usd=None, tool_call_count=None,
+    )
+    assert asdict(r)["schema_version"] == 1
 
 
 def check_report_aggregation() -> None:
@@ -93,6 +132,7 @@ def check_report_aggregation() -> None:
     assert row["cost_per_success_usd"] == 2.0  # (1.0 + 1.0) / 1 pass
     table = report_mod.format_table(agg)
     assert "t1" in table and "pass_rate" in table
+    assert row["cost_per_trial_usd"] == 1.0 and row["time_per_trial_seconds"] == 10.0
 
 
 def check_all_task_expected_pairs_parse() -> None:
@@ -110,10 +150,42 @@ def check_all_task_expected_pairs_parse() -> None:
         spec_mod.parse_grading_spec(expected_path)
 
 
+def check_judge_cli_transport() -> None:
+    """Judge ensemble end-to-end with the CLI transport patched out -- no
+    network, no login needed; verifies prompt->votes->median wiring."""
+    from .grading import judge as judge_grade
+
+    calls = []
+
+    def fake_fetch(prompt: str) -> str:
+        calls.append(prompt)
+        if "gate-checker" in prompt:
+            return '{"gate_failed": false, "reason": "ok"}'
+        return '{"scores": {}, "total_score": 3, "max_score": 4}'
+
+    real_fetch = judge_grade._fetch_response
+    judge_grade._fetch_response = fake_fetch
+    try:
+        spec = spec_mod.parse_grading_spec(
+            REPO_ROOT / "expected" / "reasoning" / "underspecified-feature-request.md"
+        )
+        verdict = judge_grade.grade(spec, "some response text")
+    finally:
+        judge_grade._fetch_response = real_fetch
+    assert verdict.passed and not verdict.gate_failed, verdict
+    assert verdict.score == 3 and verdict.total == 4, verdict
+    # this spec has no automatic_gate -> rubric votes only
+    assert len(calls) == judge_grade.N_JUDGES, len(calls)
+    assert all("intentionally unidentified" in c for c in calls)
+
+
 def main() -> None:
     check_markdown_helpers()
     check_task_and_spec_parse_real_files()
     check_exact_match()
+    check_raw_api_path_containment()
+    check_run_record_schema_version()
+    check_judge_cli_transport()
     check_report_aggregation()
     check_all_task_expected_pairs_parse()
     print("selfcheck OK")

@@ -17,3 +17,7 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+
+# Local agent-harness session artifacts (pi / pi-lens state) — not project code.
+.pi/
+.pi-glla/

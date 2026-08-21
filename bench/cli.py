@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import glob as globmod
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from . import pricing
@@ -20,6 +21,14 @@ from .harness import raw_api
 
 DEFAULT_MODEL = "claude-sonnet-5"
 TOOL_ACCESS = "read+write+bash"
+
+# Grader registry: method name -> grade(spec, sb, response_text) -> passed.
+GRADERS = {
+    "unit-test": lambda spec, sb, text: exec_grade.grade(spec, sb).passed,
+    "state-check": lambda spec, sb, text: exec_grade.grade(spec, sb).passed,
+    "exact-match": lambda spec, sb, text: exact_grade.grade(spec, text).passed,
+    "judge-ensemble": lambda spec, sb, text: judge_grade.grade(spec, text).passed,
+}
 
 
 def _expected_path_for(task_path: Path) -> Path:
@@ -53,21 +62,13 @@ def run_one(task_path: Path, harness: str, model: str, trial_number: int) -> res
             tool_call_count = hr.tool_call_count
             wall_clock = hr.wall_clock_seconds
             cost = hr.cost_usd
-            if cost is None:
+            if cost is None and model in pricing.PRICING_PER_MTOK:
                 cost = pricing.cost_usd(model, input_tokens, output_tokens)
-            harness_version = harness
+            harness_version = cli_adapter.harness_version(config)
 
-        if spec.method in ("unit-test", "state-check"):
-            g = exec_grade.grade(spec, sb)
-            passed = g.passed
-        elif spec.method == "exact-match":
-            g = exact_grade.grade(spec, response_text)
-            passed = g.passed
-        elif spec.method == "judge-ensemble":
-            g = judge_grade.grade(spec, response_text)
-            passed = g.passed
-        else:
+        if spec.method not in GRADERS:
             raise ValueError(f"unknown grading method {spec.method}")
+        passed = GRADERS[spec.method](spec, sb, response_text)
     finally:
         sandbox_mod.cleanup(sb)
 
@@ -106,10 +107,36 @@ def _collect_task_paths(args) -> list[Path]:
 
 
 def cmd_run(args) -> None:
-    for task_path in _collect_task_paths(args):
-        for trial in range(1, args.trials + 1):
-            record = run_one(task_path, args.harness, args.model, trial)
-            print(f"{task_path} trial={trial} harness={args.harness} model={args.model} -> {record.result}")
+    if args.judge_harness:
+        judge_grade.JUDGE_HARNESS = args.judge_harness
+    if args.judge_model:
+        judge_grade.JUDGE_MODEL = args.judge_model
+    # Each (task, trial) pair owns an isolated tempdir + container, so trials
+    # run in threads; results_mod.append is a single-line file append per call.
+    pairs = [
+        (task_path, trial)
+        for task_path in _collect_task_paths(args)
+        for trial in range(1, args.trials + 1)
+    ]
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        futures = {
+            pool.submit(run_one, task_path, args.harness, args.model, trial): (task_path, trial)
+            for task_path, trial in pairs
+        }
+        for fut in as_completed(futures):
+            task_path, trial = futures[fut]
+            try:
+                record = fut.result()
+            except Exception as e:  # noqa: BLE001 - one bad run must not kill the batch
+                print(
+                    f"{task_path} trial={trial} harness={args.harness} model={args.model}"
+                    f" -> ERROR: {type(e).__name__}: {e}"
+                )
+                continue
+            print(
+                f"{task_path} trial={trial} harness={args.harness} model={args.model}"
+                f" -> {record.result}"
+            )
 
 
 def cmd_report(_args) -> None:
@@ -126,6 +153,19 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.add_argument("--harness", required=True, choices=["raw-api", *harness_configs.REGISTRY.keys()])
     run_p.add_argument("--model", default=DEFAULT_MODEL)
     run_p.add_argument("--trials", type=int, default=1)
+    run_p.add_argument("--jobs", type=int, default=4, help="parallel task-trial runs")
+    run_p.add_argument(
+        "--judge-harness",
+        default=judge_grade.JUDGE_HARNESS,
+        choices=[*harness_configs.REGISTRY.keys()],
+        help="CLI harness that casts judge-ensemble votes (uses its existing login, no API key)",
+    )
+    run_p.add_argument(
+        "--judge-model",
+        default=judge_grade.JUDGE_MODEL or "",
+        help="provider-scoped model for judge votes (e.g. anthropic/claude-opus-5); "
+        "default: the judge harness's own default model",
+    )
     run_p.set_defaults(func=cmd_run)
 
     report_p = sub.add_parser("report", help="aggregate results/runs.jsonl into a report")

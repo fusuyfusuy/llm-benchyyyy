@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from .. import sandbox as sandbox_mod
 
@@ -58,18 +59,30 @@ class RawApiResult:
     wall_clock_seconds: float
 
 
+def _resolve_in_sandbox(sb: sandbox_mod.Sandbox, path: str) -> Path:
+    target = (sb.workdir / path).resolve()
+    if not target.is_relative_to(sb.workdir.resolve()):
+        raise PermissionError(f"path escapes the task workspace: {path}")
+    return target
+
+
 def _execute_tool(sb: sandbox_mod.Sandbox, name: str, tool_input: dict) -> str:
     if name == "bash":
         proc = sandbox_mod.exec_in(sb, tool_input["command"])
         return f"exit={proc.returncode}\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
     if name == "read_file":
-        target = sb.workdir / tool_input["path"]
         try:
+            target = _resolve_in_sandbox(sb, tool_input["path"])
             return target.read_text()
-        except OSError as e:
+        except (OSError, ValueError) as e:
             return f"error reading {tool_input['path']}: {e}"
     if name == "write_file":
-        sandbox_mod.write_file(sb, tool_input["path"], tool_input["content"])
+        try:
+            target = _resolve_in_sandbox(sb, tool_input["path"])
+        except (OSError, ValueError) as e:
+            return f"error writing {tool_input['path']}: {e}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(tool_input["content"])
         return f"wrote {tool_input['path']}"
     return f"unknown tool {name}"
 

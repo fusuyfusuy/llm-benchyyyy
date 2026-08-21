@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-RESULTS_PATH = Path("results/runs.jsonl")
+RESULTS_PATH = Path(__file__).resolve().parent.parent / "results" / "runs.jsonl"
 
 
 @dataclass
@@ -27,6 +27,8 @@ class RunRecord:
     cached_tokens: int | None
     cost_usd: float | None
     tool_call_count: int | None
+    # Bump when RunRecord fields change; lets runs.jsonl mix shapes across time.
+    schema_version: int = 1
 
 
 def append(record: RunRecord, path: Path = RESULTS_PATH) -> None:

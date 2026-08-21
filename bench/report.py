@@ -15,6 +15,8 @@ TABLE_HEADERS = (
     "pass_rate",
     "cost_per_success_usd",
     "time_per_success_seconds",
+    "cost_per_trial_usd",
+    "time_per_trial_seconds",
 )
 
 
@@ -40,6 +42,10 @@ def aggregate(rows: list[dict]) -> list[dict]:
             cost_per_success_usd=cost_per_success,
             time_per_success_seconds=time_per_success,
             total_cost_usd=total_cost,
+            # Dispersion companions: per-trial means make a run of N=1 look
+            # like what it is next to an N=3 group with the same totals.
+            cost_per_trial_usd=(total_cost / n) if n else None,
+            time_per_trial_seconds=(total_time / n) if n else None,
         )
         out.append(row)
     out.sort(key=lambda r: tuple(str(r[k]) for k in GROUP_KEYS))
