@@ -6,7 +6,9 @@ from pathlib import Path
 
 from . import sandbox as sandbox_mod
 from . import task as task_mod
+from .grading import exact_match as exact_grade
 from .grading import executable as exec_grade
+from .grading import judge as judge_grade
 from .grading import spec as spec_mod
 
 
@@ -31,7 +33,11 @@ def run_solution(task_path: Path, solution_path: Path) -> bool:
 
     sb = sandbox_mod.create(t.seed_files, t.setup_script)
     try:
-        sandbox_mod.exec_in(sb, script_content)
+        proc = sandbox_mod.exec_in(sb, script_content)
+        if spec.method == "exact-match":
+            return exact_grade.grade(spec, proc.stdout).passed
+        if spec.method == "judge-ensemble":
+            return judge_grade.grade(spec, proc.stdout).passed
         result = exec_grade.grade(spec, sb)
         return result.passed
     finally:
