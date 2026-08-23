@@ -157,7 +157,9 @@ def cmd_verify(args) -> None:
             raw_api.run(sb, "Say OK", args.model)
         else:
             conf = harness_configs.REGISTRY[args.harness]
-            cli_adapter.run(conf, sb, "Say OK", args.model)
+            res = cli_adapter.run(conf, sb, "Say OK", args.model)
+            if res.raw_exit_code != 0:
+                raise RuntimeError(f"Harness exited with code {res.raw_exit_code}. Output: {res.response_text}")
         print("✅ Verification passed.")
     except Exception as e:
         print(f"❌ Verification failed: {e}")
