@@ -142,6 +142,15 @@ def check_all_task_expected_pairs_parse() -> None:
         spec_mod.parse_grading_spec(expected_path)
 
 
+def check_selfsolve_path_mapping() -> None:
+    from . import selfsolve
+    task_path = REPO_ROOT / "tasks" / "coding" / "fix-off-by-one-pagination.md"
+    exp_path = selfsolve._expected_path_for(task_path)
+    assert exp_path == REPO_ROOT / "expected" / "coding" / "fix-off-by-one-pagination.md"
+    sol_path = selfsolve._solution_path_for(task_path)
+    assert sol_path == REPO_ROOT / "solutions" / "coding" / "fix-off-by-one-pagination.sh"
+
+
 def main() -> None:
     check_markdown_helpers()
     check_task_and_spec_parse_real_files()
@@ -150,6 +159,7 @@ def main() -> None:
     check_run_record_schema_version()
     check_report_aggregation()
     check_all_task_expected_pairs_parse()
+    check_selfsolve_path_mapping()
     print("selfcheck OK")
 
 
