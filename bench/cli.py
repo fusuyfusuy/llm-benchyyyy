@@ -151,13 +151,13 @@ def cmd_verify(args) -> None:
     from .harness import raw_api, cli_adapter
     from .harness import configs as harness_configs
     
-    sb = create({}, "")
+    sb = create([], None)
     try:
         if args.harness == "raw-api":
             raw_api.run(sb, "Say OK", args.model)
         else:
             conf = harness_configs.REGISTRY[args.harness]
-            cli_adapter.run(sb, "Say OK", conf, args.model)
+            cli_adapter.run(conf, sb, "Say OK", args.model)
         print("✅ Verification passed.")
     except Exception as e:
         print(f"❌ Verification failed: {e}")
