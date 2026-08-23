@@ -27,14 +27,14 @@ BASE_IMAGE = "llm-bench-harness"
 CREDENTIAL_MOUNTS = [
     ".claude",
     ".claude.json",
-    ".antigravity",
+    ".gemini",
     ".config/opencode",
     ".codex",
     ".pi/agent",
 ]
 
 # Subset of CREDENTIAL_MOUNTS mounted read-write (see comment above).
-RW_MOUNTS = {".pi/agent"}
+RW_MOUNTS = {".pi/agent", ".gemini"}
 
 
 @dataclass

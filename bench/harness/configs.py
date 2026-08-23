@@ -4,12 +4,9 @@ One generic adapter (cli_adapter.py) drives all five; this file is just the
 per-harness argv template and the JSON-field map for pulling response text /
 tokens / cost / tool-call-count out of each CLI's own output.
 
-ponytail: claude-code and pi-agent mappings are verified against live runs
-(pi's JSONL shape confirmed 2026-08-21: response text at message.content[].text,
-per-turn usage at message.usage.{input,output}, cost at message.usage.cost.total,
-tool calls as tool_execution_start events). codex-cli, antigravity, and opencode
-are still docs-derived and unverified. Upgrade path: run each harness once for
-real, diff its actual JSON against the paths below, fix the first mismatch found.
+ponytail: claude-code, pi-agent, antigravity, and opencode mappings are verified against live runs.
+codex-cli is still docs-derived and unverified (codex not installed locally). Upgrade path:
+run codex harness once for real, diff its actual JSON, fix the first mismatch found, or delete it.
 """
 from __future__ import annotations
 
@@ -68,10 +65,11 @@ ANTIGRAVITY = HarnessConfig(
     command=["agy", "-p", "{prompt}", "--output-format", "json", "--dangerously-skip-permissions"],
     model_flag=["--model", "{model}"],
     parse="single-json",
-    response_path=["result"],
+    response_path=["response"],
     input_tokens_path=["usage", "input_tokens"],
     output_tokens_path=["usage", "output_tokens"],
-    cost_path=["total_cost_usd"],
+    cost_path=None,
+    tool_call_count_path=["num_turns"],
     version_argv=("agy", "--version"),
 )
 
@@ -101,11 +99,12 @@ OPENCODE = HarnessConfig(
     # opencode wants provider/model form, e.g. opencode-go/muse-spark
     model_flag=["--model", "{model}"],
     parse="jsonl",
-    response_path=["text"],
-    input_tokens_path=["usage", "input_tokens"],
-    output_tokens_path=["usage", "output_tokens"],
-    cost_path=["cost_usd"],
-    tool_call_event_types=("tool_call", "tool"),
+    response_path=["part", "text"],
+    input_tokens_path=["part", "tokens", "input"],
+    output_tokens_path=["part", "tokens", "output"],
+    cost_path=["part", "cost"],
+    tool_call_event_types=("tool_use",),
+    sum_usage_event_types=("step_finish",),
     version_argv=("opencode", "--version"),
 )
 

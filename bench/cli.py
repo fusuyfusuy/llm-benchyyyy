@@ -143,6 +143,26 @@ def cmd_report(_args) -> None:
     print(report_mod.write_report())
 
 
+
+def cmd_verify(args) -> None:
+    print(f"Verifying harness={args.harness} model={args.model}...")
+    from .sandbox import create
+    from .harness import raw_api, cli_adapter
+    from .harness import configs as harness_configs
+    
+    sb = create({}, "")
+    try:
+        if args.harness == "raw-api":
+            raw_api.run(sb, "Say OK", args.model)
+        else:
+            conf = harness_configs.REGISTRY[args.harness]
+            cli_adapter.run(sb, "Say OK", conf, args.model)
+        print("✅ Verification passed.")
+    except Exception as e:
+        print(f"❌ Verification failed: {e}")
+        sys.exit(1)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="bench")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -170,6 +190,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_p = sub.add_parser("report", help="aggregate results/runs.jsonl into a report")
     report_p.set_defaults(func=cmd_report)
+
+    
+    verify_p = sub.add_parser("verify", help="verify a harness/model pair works before running a full suite")
+    verify_p.add_argument("--harness", required=True, choices=["raw-api"] + list(harness_configs.REGISTRY.keys()))
+    verify_p.add_argument("--model", required=True, help="Model identifier to test")
+    verify_p.set_defaults(func=cmd_verify)
 
     return parser
 

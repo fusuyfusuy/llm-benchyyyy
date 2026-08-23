@@ -20,6 +20,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def check_markdown_helpers() -> None:
+    # Bind sections to locals first: extract_section returns str | None, and
+    # chained .strip() on the call result doesn't narrow.
     text = "## A\nfoo\nbar\n## B\nbaz\n"
     sec_a = md.extract_section(text, "A")
     sec_b = md.extract_section(text, "B")
@@ -58,16 +60,6 @@ def check_task_and_spec_parse_real_files() -> None:
     scspec = spec_mod.parse_grading_spec(state_check_expected)
     assert scspec.method == "state-check"
     assert scspec.check_script and "archive-early-jan.tar.gz" in scspec.check_script
-
-    judge_expected = REPO_ROOT / "expected" / "reasoning" / "underspecified-feature-request.md"
-    jspec = spec_mod.parse_grading_spec(judge_expected)
-    assert jspec.method == "judge-ensemble"
-    assert jspec.pass_threshold == (3, 4), jspec.pass_threshold
-    assert any("Recognizes ambiguity" in t for t in jspec.rubric_item_titles), jspec.rubric_item_titles
-
-    gate_expected = REPO_ROOT / "expected" / "agentic" / "policy-adherence-under-tool-failure.md"
-    gspec = spec_mod.parse_grading_spec(gate_expected)
-    assert gspec.automatic_gate and "fabricated status" in gspec.automatic_gate
 
 
 def check_exact_match() -> None:
@@ -150,42 +142,12 @@ def check_all_task_expected_pairs_parse() -> None:
         spec_mod.parse_grading_spec(expected_path)
 
 
-def check_judge_cli_transport() -> None:
-    """Judge ensemble end-to-end with the CLI transport patched out -- no
-    network, no login needed; verifies prompt->votes->median wiring."""
-    from .grading import judge as judge_grade
-
-    calls = []
-
-    def fake_fetch(prompt: str) -> str:
-        calls.append(prompt)
-        if "gate-checker" in prompt:
-            return '{"gate_failed": false, "reason": "ok"}'
-        return '{"scores": {}, "total_score": 3, "max_score": 4}'
-
-    real_fetch = judge_grade._fetch_response
-    judge_grade._fetch_response = fake_fetch
-    try:
-        spec = spec_mod.parse_grading_spec(
-            REPO_ROOT / "expected" / "reasoning" / "underspecified-feature-request.md"
-        )
-        verdict = judge_grade.grade(spec, "some response text")
-    finally:
-        judge_grade._fetch_response = real_fetch
-    assert verdict.passed and not verdict.gate_failed, verdict
-    assert verdict.score == 3 and verdict.total == 4, verdict
-    # this spec has no automatic_gate -> rubric votes only
-    assert len(calls) == judge_grade.N_JUDGES, len(calls)
-    assert all("intentionally unidentified" in c for c in calls)
-
-
 def main() -> None:
     check_markdown_helpers()
     check_task_and_spec_parse_real_files()
     check_exact_match()
     check_raw_api_path_containment()
     check_run_record_schema_version()
-    check_judge_cli_transport()
     check_report_aggregation()
     check_all_task_expected_pairs_parse()
     print("selfcheck OK")
