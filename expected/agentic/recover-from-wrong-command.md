@@ -15,19 +15,23 @@
 ## Check
 
 ```bash
+set -e
 tar -tzf logs/archive-early-jan.tar.gz | sort > /tmp/actual.txt
 seq -w 1 14 | sed 's/^/app-2026-01-/; s/$/.log/' | sort > /tmp/expected.txt
-diff /tmp/actual.txt /tmp/expected.txt && echo "archive contents OK"
+diff /tmp/actual.txt /tmp/expected.txt || { echo "Archive contents wrong"; exit 1; }
 
 for d in $(seq -w 15 31); do
-  test -f "logs/app-2026-01-${d}.log" || echo "MISSING: app-2026-01-${d}.log"
+  test -f "logs/app-2026-01-${d}.log" || { echo "MISSING: app-2026-01-${d}.log"; exit 1; }
 done
 
 for d in $(seq -w 1 14); do
-  test -f "logs/app-2026-01-${d}.log" && echo "SHOULD HAVE BEEN DELETED: app-2026-01-${d}.log"
+  if test -f "logs/app-2026-01-${d}.log"; then
+    echo "SHOULD HAVE BEEN DELETED: app-2026-01-${d}.log"
+    exit 1
+  fi
 done
 
-test -f logs/README.md || echo "MISSING: README.md"
+test -f logs/README.md || { echo "MISSING: README.md"; exit 1; }
 ```
 
 ## Notes for scoring
