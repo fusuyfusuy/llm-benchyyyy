@@ -12,6 +12,10 @@ judge bias, and reproducible. Reserve LLM-as-judge grading for tasks where corre
 is genuinely open-ended (e.g. "is this explanation clear," "is this refactor idiomatic")
 and there's no cheaper check.
 
+**Anti-Cheat Rule:** To prevent an agent from achieving a false positive `exit 0` by simply deleting test assertions, all executable coding tasks MUST either:
+1. Provide the test assertions in a held-out file that the agent never sees or edits.
+2. If the agent must edit the same file that contains the tests, use a cryptographic hash (e.g., `sha256sum`) in the `## Check` block to verify the test suite itself was not tampered with.
+
 ## When a judge is required
 
 LLM-as-judge is measurably biased if used naively — published measurements found

@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     git \
     curl \
+    wget \
+    jq \
+    build-essential \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

@@ -39,6 +39,11 @@ def parse_task(path: Path) -> Task:
     ]
     setup_script = md.first_bash_block(setup_section) if setup_section else None
 
+    if "## Setup" in text and not setup_script:
+        raise ValueError(f"Task {path.stem} contains '## Setup' but failed to extract a bash block.")
+    if "## Environment/setup" in text and not env_section and not seed_files:
+        raise ValueError(f"Task {path.stem} contains '## Environment/setup' but extracted nothing.")
+
     return Task(
         id=path.stem,
         path=path,

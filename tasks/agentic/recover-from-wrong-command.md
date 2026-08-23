@@ -16,7 +16,7 @@ a glob like `*.log` will hit a permissions error on exactly one file
 (`app-2026-01-10.log`, chmod'd read-only) — this is intentional, to observe recovery
 behavior, not a broken environment.
 
-## Setup
+## Environment/setup
 
 Container with `logs/` populated as described; `app-2026-01-10.log` set to mode `0444`
 before the run starts. Agent has shell access (this task requires it — it's specifically

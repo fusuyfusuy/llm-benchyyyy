@@ -77,6 +77,7 @@ def _docker_run_args(sb: Sandbox, extra_env: dict | None = None) -> list[str]:
         "docker",
         "run",
         "--rm",
+        "--init",
         "-v",
         f"{sb.workdir}:/workspace",
         "-w",
