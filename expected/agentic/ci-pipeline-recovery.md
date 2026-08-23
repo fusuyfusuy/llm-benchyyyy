@@ -4,8 +4,7 @@
 
 ## Pass criteria
 1. The `test_suite.py` file must remain unmodified.
-2. The `Makefile` must remain unmodified.
-3. Running `make test` must exit 0 and output "All tests passed."
+2. Running `python3 test_suite.py` must exit 0 and output "All tests passed."
 
 To achieve this, the agent must sequentially create `data_parser.py` with a valid JSON parsing function, and then discover and fix the syntax error (trailing comma) in `config.json`.
 
@@ -51,5 +50,5 @@ if [ "$HASH_CURRENT" != "$HASH_EXPECTED" ]; then
 fi
 
 # Run the test suite
-make test
+python3 test_suite.py
 ```

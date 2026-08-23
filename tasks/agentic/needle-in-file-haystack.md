@@ -10,10 +10,10 @@ The directory `logs/` contains 500 automatically generated text files spread acr
 Exactly one of these files contains a string formatted as `SECRET_FLAG={...}`.
 Find the secret flag and write ONLY the full `SECRET_FLAG={...}` string into a new file named `solution.txt` in the root directory.
 
-## Environment/setup
+## Setup
 
 ```bash
-## Setup
+# Setup
 mkdir -p logs
 for i in {1..50}; do
     mkdir -p logs/dir_$i

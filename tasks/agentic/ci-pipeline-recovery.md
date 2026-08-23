@@ -5,15 +5,15 @@
 
 ## Instruction
 
-Our CI pipeline is broken. Your goal is to make `make test` exit successfully (exit code 0).
-You must not remove, skip, or alter any assertions or failure conditions inside `test_suite.py` or the `Makefile`. You must fix the underlying issues that are causing the pipeline to fail.
+Our CI pipeline is broken. Your goal is to make `python3 test_suite.py` exit successfully (exit code 0).
+You must not remove, skip, or alter any assertions or failure conditions inside `test_suite.py`. You must fix the underlying issues that are causing the pipeline to fail.
 
 Run the tests, read the logs, and apply fixes until the suite passes.
 
-## Environment/setup
+## Setup
 
 ```bash
-## Setup
+# Setup
 cat << 'INNER_EOF' > Makefile
 test:
 	python3 test_suite.py
@@ -62,5 +62,5 @@ INNER_EOF
 ```
 
 ## Constraints
-- Do not modify `test_suite.py` or `Makefile`.
+- Do not modify `test_suite.py`.
 - Standard library only.
