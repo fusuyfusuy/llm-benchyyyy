@@ -10,6 +10,7 @@ from . import pricing
 from . import results as results_mod
 from . import report as report_mod
 from . import sandbox as sandbox_mod
+from . import selfsolve as selfsolve_mod
 from . import task as task_mod
 from .grading import exact_match as exact_grade
 from .grading import executable as exec_grade
@@ -170,6 +171,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_p = sub.add_parser("report", help="aggregate results/runs.jsonl into a report")
     report_p.set_defaults(func=cmd_report)
+
+    selfsolve_p = sub.add_parser("self-solve", help="run golden solutions against task grading rubrics")
+    selfsolve_p.add_argument("--task", help="path to a single task .md file")
+    selfsolve_p.add_argument("--task-glob", help="glob of task .md files, e.g. 'tasks/**/*.md'")
+    selfsolve_p.set_defaults(func=selfsolve_mod.cmd_selfsolve)
 
     return parser
 
