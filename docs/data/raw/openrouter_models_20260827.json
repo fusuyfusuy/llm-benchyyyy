@@ -1,6 +1,64 @@
 {
   "data": [
     {
+      "id": "inclusionai/ling-3.0-flash-fin:free",
+      "canonical_slug": "inclusionai/ling-3.0-flash-fin-20260827",
+      "hugging_face_id": null,
+      "name": "Ling 3.0 Flash Fin (free)",
+      "created": 1787846290,
+      "description": "Ling 3.0 Flash Fin is a finance-focused mixture-of-experts model from InclusionAI, built on Ling 3.0 Flash with 5.1B active parameters out of 124B total. It is designed for real-world investment...",
+      "context_length": 262144,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": [
+          "text"
+        ],
+        "output_modalities": [
+          "text"
+        ],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      },
+      "top_provider": {
+        "context_length": 262144,
+        "max_completion_tokens": 32768,
+        "is_moderated": false
+      },
+      "per_request_limits": null,
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "default_parameters": {},
+      "supported_voices": null,
+      "knowledge_cutoff": null,
+      "expiration_date": null,
+      "links": {
+        "details": "/api/v1/models/inclusionai/ling-3.0-flash-fin-20260827/endpoints"
+      },
+      "reasoning": {
+        "mandatory": false,
+        "default_enabled": true
+      }
+    },
+    {
       "id": "qwen/qwen3.8-flash",
       "canonical_slug": "qwen/qwen3.8-flash-20260826",
       "hugging_face_id": null,
@@ -6320,9 +6378,9 @@
         "instruct_type": null
       },
       "pricing": {
-        "prompt": "0.000000132",
-        "completion": "0.000000528",
-        "input_cache_read": "0.000000033",
+        "prompt": "0.0000000825",
+        "completion": "0.00000033",
+        "input_cache_read": "0.000000020625",
         "overrides": [
           {
             "utc_start": 0,
@@ -13815,9 +13873,9 @@
         "instruct_type": null
       },
       "pricing": {
-        "prompt": "0.00000007952",
-        "completion": "0.00000015904",
-        "input_cache_read": "0.000000015904"
+        "prompt": "0.00000007798",
+        "completion": "0.00000015596",
+        "input_cache_read": "0.000000015596"
       },
       "top_provider": {
         "context_length": 1024000,
@@ -39093,7 +39151,7 @@
       }
     }
   ],
-  "total_count": 417,
+  "total_count": 418,
   "links": {
     "next": null
   }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-27T14:56:04.225405+00:00",
+  "generated_at": "2026-08-27T15:27:58.176034+00:00",
   "sources": {
     "opencode_docs": "https://opencode.ai/docs/go/",
     "opencode_api": "https://opencode.ai/zen/go/v1/models",
@@ -683,7 +683,7 @@
         },
         "openrouter_id": "deepseek/deepseek-v4-flash",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.07952,
+        "openrouter_prompt_per_1m": 0.07798000000000001,
         "composite_score": 79.3,
         "capability_q": 79.3,
         "p_success": 70.6,
@@ -997,7 +997,7 @@
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     },
     {
@@ -1191,7 +1191,7 @@
         "AA",
         "LM"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     },
     {
@@ -1385,7 +1385,7 @@
         "AA",
         "LM"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     },
     {
@@ -2652,7 +2652,7 @@
         "AA",
         "Live"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     },
     {
@@ -2964,7 +2964,7 @@
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     },
     {
@@ -3347,7 +3347,7 @@
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T14:56:04.221086+00:00",
+      "first_seen": "2026-08-27T15:27:58.168255+00:00",
       "is_new": true
     }
   ]

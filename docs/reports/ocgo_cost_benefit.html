@@ -17,7 +17,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 tr.flagship{background:rgba(63,185,80,0.07)}tr.value{background:rgba(88,166,255,0.07)}tr.pareto{background:rgba(210,153,34,0.18);border-left:3px solid #d29922}tr.free{opacity:0.6}
 </style></head><body><div class="wrap">
 <h1>OpenCode Go — Cost/Benefit (2026-08-27)</h1>
-<p class="sub">Live check — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated 2026-08-27T14:56:04.230052+00:00</p>
+<p class="sub">Live check — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated 2026-08-27T15:27:58.184608+00:00</p>
 
 <div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
 
@@ -84,7 +84,7 @@ tr.flagship{background:rgba(63,185,80,0.07)}tr.value{background:rgba(88,166,255,
 
 <div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.5, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
 
-<p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 scripts/ocgo_check.py</code> / <code>ocheck</code>.</p>
+<p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
 <div class="footer"><span class="path">path: outputs/ocgo_cost_benefit.html</span><span class="work">Current work: live cost/benefit of 26 Go models (25 ranked) — best value muse-spark-1.2-contributor, flagship glm-5.3, 39% quota remaining.</span></div>
 <script>
 (function(){
