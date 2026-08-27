@@ -5,7 +5,7 @@ This guide explains how to use the `llm-benchyyyy` runner to execute benchmarkin
 ## 1. Environment Setup
 
 ### Install the benchmark runner
-You need to install the `bench` package locally so Python can resolve the module:
+You need to install the package locally so Python can resolve the module:
 ```bash
 # From the repository root
 pip install -e .
@@ -33,9 +33,9 @@ You must be logged into the respective CLI tools on your host machine before run
 
 ## 3. Running a Benchmark
 
-The command to execute a benchmark is `python -m bench run`. It takes four primary arguments:
+The command to execute a benchmark is `python -m engine run`. It takes four primary arguments:
 - `--task`: Path to the markdown file in `tasks/`.
-- `--harness`: The CLI to use (`claude-code`, `agy`, `pi-agent`, `opencode`).
+- `--harness`: The CLI to use (`claude-code`, `antigravity`, `pi-agent`, `opencode`).
 - `--model`: The underlying model flag to pass to the CLI.
 - `--trials`: How many times to repeat the task (must be ≥ 3 for statistical significance).
 
@@ -45,25 +45,25 @@ Let's run the `fix-off-by-one-pagination` task against the 4 harnesses.
 
 **For Claude Code:**
 ```bash
-python -m bench run --task tasks/coding/fix-off-by-one-pagination.md \
+python -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
     --harness claude-code --model claude-sonnet-5 --trials 3
 ```
 
 **For Antigravity:**
 ```bash
-python -m bench run --task tasks/coding/fix-off-by-one-pagination.md \
+python -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
     --harness antigravity --model gemini-2.5-pro --trials 3
 ```
 
 **For Pi-Agent:**
 ```bash
-python -m bench run --task tasks/coding/fix-off-by-one-pagination.md \
+python -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
     --harness pi-agent --model gemini-2.5-flash --trials 3
 ```
 
 **For OpenCode:**
 ```bash
-python -m bench run --task tasks/coding/fix-off-by-one-pagination.md \
+python -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
     --harness opencode --model opencode-go/muse-spark --trials 3
 ```
 
@@ -79,7 +79,7 @@ When you run a task, the runner performs the following sequence:
 
 Once your runs have finished, you generate an aggregated markdown report showing Pass Rates, Costs, and Latency:
 ```bash
-python -m bench report
+python -m engine report
 ```
 This generates `results/report.md`. Since LLMs are non-deterministic, you will see a percentage pass rate (e.g., 66% if it passed 2 out of 3 trials).
 
