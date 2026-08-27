@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
+        h1 { font-size: 24px; margin-bottom: 8px; }
+        .sub { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #334155; font-size: 13px; }
+        th { background: #0f172a; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+        tr:hover { background: #2d3748; }
+    </style>
+</head>
+<body>
+    <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
+    <div class="sub">Arena.ai · Artificial Analysis · OpenRouter · ARC Prize (ARC-AGI-2) · Agentic Value Index (AVI)</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Pool</th>
+                <th>Role / Tier</th>
+                <th>Q (Cap)</th>
+                <th>P(Succ)</th>
+                <th>Eff $/M</th>
+                <th>AVI (ROI)</th>
+                <th>FGI (Gate)</th>
+                <th>ARC-AGI-2</th>
+                <th>Coding Elo</th>
+                <th>Speed</th>
+                <th>Price In/Out</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        <tr>
+            <td style="font-weight:600;">Claude Opus 5 (Thinking)</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Flagship / Complex Gates</td>
+            <td style="font-weight:700; color:#2563eb;">89.2</td>
+            <td>88.7%</td>
+            <td>$11.51</td>
+            <td style="font-weight:700; color:#10b981;">175.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">74.6</td>
+            <td>90.4%</td>
+            <td>1520</td>
+            <td>38.0 t/s</td>
+            <td>$5.00 / $25.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Claude Fable 5 (High)</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Elite Creative / Agent</td>
+            <td style="font-weight:700; color:#2563eb;">88.6</td>
+            <td>88.0%</td>
+            <td>$23.40</td>
+            <td style="font-weight:700; color:#10b981;">137.8</td>
+            <td style="font-weight:700; color:#8b5cf6;">73.1</td>
+            <td>88.0%</td>
+            <td>1512</td>
+            <td>35.0 t/s</td>
+            <td>$10.00 / $50.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT-5.6 Sol (Reasoning Flagship)</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Frontier Flagship Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">88.0</td>
+            <td>87.2%</td>
+            <td>$4.76</td>
+            <td style="font-weight:700; color:#10b981;">238.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">71.7</td>
+            <td>81.0%</td>
+            <td>1515</td>
+            <td>45.0 t/s</td>
+            <td>$2.00 / $10.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT 5.5 (xHigh)</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Frontier Agentic Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">86.9</td>
+            <td>85.7%</td>
+            <td>$13.68</td>
+            <td style="font-weight:700; color:#10b981;">156.1</td>
+            <td style="font-weight:700; color:#8b5cf6;">68.9</td>
+            <td>78.5%</td>
+            <td>1500</td>
+            <td>40.0 t/s</td>
+            <td>$5.00 / $30.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT-5.4 Pro</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Enterprise Agentic Flagship</td>
+            <td style="font-weight:700; color:#2563eb;">85.5</td>
+            <td>83.5%</td>
+            <td>$86.12</td>
+            <td style="font-weight:700; color:#10b981;">91.6</td>
+            <td style="font-weight:700; color:#8b5cf6;">65.2</td>
+            <td>72.5%</td>
+            <td>1480</td>
+            <td>36.0 t/s</td>
+            <td>$30.00 / $180.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Claude Opus 4.6 (Thinking)</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Lead / Architecture</td>
+            <td style="font-weight:700; color:#2563eb;">85.3</td>
+            <td>83.1%</td>
+            <td>$13.01</td>
+            <td style="font-weight:700; color:#10b981;">152.4</td>
+            <td style="font-weight:700; color:#8b5cf6;">64.7</td>
+            <td>68.8%</td>
+            <td>1495</td>
+            <td>42.0 t/s</td>
+            <td>$5.00 / $25.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Gemini 3.1 Pro (High)</td>
+            <td><span style="background:#3b82f622; color:#3b82f6; padding:2px 6px; border-radius:4px; font-weight:600;">AGY</span></td>
+            <td>Flagship Reasoning (1M ctx)</td>
+            <td style="font-weight:700; color:#2563eb;">84.2</td>
+            <td>81.2%</td>
+            <td>$6.04</td>
+            <td style="font-weight:700; color:#10b981;">196.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">61.6</td>
+            <td>77.1%</td>
+            <td>1460</td>
+            <td>52.0 t/s</td>
+            <td>$2.00 / $12.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Kimi K3 (Max)</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 1 — Architecture &amp; Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">83.3</td>
+            <td>79.5%</td>
+            <td>$8.46</td>
+            <td style="font-weight:700; color:#10b981;">168.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">59.1</td>
+            <td>66.5%</td>
+            <td>1475</td>
+            <td>46.0 t/s</td>
+            <td>$3.00 / $15.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Claude Sonnet 5</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Fast Agentic / Design</td>
+            <td style="font-weight:700; color:#2563eb;">83.0</td>
+            <td>78.9%</td>
+            <td>$5.72</td>
+            <td style="font-weight:700; color:#10b981;">194.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">58.2</td>
+            <td>64.2%</td>
+            <td>1485</td>
+            <td>68.0 t/s</td>
+            <td>$2.00 / $10.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Claude Sonnet 4.6 (Thinking)</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Design / Refactor</td>
+            <td style="font-weight:700; color:#2563eb;">82.7</td>
+            <td>78.3%</td>
+            <td>$8.69</td>
+            <td style="font-weight:700; color:#10b981;">164.1</td>
+            <td style="font-weight:700; color:#8b5cf6;">57.3</td>
+            <td>62.5%</td>
+            <td>1478</td>
+            <td>52.0 t/s</td>
+            <td>$3.00 / $15.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Grok 4.5</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Frontier Agentic / Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">81.0</td>
+            <td>74.6%</td>
+            <td>$4.89</td>
+            <td style="font-weight:700; color:#10b981;">196.1</td>
+            <td style="font-weight:700; color:#8b5cf6;">52.2</td>
+            <td>67.1%</td>
+            <td>1435</td>
+            <td>50.0 t/s</td>
+            <td>$2.00 / $6.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT-5.2 Codex</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Coding Specialist / Agent</td>
+            <td style="font-weight:700; color:#2563eb;">79.6</td>
+            <td>71.3%</td>
+            <td>$7.91</td>
+            <td style="font-weight:700; color:#10b981;">156.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">48.0</td>
+            <td>48.0%</td>
+            <td>1465</td>
+            <td>62.0 t/s</td>
+            <td>$1.75 / $14.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Gemini 3.7 Flash (Thinking)</td>
+            <td><span style="background:#3b82f622; color:#3b82f6; padding:2px 6px; border-radius:4px; font-weight:600;">AGY</span></td>
+            <td>Workhorse / Default</td>
+            <td style="font-weight:700; color:#2563eb;">78.9</td>
+            <td>69.6%</td>
+            <td>$1.33</td>
+            <td style="font-weight:700; color:#10b981;">329.7</td>
+            <td style="font-weight:700; color:#8b5cf6;">45.8</td>
+            <td>84.6%</td>
+            <td>1420</td>
+            <td>135.0 t/s</td>
+            <td>$0.38 / $1.88</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">DeepSeek V4 Pro</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 2 — Verifier &amp; Logic</td>
+            <td style="font-weight:700; color:#2563eb;">77.7</td>
+            <td>66.5%</td>
+            <td>$1.04</td>
+            <td style="font-weight:700; color:#10b981;">355.8</td>
+            <td style="font-weight:700; color:#8b5cf6;">42.1</td>
+            <td>63.5%</td>
+            <td>1415</td>
+            <td>38.0 t/s</td>
+            <td>$0.41 / $0.83</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Qwen3 Coder 480B</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Open Coding Specialist</td>
+            <td style="font-weight:700; color:#2563eb;">76.4</td>
+            <td>62.9%</td>
+            <td>$1.01</td>
+            <td style="font-weight:700; color:#10b981;">347.5</td>
+            <td style="font-weight:700; color:#8b5cf6;">38.1</td>
+            <td>42.0%</td>
+            <td>1450</td>
+            <td>80.0 t/s</td>
+            <td>$0.30 / $1.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT 5.6 Luna</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 4 — Failover Heavy</td>
+            <td style="font-weight:700; color:#2563eb;">75.4</td>
+            <td>60.1%</td>
+            <td>$0.99</td>
+            <td style="font-weight:700; color:#10b981;">341.4</td>
+            <td style="font-weight:700; color:#8b5cf6;">35.1</td>
+            <td>59.6%</td>
+            <td>1395</td>
+            <td>60.0 t/s</td>
+            <td>$0.20 / $1.20</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Qwen3.8 Max</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 1 — High Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">74.5</td>
+            <td>57.4%</td>
+            <td>$7.36</td>
+            <td style="font-weight:700; color:#10b981;">138.7</td>
+            <td style="font-weight:700; color:#8b5cf6;">32.4</td>
+            <td>44.0%</td>
+            <td>1395</td>
+            <td>40.0 t/s</td>
+            <td>$2.00 / $6.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GLM-5.3</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 1 — Architecture &amp; Spec</td>
+            <td style="font-weight:700; color:#2563eb;">72.8</td>
+            <td>52.4%</td>
+            <td>$6.00</td>
+            <td style="font-weight:700; color:#10b981;">142.8</td>
+            <td style="font-weight:700; color:#8b5cf6;">27.6</td>
+            <td>38.0%</td>
+            <td>1390</td>
+            <td>42.0 t/s</td>
+            <td>$1.40 / $4.40</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">GPT-OSS 120B (Medium)</td>
+            <td><span style="background:#8b5cf622; color:#8b5cf6; padding:2px 6px; border-radius:4px; font-weight:600;">FRONTIER</span></td>
+            <td>Open High-Efficiency</td>
+            <td style="font-weight:700; color:#2563eb;">70.9</td>
+            <td>46.7%</td>
+            <td>$0.23</td>
+            <td style="font-weight:700; color:#10b981;">494.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">22.6</td>
+            <td>38.5%</td>
+            <td>1380</td>
+            <td>110.0 t/s</td>
+            <td>$0.04 / $0.17</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">DeepSeek V4 Flash</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 2 — Default / Mid</td>
+            <td style="font-weight:700; color:#2563eb;">69.7</td>
+            <td>43.1%</td>
+            <td>$0.27</td>
+            <td style="font-weight:700; color:#10b981;">456.5</td>
+            <td style="font-weight:700; color:#8b5cf6;">19.8</td>
+            <td>61.4%</td>
+            <td>1360</td>
+            <td>95.0 t/s</td>
+            <td>$0.06 / $0.11</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">MiniMax M3</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 2 — General</td>
+            <td style="font-weight:700; color:#2563eb;">68.1</td>
+            <td>38.5%</td>
+            <td>$2.17</td>
+            <td style="font-weight:700; color:#10b981;">191.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">16.3</td>
+            <td>32.0%</td>
+            <td>1360</td>
+            <td>75.0 t/s</td>
+            <td>$0.30 / $1.20</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Claude Haiku 4.5</td>
+            <td><span style="background:#d9770622; color:#d97706; padding:2px 6px; border-radius:4px; font-weight:600;">CLAUDE</span></td>
+            <td>Fast / Scout</td>
+            <td style="font-weight:700; color:#2563eb;">64.8</td>
+            <td>29.7%</td>
+            <td>$11.20</td>
+            <td style="font-weight:700; color:#10b981;">87.6</td>
+            <td style="font-weight:700; color:#8b5cf6;">10.5</td>
+            <td>24.5%</td>
+            <td>1360</td>
+            <td>125.0 t/s</td>
+            <td>$1.00 / $5.00</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">MiMo-V2.5</td>
+            <td><span style="background:#10b98122; color:#10b981; padding:2px 6px; border-radius:4px; font-weight:600;">OCGO</span></td>
+            <td>Tier 3 — Bulk Fill</td>
+            <td style="font-weight:700; color:#2563eb;">62.9</td>
+            <td>25.1%</td>
+            <td>$1.27</td>
+            <td style="font-weight:700; color:#10b981;">204.7</td>
+            <td style="font-weight:700; color:#8b5cf6;">7.9</td>
+            <td>24.0%</td>
+            <td>1335</td>
+            <td>115.0 t/s</td>
+            <td>$0.14 / $0.28</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600;">Gemini 3.1 Flash Lite</td>
+            <td><span style="background:#3b82f622; color:#3b82f6; padding:2px 6px; border-radius:4px; font-weight:600;">AGY</span></td>
+            <td>Ultra Fast / Bulk</td>
+            <td style="font-weight:700; color:#2563eb;">62.6</td>
+            <td>24.5%</td>
+            <td>$3.90</td>
+            <td style="font-weight:700; color:#10b981;">122.4</td>
+            <td style="font-weight:700; color:#8b5cf6;">7.6</td>
+            <td>18.0%</td>
+            <td>1335</td>
+            <td>180.0 t/s</td>
+            <td>$0.25 / $1.50</td>
+        </tr>
+        
+        </tbody>
+    </table>
+</body>
+</html>

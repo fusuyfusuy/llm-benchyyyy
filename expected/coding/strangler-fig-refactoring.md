@@ -41,14 +41,14 @@ def test_no_inline_ifs_in_processor():
         
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == "PaymentProcessor":
-            for child in ast.walk(node):
-                if isinstance(child, ast.If):
-                    # It's okay if they have if/else for some logic, but they shouldn't check method == 'stripe' etc.
-                    # As a proxy, let's make sure the string 'stripe' doesn't appear in PaymentProcessor except maybe in __init__
-                    for n in ast.walk(child):
-                        if isinstance(n, ast.Constant) and isinstance(n.value, str):
-                            if n.value in ('stripe', 'paypal', 'trx_stripe', 'trx_paypal'):
-                                pytest.fail("Found hardcoded provider string in PaymentProcessor conditionals")
+            for method in node.body:
+                if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)) and method.name != "__init__":
+                    for child in ast.walk(method):
+                        if isinstance(child, ast.If):
+                            for n in ast.walk(child):
+                                if isinstance(n, ast.Constant) and isinstance(n.value, str):
+                                    if n.value in ('stripe', 'paypal', 'trx_stripe', 'trx_paypal'):
+                                        pytest.fail(f"Found hardcoded provider string '{n.value}' in {method.name} conditional")
 
 def test_dependency_injection():
     class MockProvider:

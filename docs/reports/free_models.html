@@ -1,0 +1,142 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>Free Models (OpenRouter + OpenCode + Cline) — Composite Intelligence (2026-08-27)</title><style>
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --card-hover: #1c2128;
+  --line: #30363d;
+  --txt: #e6edf3;
+  --mut: #8b949e;
+  --gr: #3fb950;
+  --bl: #58a6ff;
+  --yl: #d29922;
+  --pur: #a371f7;
+  --red: #f85149;
+  --amber: #f59e0b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--txt);
+  font: 13.5px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 28px;
+}
+.wrap { max-width: 1360px; margin: 0 auto; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 10px 0;
+}
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  color: var(--mut);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: rgba(22, 27, 34, 0.95);
+}
+th:hover { color: var(--bl); }
+tr:hover { background: rgba(56, 139, 253, 0.04); }
+td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+}
+.badge-gold { background: rgba(210,153,34,0.18); color: #d29922; border: 1px solid #d29922; }
+.badge-new { background: rgba(63,185,80,0.2); color: #3fb950; border: 1px solid #3fb950; }
+.badge-removed { background: rgba(248,81,73,0.2); color: #f85149; border: 1px solid #f85149; }
+.badge-cld { background: rgba(217,119,6,0.15); color: #d97706; }
+.badge-agy { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.badge-ocg { background: rgba(16,185,129,0.15); color: #10b981; }
+.badge-frt { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.badge-or { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.badge-cln { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.badge-stl { background: rgba(244,63,94,0.18); color: #f43f5e; border: 1px solid #f43f5e; }
+tr.added { background: rgba(63, 185, 80, 0.08) !important; }
+tr.added td.m, tr.added td:first-child { color: #3fb950 !important; font-weight: 700; }
+.removed-section { background: rgba(248,81,73,0.06); border: 1px solid rgba(248,81,73,0.25); border-radius: 8px; padding: 14px 16px; margin: 16px 0; }
+.removed-title { color: #f85149; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.removed-tag { display: inline-block; background: rgba(248,81,73,0.12); color: #ff7b72; border: 1px solid rgba(248,81,73,0.25); border-radius: 4px; padding: 3px 8px; font-family: monospace; font-size: 11.5px; margin: 3px 6px 3px 0; }
+.legend { color: var(--mut); font-size: 11px; margin-top: 10px; }
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.footer .path { color: var(--mut); font-size: 12px; }
+.footer .work { color: var(--txt); font-size: 12px; font-style: italic; }
+
+.top-row {{ background: rgba(210,153,34,0.08); font-weight: 600; }}</style></head><body>
+<div class="wrap">
+<h1>Free Models (OpenRouter + OpenCode + Cline) — Composite Intelligence (2026-08-27)</h1>
+<p class="sub">Free models (<b>OpenRouter</b> prompt+completion <code>$0</code> + <b>OpenCode</b> <code>ox-alpha-free</code> etc.) ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text">Arena.ai</a> ELO. <b>35</b> free models · <b>23</b> on AA · <b>20</b> on Arena · Generated 2026-08-27 14:55:00 UTC</p>
+<div class="card"><b>How to read:</b> <span class="badge badge-gold">TOP LEADER</span> = highest composite intelligence · <b>Q(Cap)</b> = Composite Capability (40–99.9) · <b>P(Succ)</b> = 1-turn pass rate · <b>FGI (Gate)</b> = Frontier Gate Index. AA Intelligence/Coding/Agentic from artificialanalysis.ai; Arena rank/ELO from arena.ai text leaderboard; context from OpenRouter. Cross-source scales are z-scored per source and averaged.</div>
+<div class="card">
+<table id="tbl">
+<thead><tr><th>model</th><th>provider</th><th>src</th><th>Q(Cap)</th><th>P(Succ)</th><th>FGI (Gate)</th><th>AA intel</th><th>AA cod</th><th>AA agent</th><th>LM ELO</th><th>LM rank</th><th>composite</th><th>coverage</th><th>ctx</th></tr></thead>
+<tbody><tr class='added top-row'><td class="m">claude-opus-5<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">90.9</td><td class="n">90.6%</td><td class="n" style="font-weight:700; color:#a371f7;">78.4</td><td class="n">63.1<span class="mid">claude-opus-5</span></td><td class="n">78.0</td><td class="n">59.2</td><td class="n">1493</td><td class="n">#7</td><td class="n" style="font-weight:700; color:#58a6ff;">1.52</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">claude-opus-4-7<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">88.6</td><td class="n">88.0%</td><td class="n" style="font-weight:700; color:#a371f7;">73.1</td><td class="n">55.0<span class="mid">claude-opus-4-7</span></td><td class="n">73.6</td><td class="n">46.3</td><td class="n">1494</td><td class="n">#6</td><td class="n" style="font-weight:700; color:#58a6ff;">1.24</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">muse-spark-1.2-contributor<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">88.4</td><td class="n">87.7%</td><td class="n" style="font-weight:700; color:#a371f7;">72.6</td><td class="n">56.8<span class="mid">muse-spark-1-2</span></td><td class="n">72.2</td><td class="n">49.3</td><td class="n">1488</td><td class="n">#11</td><td class="n" style="font-weight:700; color:#58a6ff;">1.22</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">claude-opus-4-8<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">86.7</td><td class="n">85.4%</td><td class="n" style="font-weight:700; color:#a371f7;">68.4</td><td class="n">57.3<span class="mid">claude-opus-4-8</span></td><td class="n">74.3</td><td class="n">49.4</td><td class="n">1473</td><td class="n">#29</td><td class="n" style="font-weight:700; color:#58a6ff;">1.02</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">claude-sonnet-5<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">84.5</td><td class="n">81.8%</td><td class="n" style="font-weight:700; color:#a371f7;">62.5</td><td class="n">55.3<span class="mid">claude-sonnet-5</span></td><td class="n">71.5</td><td class="n">49.7</td><td class="n">1461</td><td class="n">#45</td><td class="n" style="font-weight:700; color:#58a6ff;">0.77</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">claude-opus-4-6<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">84.0</td><td class="n">80.8%</td><td class="n" style="font-weight:700; color:#a371f7;">61.0</td><td class="n">38.8<span class="mid">claude-opus-4-6</span></td><td class="n">—</td><td class="n">—</td><td class="n">1497</td><td class="n">#5</td><td class="n" style="font-weight:700; color:#58a6ff;">0.70</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">deepseek-v4-flash<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">80.3</td><td class="n">73.0%</td><td class="n" style="font-weight:700; color:#a371f7;">50.1</td><td class="n">51.8<span class="mid">deepseek-v4-flash</span></td><td class="n">69.1</td><td class="n">48.4</td><td class="n">1436</td><td class="n">#86</td><td class="n" style="font-weight:700; color:#58a6ff;">0.27</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">claude-sonnet-4-6<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">80.2</td><td class="n">72.8%</td><td class="n" style="font-weight:700; color:#a371f7;">49.8</td><td class="n">36.8<span class="mid">claude-sonnet-4-6</span></td><td class="n">—</td><td class="n">—</td><td class="n">1472</td><td class="n">#32</td><td class="n" style="font-weight:700; color:#58a6ff;">0.26</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">hy3<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">80.0</td><td class="n">72.3%</td><td class="n" style="font-weight:700; color:#a371f7;">49.2</td><td class="n">42.2<span class="mid">hy3</span></td><td class="n">58.8</td><td class="n">31.4</td><td class="n">1457</td><td class="n">#56</td><td class="n" style="font-weight:700; color:#58a6ff;">0.23</td><td>AA·LM</td><td class="n">—</td></tr><tr><td class="m">glm-5.2</td><td>z-ai</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">79.5</td><td class="n">71.1%</td><td class="n" style="font-weight:700; color:#a371f7;">47.7</td><td class="n">40.6<span class="mid">glm-5</span></td><td class="n">—</td><td class="n">—</td><td class="n">1457</td><td class="n">#55</td><td class="n" style="font-weight:700; color:#58a6ff;">0.17</td><td>AA·LM</td><td class="n">256k</td></tr><tr class='added'><td class="m">minimax-m3<span class="badge badge-new">+NEW</span></td><td>minimax</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">79.2</td><td class="n">70.3%</td><td class="n" style="font-weight:700; color:#a371f7;">46.7</td><td class="n">45.4<span class="mid">minimax-m3</span></td><td class="n">58.6</td><td class="n">36.1</td><td class="n">1443</td><td class="n">#76</td><td class="n" style="font-weight:700; color:#58a6ff;">0.14</td><td>AA·LM</td><td class="n">1048k</td></tr><tr><td class="m">inkling-small</td><td>thinkingmachines</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">77.9</td><td class="n">67.0%</td><td class="n" style="font-weight:700; color:#a371f7;">42.7</td><td class="n">42.3<span class="mid">inkling</span></td><td class="n">52.1</td><td class="n">34.1</td><td class="n">1440</td><td class="n">#80</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.01</td><td>AA·LM</td><td class="n">1048k</td></tr><tr><td class="m">inkling</td><td>thinkingmachines</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">77.9</td><td class="n">67.0%</td><td class="n" style="font-weight:700; color:#a371f7;">42.7</td><td class="n">42.3<span class="mid">inkling</span></td><td class="n">52.1</td><td class="n">34.1</td><td class="n">1440</td><td class="n">#80</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.01</td><td>AA·LM</td><td class="n">1048k</td></tr><tr class='added'><td class="m">mimo-v2.5<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">77.3</td><td class="n">65.4%</td><td class="n" style="font-weight:700; color:#a371f7;">40.9</td><td class="n">42.9<span class="mid">mimo-v2-5-pro</span></td><td class="n">60.2</td><td class="n">29.5</td><td class="n">1434</td><td class="n">#91</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.08</td><td>AA·LM</td><td class="n">—</td></tr><tr><td class="m">gemma-4-31b-it</td><td>google</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">75.4</td><td class="n">60.1%</td><td class="n" style="font-weight:700; color:#a371f7;">35.1</td><td class="n">29.7<span class="mid">gemma-4-31b</span></td><td class="n">43.4</td><td class="n">14.4</td><td class="n">1451</td><td class="n">#62</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.31</td><td>AA·LM</td><td class="n">262k</td></tr><tr class='added'><td class="m">nemotron-3-ultra<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">74.9</td><td class="n">58.6%</td><td class="n" style="font-weight:700; color:#a371f7;">33.6</td><td class="n">38.3<span class="mid">nvidia-nemotron-3-ultra-550b-a55b</span></td><td class="n">49.3</td><td class="n">27.5</td><td class="n">1426</td><td class="n">#102</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.36</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">minimax-m2.7<span class="badge badge-new">+NEW</span></td><td>minimax</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">73.8</td><td class="n">55.4%</td><td class="n" style="font-weight:700; color:#a371f7;">30.4</td><td class="n">38.9<span class="mid">minimax-m2-7</span></td><td class="n">52.6</td><td class="n">25.9</td><td class="n">1416</td><td class="n">#121</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.49</td><td>AA·LM</td><td class="n">196k</td></tr><tr><td class="m">gemma-4-26b-a4b-it</td><td>google</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">72.6</td><td class="n">51.8%</td><td class="n" style="font-weight:700; color:#a371f7;">27.1</td><td class="n">26.1<span class="mid">gemma-4-26b-a4b</span></td><td class="n">39.3</td><td class="n">11.0</td><td class="n">1438</td><td class="n">#84</td><td class="n" style="font-weight:700; color:#58a6ff;">-0.63</td><td>AA·LM</td><td class="n">262k</td></tr><tr><td class="m">nemotron-3.5-lightning</td><td>nvidia</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">68.5</td><td class="n">39.7%</td><td class="n" style="font-weight:700; color:#a371f7;">17.1</td><td class="n">23.6<span class="mid">nemotron-3-5-lightning</span></td><td class="n">26.8</td><td class="n">13.8</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">-1.12</td><td>AA</td><td class="n">1000k</td></tr><tr><td class="m">north-mini-code</td><td>cohere</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">66.4</td><td class="n">33.8%</td><td class="n" style="font-weight:700; color:#a371f7;">13.0</td><td class="n">20.2<span class="mid">north-mini-code</span></td><td class="n">36.5</td><td class="n">3.1</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">-1.37</td><td>AA</td><td class="n">256k</td></tr><tr class='added'><td class="m">claude-haiku-4-5-20251001<span class="badge badge-new">+NEW</span></td><td>cline</td><td><span class="badge badge-cln">CLN</span></td><td class="n" style="font-weight:700; color:#3fb950;">65.2</td><td class="n">30.7%</td><td class="n" style="font-weight:700; color:#a371f7;">11.1</td><td class="n">12.2<span class="mid">claude-3-5-haiku</span></td><td class="n">15.9</td><td class="n">—</td><td class="n">1413</td><td class="n">#127</td><td class="n" style="font-weight:700; color:#58a6ff;">-1.50</td><td>AA·LM</td><td class="n">—</td></tr><tr><td class="m">nemotron-3-nano-omni-30b-a3b-reasoning</td><td>nvidia</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">63.2</td><td class="n">25.8%</td><td class="n" style="font-weight:700; color:#a371f7;">8.3</td><td class="n">15.0<span class="mid">nemotron-3-nano-omni-30b-a3b</span></td><td class="n">13.8</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">-1.74</td><td>AA</td><td class="n">256k</td></tr><tr class='added'><td class="m">nemotron-3.5-lightning<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">60.6</td><td class="n">20.3%</td><td class="n" style="font-weight:700; color:#a371f7;">5.5</td><td class="n">23.6<span class="mid">nemotron-3-5-lightning</span></td><td class="n">26.8</td><td class="n">13.8</td><td class="n">1348</td><td class="n">#200</td><td class="n" style="font-weight:700; color:#58a6ff;">-2.04</td><td>AA·LM</td><td class="n">—</td></tr><tr class='added'><td class="m">big-pickle<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">—</td></tr><tr><td class="m">dots-3-note-preview</td><td>dots-studio</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">512k</td></tr><tr><td class="m">lyria-3-clip-preview</td><td>google</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">1048k</td></tr><tr><td class="m">lyria-3-pro-preview</td><td>google</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">1048k</td></tr><tr class='added'><td class="m">laguna-s-2.1<span class="badge badge-new">+NEW</span></td><td>opencode</td><td><span class="badge badge-ocg">OC</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">—</td></tr><tr><td class="m">lfm-2.5-2.6b</td><td>liquid</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">65k</td></tr><tr><td class="m">nemotron-3-super-120b-a12b</td><td>nvidia</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">262k</td></tr><tr><td class="m">nemotron-3-ultra-550b-a55b</td><td>nvidia</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">1000k</td></tr><tr><td class="m">nemotron-3.5-content-safety</td><td>nvidia</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">128k</td></tr><tr><td class="m">free</td><td>openrouter</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">200k</td></tr><tr><td class="m">laguna-s-2.1</td><td>poolside</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">262k</td></tr><tr><td class="m">laguna-xs-2.1</td><td>poolside</td><td><span class="badge badge-or">OR</span></td><td class="n" style="font-weight:700; color:#3fb950;">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#a371f7;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#58a6ff;">—</td><td>—</td><td class="n">262k</td></tr></tbody>
+</table>
+<div class="legend">Click headers to sort. — = not on that leaderboard. <span class="badge badge-stl">STEALTH</span> = OpenRouter anonymous namespace (<code>stealth/…</code>).</div>
+</div>
+
+        <div class="removed-section">
+          <div class="removed-title">🔻 Removed / Deprecated Free Models (5)</div>
+          <div class="sub" style="margin-bottom:8px;">These models were present in the previous free model catalog snapshot but are no longer active in the current OpenRouter or OpenCode free tier:</div>
+          <div><span class="removed-tag">❌ <b>nemotron-3-nano-30b-a3b</b> <span class="mid">(nvidia, Q —)</span></span><span class="removed-tag">❌ <b>nemotron-nano-12b-v2-vl</b> <span class="mid">(nvidia, Q —)</span></span><span class="removed-tag">❌ <b>nemotron-nano-9b-v2</b> <span class="mid">(nvidia, Q —)</span></span><span class="removed-tag">❌ <b>ox-alpha-free</b> <span class="mid">(opencode, Q —)</span></span><span class="removed-tag">❌ <b>ox-alpha</b> <span class="mid">(stealth, Q —)</span></span></div>
+        </div>
+        
+<div class="footer"><span class="path">docs/reports/free_models.html</span><span class="work">Composite rank of 35 free models (23 on AA, 20 on LMArena — top: claude-opus-5).</span></div>
+</div>
+
+<script>
+(function(){
+  var tbl = document.getElementById('tbl');
+  if(!tbl) return;
+  function getVal(tr, i){
+    var td = tr.children[i];
+    if(!td) return '';
+    var t = (td.innerText || '').replace(/[^0-9.\-]/g, '').trim();
+    var n = parseFloat(t);
+    return isNaN(n) ? (td.innerText || '').toLowerCase() : n;
+  }
+  tbl.querySelectorAll('th').forEach(function(th, i){
+    th.addEventListener('click', function(){
+      var tbody = tbl.tBodies[0];
+      var rows = [].slice.call(tbody.rows);
+      var asc = th.asc = !th.asc;
+      rows.sort(function(a, b){
+        var av = getVal(a, i), bv = getVal(b, i);
+        if(typeof av === 'number' && typeof bv === 'number') return asc ? av - bv : bv - av;
+        return asc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      });
+      rows.forEach(function(r){ tbody.appendChild(r); });
+    });
+  });
+})();
+</script>
+
+</body></html>

@@ -17,6 +17,9 @@ TABLE_HEADERS = (
     "time_per_success_seconds",
     "cost_per_trial_usd",
     "time_per_trial_seconds",
+    "avg_input_tokens",
+    "avg_output_tokens",
+    "total_tokens",
 )
 
 
@@ -33,6 +36,9 @@ def aggregate(rows: list[dict]) -> list[dict]:
         pass_rate = len(passes) / n if n else 0.0
         total_cost = sum(r.get("cost_usd") or 0 for r in rs)
         total_time = sum(r.get("wall_clock_seconds") or 0 for r in rs)
+        total_in_tokens = sum(r.get("input_tokens") or 0 for r in rs)
+        total_out_tokens = sum(r.get("output_tokens") or 0 for r in rs)
+        total_tokens = total_in_tokens + total_out_tokens
         cost_per_success = (total_cost / len(passes)) if passes else None
         time_per_success = (total_time / len(passes)) if passes else None
         row = dict(zip(GROUP_KEYS, key))
@@ -46,6 +52,9 @@ def aggregate(rows: list[dict]) -> list[dict]:
             # like what it is next to an N=3 group with the same totals.
             cost_per_trial_usd=(total_cost / n) if n else None,
             time_per_trial_seconds=(total_time / n) if n else None,
+            avg_input_tokens=(total_in_tokens / n) if n else 0,
+            avg_output_tokens=(total_out_tokens / n) if n else 0,
+            total_tokens=total_tokens,
         )
         out.append(row)
     out.sort(key=lambda r: tuple(str(r[k]) for k in GROUP_KEYS))

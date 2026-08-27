@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+"""
+Unit tests for free_model_ranker.py (fcheck) and stealth_model_detector.py (scheck).
+"""
+import unittest
+import pathlib
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+import free_model_ranker as fmr
+import stealth_model_detector as smd
+
+
+class TestFreeAndStealthRankers(unittest.TestCase):
+    def test_is_free_model(self):
+        self.assertTrue(fmr.is_free_model({"id": "meta-llama/llama-3-8b:free", "pricing": {"prompt": "0", "completion": "0"}}))
+        self.assertTrue(fmr.is_free_model({"id": "meta-llama/llama-3-8b", "pricing": {"prompt": "0", "completion": "0"}}))
+        self.assertTrue(fmr.is_free_model({"id": "custom/free-model:free", "pricing": {}}))
+        self.assertFalse(fmr.is_free_model({"id": "openai/gpt-4o", "pricing": {"prompt": "2.5", "completion": "10.0"}}))
+
+    def test_is_stealth_model(self):
+        self.assertTrue(smd.is_stealth_model({"id": "stealth/ox-alpha"}))
+        self.assertFalse(smd.is_stealth_model({"id": "openai/gpt-4o"}))
+        self.assertEqual(smd.base_id("stealth/ox-alpha:free"), "stealth/ox-alpha")
+
+    def test_fcheck_render_cli_table(self):
+        dummy_rows = [
+            {
+                "model_id": "test-model-1",
+                "display": "test-model-1",
+                "provider": "google",
+                "source": "or",
+                "stealth": False,
+                "benchmarks": {
+                    "capability_q": 85.5,
+                    "p_success": 82.3,
+                    "fgi_score": 63.8,
+                    "aa_intelligence": 45.0,
+                    "lmarena_elo": 1450.0,
+                    "openrouter_context": 128000,
+                },
+                "composite": 0.85,
+                "coverage": ["AA", "LM"],
+            }
+        ]
+        tui_colored = fmr.render_cli_table(dummy_rows, color=True, is_slim=False, n_aa=1, n_lm=1)
+        self.assertIn("FREE MODEL RADAR", tui_colored)
+        self.assertIn("test-model-1", tui_colored)
+        self.assertIn("🥇#1", tui_colored)
+
+        tui_plain = fmr.render_cli_table(dummy_rows, color=False, is_slim=True, n_aa=1, n_lm=1)
+        self.assertIn("FREE MODEL RADAR", tui_plain)
+        self.assertIn("test-model-1", tui_plain)
+
+    def test_scheck_render_cli_table(self):
+        dummy_rows = [
+            {
+                "model_id": "stealth/ox-alpha",
+                "display": "ox-alpha",
+                "provider": "stealth",
+                "benchmarks": {
+                    "capability_q": 80.0,
+                    "aa_intelligence": None,
+                    "lmarena_elo": None,
+                    "openrouter_context": 1048000,
+                },
+                "composite": None,
+                "coverage": ["—"],
+                "price_str": "0.00/0.00 ($0)",
+                "created": "2026-08-20",
+                "modality": "text->text",
+            }
+        ]
+        tui_colored = smd.render_cli_table(dummy_rows, color=True, is_slim=False, n_aa=0, n_lm=0)
+        self.assertIn("STEALTH MODEL RADAR", tui_colored)
+        self.assertIn("ox-alpha", tui_colored)
+
+        tui_plain = smd.render_cli_table(dummy_rows, color=False, is_slim=True, n_aa=0, n_lm=0)
+        self.assertIn("STEALTH MODEL RADAR", tui_plain)
+        self.assertIn("ox-alpha", tui_plain)
+
+    def test_html_renderers(self):
+        dummy_rows = [
+            {
+                "model_id": "test-model-1",
+                "display": "test-model-1",
+                "provider": "google",
+                "source": "or",
+                "stealth": False,
+                "benchmarks": {
+                    "capability_q": 85.5,
+                    "p_success": 82.3,
+                    "fgi_score": 63.8,
+                    "aa_slug": "test-model-1",
+                    "aa_intelligence": 45.0,
+                    "aa_coding": 42.0,
+                    "aa_agentic": 40.0,
+                    "lmarena_rank": 10,
+                    "lmarena_elo": 1450.0,
+                    "openrouter_context": 128000,
+                },
+                "composite": 0.85,
+                "coverage": ["AA", "LM"],
+                "price_str": "0.00/0.00 ($0)",
+                "created": "2026-08-20",
+                "modality": "text->text",
+            }
+        ]
+        html_f = fmr.render_html(dummy_rows, 1, 1)
+        self.assertIn("<!DOCTYPE html>", html_f)
+        self.assertIn("test-model-1", html_f)
+
+        html_s = smd.render_html(dummy_rows, 1, 1)
+        self.assertIn("<!DOCTYPE html>", html_s)
+        self.assertIn("test-model-1", html_s)
+
+    def test_fcheck_catalog_diff(self):
+        dummy_rows = [
+            {
+                "model_id": "google/gemma-3:free",
+                "display": "gemma-3",
+                "provider": "google",
+                "source": "or",
+                "stealth": False,
+                "benchmarks": {
+                    "capability_q": 85.5,
+                    "p_success": 82.3,
+                    "fgi_score": 63.8,
+                    "aa_intelligence": 45.0,
+                    "lmarena_elo": 1450.0,
+                    "openrouter_context": 128000,
+                },
+                "composite": 0.85,
+                "coverage": ["AA", "LM"],
+            }
+        ]
+        removed_models = [
+            {
+                "model_id": "old/legacy-model:free",
+                "display": "legacy-model",
+                "provider": "old-prov",
+                "benchmarks": {"capability_q": 55.0},
+            }
+        ]
+        # Colored CLI table
+        tui_colored = fmr.render_cli_table(
+            dummy_rows,
+            color=True,
+            added_ids={"google/gemma-3:free"},
+            removed_models=removed_models,
+        )
+        self.assertIn("\033[38;5;48m", tui_colored)
+        self.assertIn("+gemma-3", tui_colored)
+        self.assertIn("New (+1): google/gemma-3:free", tui_colored)
+        self.assertIn("\033[38;5;196m", tui_colored)
+        self.assertIn("REMOVED / DEPRECATED MODELS", tui_colored)
+        self.assertIn("legacy-model", tui_colored)
+
+        # Plain CLI table
+        tui_plain = fmr.render_cli_table(
+            dummy_rows,
+            color=False,
+            added_ids={"google/gemma-3:free"},
+            removed_models=removed_models,
+        )
+        self.assertIn("+gemma-3", tui_plain)
+        self.assertIn("[+NEW (+1): google/gemma-3:free]", tui_plain)
+        self.assertIn("[-] legacy-model", tui_plain)
+
+        # HTML
+        html_text = fmr.render_html(
+            dummy_rows,
+            1,
+            1,
+            added_ids={"google/gemma-3:free"},
+            removed_models=removed_models,
+        )
+        self.assertIn("badge-new", html_text)
+        self.assertIn("+NEW", html_text)
+        self.assertIn("removed-section", html_text)
+        self.assertIn("legacy-model", html_text)
+
+    def test_base_id_normalization(self):
+        self.assertEqual(fmr.base_id("meta-llama/llama-3-8b:free"), "meta-llama/llama-3-8b")
+        self.assertEqual(fmr.base_id("deepseek-v4-flash-free"), "deepseek-v4-flash")
+        self.assertEqual(fmr.base_id("mimo-v2.5-free"), "mimo-v2.5")
+        self.assertEqual(fmr.base_id("claude-opus-5"), "claude-opus-5")
+
+    def test_multi_source_rendering(self):
+        multi_rows = [
+            {
+                "model_id": "claude-opus-5",
+                "display": "claude-opus-5",
+                "provider": "cline",
+                "source": "cln",
+                "stealth": False,
+                "benchmarks": {"capability_q": 92.0, "p_success": 91.0, "fgi_score": 80.0, "aa_intelligence": 50.0, "lmarena_elo": 1500.0, "openrouter_context": None},
+                "composite": 1.5,
+                "coverage": ["AA", "LM"],
+            },
+            {
+                "model_id": "deepseek-v4-flash-free",
+                "display": "deepseek-v4-flash",
+                "provider": "opencode",
+                "source": "oc",
+                "stealth": False,
+                "benchmarks": {"capability_q": 85.0, "p_success": 82.0, "fgi_score": 65.0, "aa_intelligence": 44.0, "lmarena_elo": 1440.0, "openrouter_context": None},
+                "composite": 0.8,
+                "coverage": ["AA", "LM"],
+            },
+            {
+                "model_id": "google/gemma-4:free",
+                "display": "gemma-4",
+                "provider": "google",
+                "source": "or",
+                "stealth": False,
+                "benchmarks": {"capability_q": 80.0, "p_success": 75.0, "fgi_score": 55.0, "aa_intelligence": 40.0, "lmarena_elo": 1420.0, "openrouter_context": 128000},
+                "composite": 0.5,
+                "coverage": ["AA", "LM"],
+            },
+        ]
+        # CLI plain
+        cli_plain = fmr.render_cli_table(multi_rows, color=False, is_slim=False, n_aa=3, n_lm=3)
+        self.assertIn("[CLN]", cli_plain)
+        self.assertIn("[OC]", cli_plain)
+        self.assertIn("[OR]", cli_plain)
+        self.assertIn("FREE MODEL RADAR (OpenRouter + OpenCode + Cline)", cli_plain)
+
+        # HTML
+        html_out = fmr.render_html(multi_rows, 3, 3)
+        self.assertIn("badge-cln", html_out)
+        self.assertIn("badge-ocg", html_out)
+        self.assertIn("badge-or", html_out)
+        self.assertIn("Free Models (OpenRouter + OpenCode + Cline)", html_out)
+
+    def test_cached_json_loader(self):
+        # Test loading cached json for cline_models or opencode_zen_models
+        data = fmr.fetch_or_load_cached_json(
+            fmr.CLINE_FREEMODEL_API,
+            "cline_models",
+            offline=True,
+            do_fetch=False,
+            verbose=False,
+        )
+        self.assertIsNotNone(data)
+        self.assertIn("data", data)
+        self.assertGreaterEqual(len(data["data"]), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

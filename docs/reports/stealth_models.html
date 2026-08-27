@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenRouter Stealth Models — Composite Intelligence (2026-08-23)</title><style>:root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;--gr:#3fb950;--bl:#58a6ff;--yl:#d29922}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:28px}
+.wrap{max-width:1280px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}a{color:var(--bl)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}th:hover{color:var(--bl)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m{font-weight:600}.mid{display:block;color:var(--mut);font-size:10px;font-weight:400;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.sub{color:var(--mut);margin:0 0 14px;font-size:13px}
+.legend{color:var(--mut);font-size:11px;margin-top:8px}.note{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+.footer .path{color:var(--mut);font-size:12px}.footer .work{color:var(--txt);font-size:12px;font-style:italic;max-width:62%}
+tr.top{background:rgba(210,153,34,0.18);border-left:3px solid #d29922}
+</style></head><body><div class="wrap">
+<h1>OpenRouter Stealth Models — Composite Intelligence (2026-08-23)</h1>
+<p class="sub">Models in OpenRouter's <code>stealth/</code> namespace (anonymous/undisclosed models being tested publicly, e.g. <code>stealth/ox-alpha</code>), ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models" style="color:#58a6ff">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text" style="color:#58a6ff">Arena.ai</a> ELO. <b>1</b> stealth models · <b>0</b> on AA · <b>0</b> on Arena · Generated 2026-08-23T05:27:01.233324+00:00</p>
+<div class="card"><b>How to read:</b> <span style="color:#d29922">■ top</span> = highest composite intelligence · <b>Q(Cap)</b> = Composite Capability (0-100). Stealth identity means provider/author is undisclosed on OpenRouter; AA/LMArena slugs may or may not resolve. Empty table = no stealth models currently listed.</div>
+<div class="card">
+<table id="tbl">
+<thead><tr><th>model</th><th>provider</th><th>Q(Cap)</th><th>AA intel</th><th>LM ELO</th><th>LM rank</th><th>composite</th><th>coverage</th><th>ctx</th><th>modality</th><th>$in/$out</th><th>created</th></tr></thead>
+<tbody><tr class=""><td class="m">ox-alpha</td><td>stealth</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td>—</td><td class="n">1048k</td><td>text+image+video-&gt;text</td><td class='n'>0.00/0.00 ($0)</td><td class='n'>2026-08-20</td></tr></tbody>
+</table>
+<div class="legend">Click headers to sort. — = not on that leaderboard / unknown.</div>
+</div>
+<p class="note">Machine JSON: <a href="../data/stealth_models.json" style="color:#58a6ff">data/stealth_models.json</a>. Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no keys. Re-run: <code>scheck</code> / <code>scheck --json --html --fetch</code>.</p>
+<div class="footer"><span class="path">path: outputs/stealth_models.html</span><span class="work">Current work: composite rank of 1 stealth model(s) (0 on AA, 0 on LMArena— top none).</span></div>
+<script>
+(function(){
+  var tbl=document.getElementById('tbl');
+  function getVal(tr,i){
+    var td=tr.children[i];
+    var t=(td.innerText||'').replace(/[^0-9.\-]/g,'').trim();
+    var n=parseFloat(t);
+    return isNaN(n)? (td.innerText||'').toLowerCase() : n;
+  }
+  tbl.querySelectorAll('th').forEach(function(th,i){
+    th.addEventListener('click',function(){
+      var tbody=tbl.tBodies[0];
+      var rows=[].slice.call(tbody.rows);
+      var asc=th.asc=!th.asc;
+      rows.sort(function(a,b){
+        var av=getVal(a,i), bv=getVal(b,i);
+        if(typeof av==='number' && typeof bv==='number') return asc? av-bv : bv-av;
+        return asc? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      });
+      rows.forEach(function(r){tbody.appendChild(r);});
+    });
+  });
+})();
+</script>
+</div></body></html>

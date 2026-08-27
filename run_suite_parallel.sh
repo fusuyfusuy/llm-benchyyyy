@@ -11,8 +11,8 @@ if [ "$#" -eq 0 ]; then
 fi
 
 # We can run 4 trials in parallel per harness. If you pass 4 harnesses, that's 16 parallel sandbox containers.
-JOBS_PER_HARNESS=4
-TRIALS=3
+JOBS_PER_HARNESS="${JOBS_PER_HARNESS:-4}"
+TRIALS="${TRIALS:-3}"
 
 echo "🚀 Starting full suite parallel benchmark execution..."
 

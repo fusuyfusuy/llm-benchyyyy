@@ -1,0 +1,68 @@
+{
+  "data": [
+    {
+      "created": 1626777600,
+      "id": "claude-opus-5",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-opus-4-8",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-opus-4-7",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-sonnet-4-6",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-sonnet-5",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-opus-4-6",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    },
+    {
+      "created": 1626777600,
+      "id": "claude-haiku-4-5-20251001",
+      "object": "model",
+      "owned_by": "anthropic",
+      "supported_endpoint_types": [
+        "anthropic"
+      ]
+    }
+  ],
+  "object": "list"
+}

@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-08-23T05:27:01.233017+00:00",
+  "sources": {
+    "openrouter_api": "https://openrouter.ai/api/v1/models",
+    "artificial_analysis": "https://artificialanalysis.ai/leaderboards/models",
+    "lmarena": "https://arena.ai/leaderboard/text",
+    "note": "stealth = OpenRouter id starts with 'stealth/' (anonymous/undisclosed models); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO)"
+  },
+  "n_stealth": 1,
+  "n_with_aa": 0,
+  "n_with_lm": 0,
+  "models": [
+    {
+      "model_id": "stealth/ox-alpha",
+      "display": "ox-alpha",
+      "display_full": "stealth/ox-alpha",
+      "provider": "stealth",
+      "name": "Ox Alpha",
+      "description": "Ox Alpha is a reasoning model designed for coding, sustained agentic work, and production workloads. It is suited for long-horizon software engineering, complex reasoning, and workflows that combine text with...",
+      "created": "2026-08-20",
+      "modality": "text+image+video->text",
+      "price_str": "0.00/0.00 ($0)",
+      "benchmarks": {
+        "aa_slug": null,
+        "aa_intelligence": null,
+        "lmarena_rank": null,
+        "lmarena_elo": null,
+        "openrouter_context": 1048576,
+        "capability_q": null
+      },
+      "coverage": [
+        "\u2014"
+      ],
+      "composite": null
+    }
+  ]
+}
