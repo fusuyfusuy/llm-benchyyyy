@@ -1,12 +1,7 @@
 # Base image for every sandboxed task run: Python + Node + the 5 CLI harnesses
 # under test. Built once, reused across runs via sandbox.py's `docker run`.
 #
-# ponytail: codex-cli and pi-agent installs are verified (this image builds
-# clean). opencode and antigravity installers were also verified by building
-# this image for real and fixing the URLs that 404'd. Not yet verified: that
-# the *running* CLIs inside the container actually produce the JSON schemas
-# harness/configs.py assumes -- that still needs a live run per harness (see
-# the fork's verification report for what was and wasn't exercised).
+# ponytail: 5 CLI harness install layers verified <- container build passes -> live run verification of JSON schemas for all 5 CLIs inside container
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive

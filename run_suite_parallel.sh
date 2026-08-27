@@ -20,7 +20,7 @@ for arg in "$@"; do
     IFS=':' read -r harness model <<< "$arg"
     
     echo "🔍 Verifying configuration: Harness=$harness | Model=$model"
-    if ! python3 -m bench verify --harness "$harness" --model "$model"; then
+    if ! python3 -m engine verify --harness "$harness" --model "$model"; then
         echo "❌ Aborting benchmark due to verification failure for $harness:$model"
         exit 1
     fi
@@ -28,7 +28,7 @@ for arg in "$@"; do
     echo "📦 Dispatching suite for: Harness=$harness | Model=$model"
     # Run all tasks natively in parallel using the python runner's thread pool, 
     # and background this entire process to run alongside other harnesses.
-    python3 -m bench run \
+    python3 -m engine run \
         --task-glob "tasks/**/*.md" \
         --harness "$harness" \
         --model "$model" \
@@ -40,5 +40,5 @@ echo "⏳ All harness suites dispatched. Waiting for all sandboxes to finish..."
 wait
 
 echo "📊 All runs finished. Generating aggregate report..."
-python3 -m bench report
+python3 -m engine report
 echo "✅ Done! Run 'cat results/report.md' to view the final breakdown."

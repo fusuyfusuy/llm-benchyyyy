@@ -1,8 +1,8 @@
 """One runnable check for the non-trivial parsing/grading/report logic.
 
-No pytest dependency for the bench package itself (pytest lives inside the
+No pytest dependency for the engine package itself (pytest lives inside the
 task sandbox for the coding tasks it grades) -- plain asserts, run with:
-    python -m bench.selfcheck
+    python -m engine.selfcheck
 """
 from __future__ import annotations
 
@@ -151,6 +151,20 @@ def check_selfsolve_path_mapping() -> None:
     assert sol_path == REPO_ROOT / "solutions" / "coding" / "fix-off-by-one-pagination.sh"
 
 
+def check_engine_cli_and_package_contract() -> None:
+    from . import cli as cli_mod
+    parser = cli_mod.build_parser()
+    assert parser.prog == "engine"
+    # Ensure all expected subcommands are wired
+    subparser_actions = [
+        action for action in parser._actions 
+        if isinstance(action, cli_mod.argparse._SubParsersAction)
+    ]
+    assert len(subparser_actions) == 1
+    subcommands = set(subparser_actions[0].choices.keys())
+    assert {"run", "report", "score", "verify", "self-solve"}.issubset(subcommands), subcommands
+
+
 def main() -> None:
     check_markdown_helpers()
     check_task_and_spec_parse_real_files()
@@ -160,8 +174,10 @@ def main() -> None:
     check_report_aggregation()
     check_all_task_expected_pairs_parse()
     check_selfsolve_path_mapping()
+    check_engine_cli_and_package_contract()
     print("selfcheck OK")
 
 
 if __name__ == "__main__":
     main()
+

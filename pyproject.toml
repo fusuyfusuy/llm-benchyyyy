@@ -5,3 +5,8 @@ requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.40",
 ]
+
+[project.scripts]
+engine = "engine.cli:main"
+bench = "engine.cli:main"
+

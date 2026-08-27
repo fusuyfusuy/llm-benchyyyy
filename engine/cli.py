@@ -10,6 +10,7 @@ from . import pricing
 from . import results as results_mod
 from . import report as report_mod
 from . import sandbox as sandbox_mod
+from . import score as score_mod
 from . import selfsolve as selfsolve_mod
 from . import task as task_mod
 from .grading import exact_match as exact_grade
@@ -167,7 +168,7 @@ def cmd_verify(args) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="bench")
+    parser = argparse.ArgumentParser(prog="engine")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     run_p = sub.add_parser("run", help="run a task against a model+harness")
@@ -194,6 +195,8 @@ def build_parser() -> argparse.ArgumentParser:
     report_p = sub.add_parser("report", help="aggregate results/runs.jsonl into a report")
     report_p.set_defaults(func=cmd_report)
 
+    score_p = sub.add_parser("score", help="display 100-point categorical leaderboard")
+    score_p.set_defaults(func=lambda _args: score_mod.main())
     
     verify_p = sub.add_parser("verify", help="verify a harness/model pair works before running a full suite")
     verify_p.add_argument("--harness", required=True, choices=["raw-api"] + list(harness_configs.REGISTRY.keys()))
