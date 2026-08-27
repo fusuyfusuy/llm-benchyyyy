@@ -1,9 +1,12 @@
 import os, glob, re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
 
 print("| Category | Task | Difficulty | Grading Method | Brief |\n|---|---|---|---|---|")
 
 for cat in ["coding", "reasoning", "agentic"]:
-    for filepath in sorted(glob.glob(f"tasks/{cat}/*.md")):
+    for filepath in sorted(glob.glob(str(ROOT / f"tasks/{cat}/*.md"))):
         with open(filepath) as f:
             content = f.read()
         name = os.path.basename(filepath)
@@ -11,7 +14,7 @@ for cat in ["coding", "reasoning", "agentic"]:
         diff_match = re.search(r"\*\*difficulty tier:\*\*\s*(.+)", content)
         diff = diff_match.group(1).strip() if diff_match else "?"
         
-        exp_path = f"expected/{cat}/{name}"
+        exp_path = ROOT / "expected" / cat / name
         grading = "?"
         if os.path.exists(exp_path):
             with open(exp_path) as ef:

@@ -2387,7 +2387,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 
 <div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.5, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
 
-<p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 scripts/ocgo_check.py</code> / <code>ocheck</code>.</p>
+<p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
 <div class="footer"><span class="path">path: outputs/ocgo_cost_benefit.html</span><span class="work">{html_lib.escape(work_sentence)}</span></div>
 <script>
 (function(){{
