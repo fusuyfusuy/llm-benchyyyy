@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-27T15:27:58.176034+00:00",
+  "generated_at": "2026-08-27T21:36:58.122788+00:00",
   "sources": {
     "opencode_docs": "https://opencode.ai/docs/go/",
     "opencode_api": "https://opencode.ai/zen/go/v1/models",
@@ -15,11 +15,9 @@
     "note": "per-model caps = account_cap * usage/60; per-model Usage from docs pricing table"
   },
   "catalog_diff": {
-    "added": [
-      "glm-5.3-flash"
-    ],
+    "added": [],
     "removed": [],
-    "total_current": 26,
+    "total_current": 24,
     "total_previous": 32
   },
   "role_recommendations": {
@@ -32,18 +30,18 @@
       "winner": {
         "name": "kimi-k3",
         "pool_str": "$15/m",
-        "score": 89.5,
+        "score": 90.3,
         "q": 90.2,
         "fgi": 76.9,
         "avi": 218.4
       },
       "runner_up": {
-        "name": "grok-4.6",
+        "name": "glm-5.3",
         "pool_str": "$15/m",
-        "score": 89.3,
-        "q": 89.3,
-        "fgi": 74.9,
-        "avi": 278.1
+        "score": 89.8,
+        "q": 89.4,
+        "fgi": 75.1,
+        "avi": 323.7
       }
     },
     "pair_programming": {
@@ -55,18 +53,18 @@
       "winner": {
         "name": "muse-spark-1.2-contributor",
         "pool_str": "$60/m",
-        "score": 89.2,
+        "score": 90.0,
         "q": 87.4,
         "fgi": 70.2,
         "avi": 848.6
       },
       "runner_up": {
-        "name": "grok-4.6",
-        "pool_str": "$15/m",
-        "score": 87.2,
-        "q": 89.3,
-        "fgi": 74.9,
-        "avi": 278.1
+        "name": "ox-alpha-free",
+        "pool_str": "Free",
+        "score": 87.8,
+        "q": 78.0,
+        "fgi": 43.1,
+        "avi": 825.8
       }
     },
     "daily_driver": {
@@ -78,18 +76,18 @@
       "winner": {
         "name": "muse-spark-1.2-contributor",
         "pool_str": "$60/m",
-        "score": 94.0,
+        "score": 94.6,
         "q": 87.4,
         "fgi": 70.2,
         "avi": 848.6
       },
       "runner_up": {
-        "name": "glm-5.3-flash",
+        "name": "deepseek-v4-flash-vision-exp",
         "pool_str": "$15/m",
-        "score": 88.7,
-        "q": 84.9,
-        "fgi": 63.6,
-        "avi": 673.8
+        "score": 86.5,
+        "q": 82.0,
+        "fgi": 55.3,
+        "avi": 535.4
       }
     },
     "boilerplate": {
@@ -101,7 +99,7 @@
       "winner": {
         "name": "muse-spark-1.2-contributor",
         "pool_str": "$60/m",
-        "score": 95.4,
+        "score": 94.8,
         "q": 87.4,
         "fgi": 70.2,
         "avi": 848.6
@@ -109,7 +107,7 @@
       "runner_up": {
         "name": "deepseek-v4-flash-vision-exp",
         "pool_str": "$15/m",
-        "score": 86.4,
+        "score": 86.1,
         "q": 82.0,
         "fgi": 55.3,
         "avi": 535.4
@@ -147,18 +145,10 @@
         "per_month_docs": 226600
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 45317,
-          "weekly": 87236,
-          "monthly": 88369
-        },
-        "overall_pct": 39.0,
-        "overall_req": 45317
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "muse-spark-1-2",
@@ -234,11 +224,7 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
+        "percent": {},
         "requests": {},
         "overall_pct": null,
         "overall_req": null
@@ -290,51 +276,43 @@
       "model_id": "glm-5.3-flash",
       "display": "glm-5.3-flash",
       "pricing": {
-        "input_per_1m": 0.15,
-        "output_per_1m": 0.5,
-        "cached_read_per_1m": 0.03,
+        "input_per_1m": 0.075,
+        "output_per_1m": 0.25,
+        "cached_read_per_1m": null,
         "cached_write_per_1m": null,
-        "monthly_usage_limit_usd": 15.0
+        "monthly_usage_limit_usd": 60
       },
       "caps": {
-        "cap_5h_usd": 3.0,
-        "cap_wk_usd": 7.5,
-        "cap_mo_usd": 15.0
+        "cap_5h_usd": 12.0,
+        "cap_wk_usd": 30.0,
+        "cap_mo_usd": 60.0
       },
       "tokens": {
         "est_input": 500,
         "est_cached": 60000,
         "est_output": 200
       },
-      "cost_per_request_usd": 0.001975,
+      "cost_per_request_usd": null,
       "requests": {
-        "per_5h_computed": 1519,
-        "per_week_computed": 3797,
-        "per_month_computed": 7595,
-        "per_5h_docs": 1580,
-        "per_week_docs": 3950,
-        "per_month_docs": 7900
+        "per_5h_computed": null,
+        "per_week_computed": null,
+        "per_month_computed": null,
+        "per_5h_docs": null,
+        "per_week_docs": null,
+        "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 1519,
-          "weekly": 2924,
-          "monthly": 2962
-        },
-        "overall_pct": 39.0,
-        "overall_req": 1519
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "glm-5-3-flash",
         "aa_intelligence": 57.4592004791323,
         "aa_coding": 71.5347135525038,
         "aa_agentic": 58.1561649484536,
-        "aa_median_tps": 50.2271217038252,
+        "aa_median_tps": 49.4201255881197,
         "aa_context": 1000000,
         "lmarena_rank": 55,
         "lmarena_elo": 1457.0,
@@ -366,33 +344,32 @@
         "capability_q": 84.9,
         "p_success": 82.5,
         "token_multiplier": 1.47,
-        "blended_price": 0.22,
-        "effective_cost": 0.32,
-        "avi_score": 673.8,
+        "blended_price": 0.11,
+        "effective_cost": 0.16,
+        "avi_score": 796.1,
         "fgi_score": 63.6,
-        "bfi_score": 107.2
+        "bfi_score": 154.8
       },
       "value": {
-        "intelligence_per_dollar": 29093.27,
-        "cost_per_intelligence_pt_usd": 3.4e-05,
-        "requests_per_dollar": 506.3,
-        "leverage_vs_10usd_sub": 1.5,
-        "effective_blended_price": 0.32,
-        "effective_cost_per_request": 0.002903,
-        "effective_requests_per_5h": 1075,
-        "effective_requests_per_month": 5374,
-        "avi_score": 673.8,
+        "intelligence_per_dollar": null,
+        "cost_per_intelligence_pt_usd": null,
+        "requests_per_dollar": null,
+        "leverage_vs_10usd_sub": 6.0,
+        "effective_blended_price": 0.16,
+        "effective_cost_per_request": null,
+        "effective_requests_per_5h": null,
+        "effective_requests_per_month": null,
+        "avi_score": 796.1,
         "fgi_score": 63.6,
-        "bfi_score": 107.2
+        "bfi_score": 154.8
       },
       "coverage": [
         "AA",
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-26T16:07:49.184889+00:00",
-      "is_new": true,
-      "is_docs_model": true
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
+      "is_new": true
     },
     {
       "model_id": "deepseek-v4-flash-vision-exp",
@@ -424,25 +401,17 @@
         "per_month_docs": 18900
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3779,
-          "weekly": 7274,
-          "monthly": 7369
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3779
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "deepseek-v4-flash-vision",
         "aa_intelligence": 51.4736425212072,
         "aa_coding": 64.9860417533638,
         "aa_agentic": 52.8743092783505,
-        "aa_median_tps": 119.315752994454,
+        "aa_median_tps": 118.9486523098,
         "aa_context": 1000000,
         "lmarena_rank": 86,
         "lmarena_elo": 1436.0,
@@ -478,7 +447,7 @@
         "effective_cost": 0.51,
         "avi_score": 535.4,
         "fgi_score": 55.3,
-        "bfi_score": 199.8
+        "bfi_score": 199.1
       },
       "value": {
         "intelligence_per_dollar": 64836.43,
@@ -491,7 +460,7 @@
         "effective_requests_per_month": 11386,
         "avi_score": 535.4,
         "fgi_score": 55.3,
-        "bfi_score": 199.8
+        "bfi_score": 199.1
       },
       "coverage": [
         "AA",
@@ -531,18 +500,10 @@
         "per_month_docs": 10250
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 2049,
-          "weekly": 3945,
-          "monthly": 3996
-        },
-        "overall_pct": 39.0,
-        "overall_req": 2049
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "gpt-5-6-luna",
@@ -638,18 +599,10 @@
         "per_month_docs": 37800
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 7558,
-          "weekly": 14548,
-          "monthly": 14737
-        },
-        "overall_pct": 39.0,
-        "overall_req": 7558
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "deepseek-v4-flash",
@@ -683,7 +636,7 @@
         },
         "openrouter_id": "deepseek/deepseek-v4-flash",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.07798000000000001,
+        "openrouter_prompt_per_1m": 0.07644000000000001,
         "composite_score": 79.3,
         "capability_q": 79.3,
         "p_success": 70.6,
@@ -745,25 +698,17 @@
         "per_month_docs": 21500
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 4301,
-          "weekly": 8280,
-          "monthly": 8388
-        },
-        "overall_pct": 39.0,
-        "overall_req": 4301
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "hy3",
         "aa_intelligence": 42.2134908724756,
         "aa_coding": 58.8027985851019,
         "aa_agentic": 31.4171993127148,
-        "aa_median_tps": 67.6241876716714,
+        "aa_median_tps": 66.4639651540818,
         "aa_context": 256000,
         "lmarena_rank": 56,
         "lmarena_elo": 1457.0,
@@ -771,7 +716,7 @@
         "livebench": null,
         "openrouter_id": "tencent/hy3",
         "openrouter_context": 262144,
-        "openrouter_prompt_per_1m": 0.13199999999999998,
+        "openrouter_prompt_per_1m": 0.0825,
         "composite_score": 74.6,
         "capability_q": 74.6,
         "p_success": 57.7,
@@ -780,7 +725,7 @@
         "effective_cost": 0.6,
         "avi_score": 409.1,
         "fgi_score": 32.7,
-        "bfi_score": 124.1
+        "bfi_score": 122.0
       },
       "value": {
         "intelligence_per_dollar": 15131.37,
@@ -793,7 +738,7 @@
         "effective_requests_per_month": 8238,
         "avi_score": 409.1,
         "fgi_score": 32.7,
-        "bfi_score": 124.1
+        "bfi_score": 122.0
       },
       "coverage": [
         "AA",
@@ -832,25 +777,17 @@
         "per_month_docs": 150400
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 30075,
-          "weekly": 57895,
-          "monthly": 58647
-        },
-        "overall_pct": 39.0,
-        "overall_req": 30075
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-5-pro",
         "aa_intelligence": 42.8796821546836,
         "aa_coding": 60.189520044389,
         "aa_agentic": 29.5249690721649,
-        "aa_median_tps": 41.9564604916023,
+        "aa_median_tps": 41.845357662131,
         "aa_context": 1000000,
         "lmarena_rank": 91,
         "lmarena_elo": 1434.0,
@@ -878,7 +815,7 @@
         "effective_cost": 0.58,
         "avi_score": 372.9,
         "fgi_score": 23.1,
-        "bfi_score": 87.7
+        "bfi_score": 87.5
       },
       "value": {
         "intelligence_per_dollar": 107467.88,
@@ -891,7 +828,7 @@
         "effective_requests_per_month": 43594,
         "avi_score": 372.9,
         "fgi_score": 23.1,
-        "bfi_score": 87.7
+        "bfi_score": 87.5
       },
       "coverage": [
         "AA",
@@ -931,18 +868,10 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 30075,
-          "weekly": 57895,
-          "monthly": 58647
-        },
-        "overall_pct": 39.0,
-        "overall_req": 30075
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-pro",
@@ -997,7 +926,7 @@
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     },
     {
@@ -1030,25 +959,17 @@
         "per_month_docs": 5200
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 1044,
-          "weekly": 2010,
-          "monthly": 2036
-        },
-        "overall_pct": 39.0,
-        "overall_req": 1044
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "deepseek-v4-pro",
         "aa_intelligence": 53.1976849297815,
         "aa_coding": 68.8310618671105,
         "aa_agentic": 49.5628762886598,
-        "aa_median_tps": 68.3150230429965,
+        "aa_median_tps": 67.6306373333813,
         "aa_context": 1000000,
         "lmarena_rank": 52,
         "lmarena_elo": 1458.0,
@@ -1084,7 +1005,7 @@
         "effective_cost": 1.48,
         "avi_score": 349.7,
         "fgi_score": 57.6,
-        "bfi_score": 54.5
+        "bfi_score": 53.9
       },
       "value": {
         "intelligence_per_dollar": 18515.13,
@@ -1097,7 +1018,7 @@
         "effective_requests_per_month": 3250,
         "avi_score": 349.7,
         "fgi_score": 57.6,
-        "bfi_score": 54.5
+        "bfi_score": 53.9
       },
       "coverage": [
         "AA",
@@ -1137,18 +1058,10 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 4301,
-          "weekly": 8280,
-          "monthly": 8388
-        },
-        "overall_pct": 39.0,
-        "overall_req": 4301
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "hy3-preview",
@@ -1191,7 +1104,7 @@
         "AA",
         "LM"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     },
     {
@@ -1224,25 +1137,17 @@
         "per_month_docs": 1080
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 198,
-          "weekly": 381,
-          "monthly": 386
-        },
-        "overall_pct": 39.0,
-        "overall_req": 198
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "glm-5-3",
         "aa_intelligence": 59.5134408119521,
         "aa_coding": 74.7572478845887,
         "aa_agentic": 59.1017594501718,
-        "aa_median_tps": 84.1241695599843,
+        "aa_median_tps": 66.513811552904,
         "aa_context": 1000000,
         "lmarena_rank": 13,
         "lmarena_elo": 1487.0,
@@ -1278,7 +1183,7 @@
         "effective_cost": 2.54,
         "avi_score": 323.7,
         "fgi_score": 75.1,
-        "bfi_score": 40.8
+        "bfi_score": 32.3
       },
       "value": {
         "intelligence_per_dollar": 3925.69,
@@ -1291,7 +1196,7 @@
         "effective_requests_per_month": 850,
         "avi_score": 323.7,
         "fgi_score": 75.1,
-        "bfi_score": 40.8
+        "bfi_score": 32.3
       },
       "coverage": [
         "AA",
@@ -1331,18 +1236,10 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 30075,
-          "weekly": 57895,
-          "monthly": 58647
-        },
-        "overall_pct": 39.0,
-        "overall_req": 30075
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-omni",
@@ -1385,7 +1282,7 @@
         "AA",
         "LM"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     },
     {
@@ -1418,18 +1315,10 @@
         "per_month_docs": 16000
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3208,
-          "weekly": 6175,
-          "monthly": 6255
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3208
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "minimax-m3",
@@ -1501,49 +1390,41 @@
       "pricing": {
         "input_per_1m": 2.0,
         "output_per_1m": 6.0,
-        "cached_read_per_1m": 0.5,
+        "cached_read_per_1m": null,
         "cached_write_per_1m": null,
-        "monthly_usage_limit_usd": 15.0
+        "monthly_usage_limit_usd": 60
       },
       "caps": {
-        "cap_5h_usd": 3.0,
-        "cap_wk_usd": 7.5,
-        "cap_mo_usd": 15.0
+        "cap_5h_usd": 12.0,
+        "cap_wk_usd": 30.0,
+        "cap_mo_usd": 60.0
       },
       "tokens": {
-        "est_input": 390,
-        "est_cached": 32500,
-        "est_output": 120
+        "est_input": 500,
+        "est_cached": 60000,
+        "est_output": 200
       },
-      "cost_per_request_usd": 0.01775,
+      "cost_per_request_usd": null,
       "requests": {
-        "per_5h_computed": 169,
-        "per_week_computed": 423,
-        "per_month_computed": 845,
-        "per_5h_docs": 169,
-        "per_week_docs": 423,
-        "per_month_docs": 845
+        "per_5h_computed": null,
+        "per_week_computed": null,
+        "per_month_computed": null,
+        "per_5h_docs": null,
+        "per_week_docs": null,
+        "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 169,
-          "weekly": 325,
-          "monthly": 330
-        },
-        "overall_pct": 39.0,
-        "overall_req": 169
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "grok-4-6",
         "aa_intelligence": 60.92297113115,
         "aa_coding": 76.7889963933971,
         "aa_agentic": 58.6762164948454,
-        "aa_median_tps": 57.3962795862877,
+        "aa_median_tps": 57.7533179183223,
         "aa_context": 500000,
         "lmarena_rank": 46,
         "lmarena_elo": 1461.0,
@@ -1579,28 +1460,28 @@
         "effective_cost": 3.56,
         "avi_score": 278.1,
         "fgi_score": 74.9,
-        "bfi_score": 21.5
+        "bfi_score": 21.7
       },
       "value": {
-        "intelligence_per_dollar": 3432.28,
-        "cost_per_intelligence_pt_usd": 0.000291,
-        "requests_per_dollar": 56.3,
-        "leverage_vs_10usd_sub": 1.5,
+        "intelligence_per_dollar": null,
+        "cost_per_intelligence_pt_usd": null,
+        "requests_per_dollar": null,
+        "leverage_vs_10usd_sub": 6.0,
         "effective_blended_price": 3.56,
-        "effective_cost_per_request": 0.022543,
-        "effective_requests_per_5h": 133,
-        "effective_requests_per_month": 665,
+        "effective_cost_per_request": null,
+        "effective_requests_per_5h": null,
+        "effective_requests_per_month": null,
         "avi_score": 278.1,
         "fgi_score": 74.9,
-        "bfi_score": 21.5
+        "bfi_score": 21.7
       },
       "coverage": [
         "AA",
         "LM",
         "Live"
       ],
-      "is_new": false,
-      "is_docs_model": true
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
+      "is_new": true
     },
     {
       "model_id": "qwen3.8-max",
@@ -1632,18 +1513,10 @@
         "per_month_docs": 810
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 162,
-          "weekly": 311,
-          "monthly": 316
-        },
-        "overall_pct": 39.0,
-        "overall_req": 162
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "qwen3-8-max",
@@ -1739,25 +1612,17 @@
         "per_month_docs": 16300
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3258,
-          "weekly": 6272,
-          "monthly": 6354
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3258
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-5-pro",
         "aa_intelligence": 42.8796821546836,
         "aa_coding": 60.189520044389,
         "aa_agentic": 29.5249690721649,
-        "aa_median_tps": 41.9564604916023,
+        "aa_median_tps": 41.845357662131,
         "aa_context": 1000000,
         "lmarena_rank": 40,
         "lmarena_elo": 1468.0,
@@ -1785,7 +1650,7 @@
         "effective_cost": 1.54,
         "avi_score": 260.3,
         "fgi_score": 28.2,
-        "bfi_score": 44.1
+        "bfi_score": 44.0
       },
       "value": {
         "intelligence_per_dollar": 46570.39,
@@ -1798,7 +1663,7 @@
         "effective_requests_per_month": 5525,
         "avi_score": 260.3,
         "fgi_score": 28.2,
-        "bfi_score": 44.1
+        "bfi_score": 44.0
       },
       "coverage": [
         "AA",
@@ -1838,25 +1703,17 @@
         "per_month_docs": 4300
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 792,
-          "weekly": 1524,
-          "monthly": 1544
-        },
-        "overall_pct": 39.0,
-        "overall_req": 792
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "glm-5-2",
         "aa_intelligence": 52.6409563457385,
         "aa_coding": 68.7560688028853,
         "aa_agentic": 45.6673917525773,
-        "aa_median_tps": 69.3236677424017,
+        "aa_median_tps": 70.042130657068,
         "aa_context": 1000000,
         "lmarena_rank": 34,
         "lmarena_elo": 1470.0,
@@ -1892,7 +1749,7 @@
         "effective_cost": 3.16,
         "avi_score": 250.1,
         "fgi_score": 58.5,
-        "bfi_score": 31.3
+        "bfi_score": 31.6
       },
       "value": {
         "intelligence_per_dollar": 3472.36,
@@ -1905,7 +1762,7 @@
         "effective_requests_per_month": 2722,
         "avi_score": 250.1,
         "fgi_score": 58.5,
-        "bfi_score": 31.3
+        "bfi_score": 31.6
       },
       "coverage": [
         "AA",
@@ -1923,7 +1780,7 @@
         "output_per_1m": 6.0,
         "cached_read_per_1m": 0.3,
         "cached_write_per_1m": null,
-        "monthly_usage_limit_usd": 15
+        "monthly_usage_limit_usd": 15.0
       },
       "caps": {
         "cap_5h_usd": 3.0,
@@ -1940,30 +1797,22 @@
         "per_5h_computed": 120,
         "per_week_computed": 300,
         "per_month_computed": 601,
-        "per_5h_docs": null,
-        "per_week_docs": null,
-        "per_month_docs": null
+        "per_5h_docs": 120,
+        "per_week_docs": 300,
+        "per_month_docs": 600
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 120,
-          "weekly": 231,
-          "monthly": 234
-        },
-        "overall_pct": 39.0,
-        "overall_req": 120
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "grok-4-5",
         "aa_intelligence": 55.7588993916902,
         "aa_coding": 72.4489353585796,
         "aa_agentic": 48.851618556701,
-        "aa_median_tps": 56.1155490615279,
+        "aa_median_tps": 55.2285193661567,
         "aa_context": 500000,
         "lmarena_rank": 35,
         "lmarena_elo": 1470.0,
@@ -1999,7 +1848,7 @@
         "effective_cost": 3.95,
         "avi_score": 244.8,
         "fgi_score": 66.6,
-        "bfi_score": 20.3
+        "bfi_score": 20.0
       },
       "value": {
         "intelligence_per_dollar": 2233.04,
@@ -2012,7 +1861,7 @@
         "effective_requests_per_month": 426,
         "avi_score": 244.8,
         "fgi_score": 66.6,
-        "bfi_score": 20.3
+        "bfi_score": 20.0
       },
       "coverage": [
         "AA",
@@ -2052,25 +1901,17 @@
         "per_month_docs": 21600
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 4310,
-          "weekly": 8297,
-          "monthly": 8405
-        },
-        "overall_pct": 39.0,
-        "overall_req": 4310
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "qwen3-7-plus",
         "aa_intelligence": 39.3745992994168,
         "aa_coding": 55.8611631294216,
         "aa_agentic": 20.6909243986254,
-        "aa_median_tps": 56.2473671048799,
+        "aa_median_tps": 56.3605970764461,
         "aa_context": 1000000,
         "lmarena_rank": 53,
         "lmarena_elo": 1457.0,
@@ -2106,7 +1947,7 @@
         "effective_cost": 1.96,
         "avi_score": 229.7,
         "fgi_score": 26.8,
-        "bfi_score": 51.0
+        "bfi_score": 51.1
       },
       "value": {
         "intelligence_per_dollar": 14143.18,
@@ -2119,7 +1960,7 @@
         "effective_requests_per_month": 7036,
         "avi_score": 229.7,
         "fgi_score": 26.8,
-        "bfi_score": 51.0
+        "bfi_score": 51.1
       },
       "coverage": [
         "AA",
@@ -2159,18 +2000,10 @@
         "per_month_docs": 490
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 98,
-          "weekly": 189,
-          "monthly": 191
-        },
-        "overall_pct": 39.0,
-        "overall_req": 98
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "kimi-k3",
@@ -2266,25 +2099,17 @@
         "per_month_docs": 5750
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 1151,
-          "weekly": 2216,
-          "monthly": 2244
-        },
-        "overall_pct": 39.0,
-        "overall_req": 1151
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-6",
         "aa_intelligence": 45.1382483763163,
         "aa_coding": 61.7691427382439,
         "aa_agentic": 31.1619896907216,
-        "aa_median_tps": 40.8469361906589,
+        "aa_median_tps": 39.4573503878567,
         "aa_context": 256000,
         "lmarena_rank": 47,
         "lmarena_elo": 1461.0,
@@ -2320,7 +2145,7 @@
         "effective_cost": 3.43,
         "avi_score": 204.6,
         "fgi_score": 40.2,
-        "bfi_score": 20.6
+        "bfi_score": 19.9
       },
       "value": {
         "intelligence_per_dollar": 4329.19,
@@ -2333,7 +2158,7 @@
         "effective_requests_per_month": 2614,
         "avi_score": 204.6,
         "fgi_score": 40.2,
-        "bfi_score": 20.6
+        "bfi_score": 19.9
       },
       "coverage": [
         "AA",
@@ -2373,25 +2198,17 @@
         "per_month_docs": 17000
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3390,
-          "weekly": 6525,
-          "monthly": 6610
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3390
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "minimax-m2-7",
         "aa_intelligence": 38.8713536464198,
         "aa_coding": 52.6173879872382,
         "aa_agentic": 25.9196357388316,
-        "aa_median_tps": 62.0848230287734,
+        "aa_median_tps": 63.8792758657433,
         "aa_context": 204800,
         "lmarena_rank": 121,
         "lmarena_elo": 1416.0,
@@ -2419,7 +2236,7 @@
         "effective_cost": 2.03,
         "avi_score": 201.4,
         "fgi_score": 17.7,
-        "bfi_score": 65.1
+        "bfi_score": 67.0
       },
       "value": {
         "intelligence_per_dollar": 10980.61,
@@ -2432,7 +2249,7 @@
         "effective_requests_per_month": 4019,
         "avi_score": 201.4,
         "fgi_score": 17.7,
-        "bfi_score": 65.1
+        "bfi_score": 67.0
       },
       "coverage": [
         "AA",
@@ -2472,18 +2289,10 @@
         "per_month_docs": 16300
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3270,
-          "weekly": 6294,
-          "monthly": 6376
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3270
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "qwen3-6-plus",
@@ -2579,18 +2388,10 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 4310,
-          "weekly": 8297,
-          "monthly": 8405
-        },
-        "overall_pct": 39.0,
-        "overall_req": 4310
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "qwen3-5-omni-plus",
@@ -2652,7 +2453,7 @@
         "AA",
         "Live"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     },
     {
@@ -2685,25 +2486,17 @@
         "per_month_docs": 6750
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 994,
-          "weekly": 1913,
-          "monthly": 1938
-        },
-        "overall_pct": 39.0,
-        "overall_req": 994
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-7-code",
         "aa_intelligence": 43.0244715223736,
         "aa_coding": 60.761721459287,
         "aa_agentic": 30.2783951890034,
-        "aa_median_tps": 45.1196496079459,
+        "aa_median_tps": 44.5088423804513,
         "aa_context": 256000,
         "lmarena_rank": null,
         "lmarena_elo": null,
@@ -2739,7 +2532,7 @@
         "effective_cost": 4.01,
         "avi_score": 178.9,
         "fgi_score": 33.3,
-        "bfi_score": 22.1
+        "bfi_score": 21.8
       },
       "value": {
         "intelligence_per_dollar": 3562.66,
@@ -2752,7 +2545,7 @@
         "effective_requests_per_month": 2626,
         "avi_score": 178.9,
         "fgi_score": 33.3,
-        "bfi_score": 22.1
+        "bfi_score": 21.8
       },
       "coverage": [
         "AA",
@@ -2791,25 +2584,17 @@
         "per_month_docs": 1690
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 338,
-          "weekly": 650,
-          "monthly": 658
-        },
-        "overall_pct": 39.0,
-        "overall_req": 338
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "qwen3-7-max",
         "aa_intelligence": 46.71222295444,
         "aa_coding": 65.9687543348592,
         "aa_agentic": 30.8631924398625,
-        "aa_median_tps": 205.169134089531,
+        "aa_median_tps": 201.608991474183,
         "aa_context": 1000000,
         "lmarena_rank": 27,
         "lmarena_elo": 1474.0,
@@ -2845,7 +2630,7 @@
         "effective_cost": 6.48,
         "avi_score": 170.0,
         "fgi_score": 48.9,
-        "bfi_score": 58.0
+        "bfi_score": 57.0
       },
       "value": {
         "intelligence_per_dollar": 1313.99,
@@ -2858,7 +2643,7 @@
         "effective_requests_per_month": 914,
         "avi_score": 170.0,
         "fgi_score": 48.9,
-        "bfi_score": 58.0
+        "bfi_score": 57.0
       },
       "coverage": [
         "AA",
@@ -2898,25 +2683,17 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 792,
-          "weekly": 1524,
-          "monthly": 1544
-        },
-        "overall_pct": 39.0,
-        "overall_req": 792
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "glm-5",
         "aa_intelligence": 40.55415,
         "aa_coding": null,
         "aa_agentic": null,
-        "aa_median_tps": 61.3925485014462,
+        "aa_median_tps": 59.9862053481676,
         "aa_context": 200000,
         "lmarena_rank": 55,
         "lmarena_elo": 1457.0,
@@ -2944,7 +2721,7 @@
         "effective_cost": 5.0,
         "avi_score": 165.1,
         "fgi_score": 34.5,
-        "bfi_score": 25.1
+        "bfi_score": 24.5
       },
       "value": {
         "intelligence_per_dollar": 2675.08,
@@ -2957,14 +2734,14 @@
         "effective_requests_per_month": 1583,
         "avi_score": 165.1,
         "fgi_score": 34.5,
-        "bfi_score": 25.1
+        "bfi_score": 24.5
       },
       "coverage": [
         "AA",
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     },
     {
@@ -2997,25 +2774,17 @@
         "per_month_docs": 4300
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 792,
-          "weekly": 1524,
-          "monthly": 1544
-        },
-        "overall_pct": 39.0,
-        "overall_req": 792
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "glm-5-1",
         "aa_intelligence": 40.9675355215124,
         "aa_coding": 55.7818352059925,
         "aa_agentic": 30.5607491408935,
-        "aa_median_tps": 64.2992902246828,
+        "aa_median_tps": 63.6551318938285,
         "aa_context": 200000,
         "lmarena_rank": 39,
         "lmarena_elo": 1468.0,
@@ -3043,7 +2812,7 @@
         "effective_cost": 5.08,
         "avi_score": 163.0,
         "fgi_score": 33.9,
-        "bfi_score": 26.2
+        "bfi_score": 25.9
       },
       "value": {
         "intelligence_per_dollar": 2702.34,
@@ -3056,7 +2825,7 @@
         "effective_requests_per_month": 1693,
         "avi_score": 163.0,
         "fgi_score": 33.9,
-        "bfi_score": 26.2
+        "bfi_score": 25.9
       },
       "coverage": [
         "AA",
@@ -3074,7 +2843,7 @@
         "output_per_1m": 1.2,
         "cached_read_per_1m": 0.006,
         "cached_write_per_1m": null,
-        "monthly_usage_limit_usd": 60.0
+        "monthly_usage_limit_usd": 60
       },
       "caps": {
         "cap_5h_usd": 12.0,
@@ -3082,39 +2851,31 @@
         "cap_mo_usd": 60.0
       },
       "tokens": {
-        "est_input": 920,
-        "est_cached": 88900,
+        "est_input": 500,
+        "est_cached": 60000,
         "est_output": 200
       },
-      "cost_per_request_usd": 0.001049,
+      "cost_per_request_usd": 0.00075,
       "requests": {
-        "per_5h_computed": 11435,
-        "per_week_computed": 28588,
-        "per_month_computed": 57176,
-        "per_5h_docs": 11400,
-        "per_week_docs": 28600,
-        "per_month_docs": 57200
+        "per_5h_computed": 16000,
+        "per_week_computed": 40000,
+        "per_month_computed": 80000,
+        "per_5h_docs": null,
+        "per_week_docs": null,
+        "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 11435,
-          "weekly": 22013,
-          "monthly": 22298
-        },
-        "overall_pct": 39.0,
-        "overall_req": 11435
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "longcat-2-0",
         "aa_intelligence": 33.9692584853255,
         "aa_coding": 45.2637328339576,
         "aa_agentic": 21.9579587628866,
-        "aa_median_tps": 41.7052519676008,
+        "aa_median_tps": 41.3436265491977,
         "aa_context": 1000000,
         "lmarena_rank": null,
         "lmarena_elo": null,
@@ -3131,20 +2892,20 @@
         "effective_cost": 3.04,
         "avi_score": 146.2,
         "fgi_score": 10.2,
-        "bfi_score": 41.1
+        "bfi_score": 40.7
       },
       "value": {
-        "intelligence_per_dollar": 32370.17,
-        "cost_per_intelligence_pt_usd": 3.1e-05,
-        "requests_per_dollar": 952.9,
+        "intelligence_per_dollar": 45292.34,
+        "cost_per_intelligence_pt_usd": 2.2e-05,
+        "requests_per_dollar": 1333.3,
         "leverage_vs_10usd_sub": 6.0,
         "effective_blended_price": 3.04,
-        "effective_cost_per_request": 0.00664,
-        "effective_requests_per_5h": 1801,
-        "effective_requests_per_month": 9036,
+        "effective_cost_per_request": 0.004747,
+        "effective_requests_per_5h": 2528,
+        "effective_requests_per_month": 12638,
         "avi_score": 146.2,
         "fgi_score": 10.2,
-        "bfi_score": 41.1
+        "bfi_score": 40.7
       },
       "coverage": [
         "AA"
@@ -3182,25 +2943,17 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 3390,
-          "weekly": 6525,
-          "monthly": 6610
-        },
-        "overall_pct": 39.0,
-        "overall_req": 3390
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "minimax-m2-5",
         "aa_intelligence": 34.474081034775786,
         "aa_coding": null,
         "aa_agentic": null,
-        "aa_median_tps": 95.7438642603993,
+        "aa_median_tps": 91.3747923734942,
         "aa_context": 204800,
         "lmarena_rank": 155,
         "lmarena_elo": 1390.0,
@@ -3228,7 +2981,7 @@
         "effective_cost": 3.55,
         "avi_score": 129.7,
         "fgi_score": 8.2,
-        "bfi_score": 92.1
+        "bfi_score": 87.9
       },
       "value": {
         "intelligence_per_dollar": 9738.44,
@@ -3241,7 +2994,7 @@
         "effective_requests_per_month": 2294,
         "avi_score": 129.7,
         "fgi_score": 8.2,
-        "bfi_score": 92.1
+        "bfi_score": 87.9
       },
       "coverage": [
         "AA",
@@ -3281,25 +3034,17 @@
         "per_month_docs": null
       },
       "remaining": {
-        "percent": {
-          "rolling": 100.0,
-          "weekly": 77.0,
-          "monthly": 39.0
-        },
-        "requests": {
-          "rolling": 1151,
-          "weekly": 2216,
-          "monthly": 2244
-        },
-        "overall_pct": 39.0,
-        "overall_req": 1151
+        "percent": {},
+        "requests": {},
+        "overall_pct": null,
+        "overall_req": null
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-5",
         "aa_intelligence": 36.0227407548798,
         "aa_coding": 46.7813670411985,
         "aa_agentic": 21.6932680412371,
-        "aa_median_tps": 64.0391125608127,
+        "aa_median_tps": 64.5172281058148,
         "aa_context": 256000,
         "lmarena_rank": 64,
         "lmarena_elo": 1450.0,
@@ -3327,7 +3072,7 @@
         "effective_cost": 6.15,
         "avi_score": 128.1,
         "fgi_score": 19.5,
-        "bfi_score": 29.2
+        "bfi_score": 29.4
       },
       "value": {
         "intelligence_per_dollar": 3454.92,
@@ -3340,14 +3085,14 @@
         "effective_requests_per_month": 1461,
         "avi_score": 128.1,
         "fgi_score": 19.5,
-        "bfi_score": 29.2
+        "bfi_score": 29.4
       },
       "coverage": [
         "AA",
         "LM",
         "Live"
       ],
-      "first_seen": "2026-08-27T15:27:58.168255+00:00",
+      "first_seen": "2026-08-27T21:36:58.120005+00:00",
       "is_new": true
     }
   ]

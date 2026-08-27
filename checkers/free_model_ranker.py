@@ -13,10 +13,8 @@ No API keys. Console table by default; --json / --html flag the files.
 """
 import argparse
 import datetime as dt
-import glob
 import html
 import json
-import math
 import os
 import pathlib
 import shutil
@@ -38,16 +36,17 @@ OUT = ROOT / "docs" / "reports"
 
 import benchmark_common as bc
 from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM, C_UNDER,
+    C_RESET, C_BOLD, C_DIM,
     BG_EVEN, BG_ODD, BG_HEADER,
     C_GOLD, C_SILVER, C_BRONZE,
-    C_CLAUDE, C_AGY, C_OCGO, C_FRONTIER, C_OPENROUTER,
-    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_PURPLE, C_WHITE, C_GRAY, C_RED,
-    _safe_float, _safe_int, _safe_int_round, parse_price,
-    norm_id, norm_model_slug,
-    get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
+    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_RED,
+    _safe_float, _safe_int,
+    norm_id,
+    compute_p_success, compute_token_multiplier,
     compute_fgi,
-    display_len, color_cell, pad_banner, medal_badge, pool_badge,
+    compute_meanfill_composite, comp_key, is_stealth_model, base_id,
+    medal_badge,
+    color_cell, pool_badge,
     score_color_q, score_color_p, score_color_fgi,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
     load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
@@ -58,7 +57,8 @@ import opencode_cost_benefit_analyzer as ogc
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
 OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
-CLINE_FREEMODEL_API = "https://cc.freemodel.dev/v1/models"
+CLINE_RECOMMENDED_MODELS_API = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
+CLINE_FREEMODEL_API = CLINE_RECOMMENDED_MODELS_API
 AA_URL = ogc.AA_URL
 LMARENA_URL = ogc.LMARENA_URL
 
@@ -77,20 +77,6 @@ def is_free_model(rec):
     return prompt == 0.0 and completion == 0.0
 
 
-def is_stealth_model(rec):
-    """OpenRouter anonymous-model namespace: id starts with 'stealth/'."""
-    oid = rec.get("id", "") or ""
-    return oid.startswith("stealth/")
-
-
-def base_id(oid: str) -> str:
-    """Strip trailing :free or -free tags so cross-source matching sees the real slug."""
-    s = oid
-    if s.endswith(":free"):
-        s = s[:-5]
-    elif s.endswith("-free"):
-        s = s[:-5]
-    return s
 
 
 def pick_latest_raw(name_part: str) -> pathlib.Path | None:
@@ -289,35 +275,45 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
     total_models = len(rows_sorted)
     top_model = rows_sorted[0] if rows_sorted and rows_sorted[0].get("composite") is not None else None
 
+    col_medals = bc.compute_column_medals(
+        rows_sorted,
+        {
+            "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
+            "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
+            "fgi": (lambda r: r["benchmarks"].get("fgi_score") or 0, True, None),
+        },
+        id_key="model_id",
+    )
+
     out = []
+    title_str = "⚡ FREE MODEL RADAR (OpenRouter + OpenCode + Cline Free Tiers)"
+    top_info = f"Top: {top_model['display'][:14]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model else ""
+    if is_slim:
+        summary_str = f" Tracked: {total_models} free models │ {top_info}"
+    else:
+        summary_str = f" Tracked: {total_models} free models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
+
+    diff_notices = []
+    diff_parts = []
+    if added_ids:
+        diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
+        diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
+    if removed_models:
+        rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
+        diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
+        diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
+
+    out.extend(bc.render_banner_box(
+        title_str,
+        summary_lines=[summary_str],
+        diff_notices=diff_notices,
+        inner_w=inner_w,
+        color=color,
+        plain_title_line=f" FREE MODEL RADAR (OpenRouter + OpenCode + Cline) — Tracked: {total_models} free models",
+        plain_diff_parts=diff_parts,
+    ))
+
     if color:
-        top_box = f"{C_CYAN}╭{'─' * inner_w}╮{C_RESET}"
-        bot_box = f"{C_CYAN}╰{'─' * inner_w}╯{C_RESET}"
-        title_str = "⚡ FREE MODEL RADAR (OpenRouter + OpenCode + Cline Free Tiers)"
-        top_info = f"Top: {top_model['display'][:14]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model else ""
-        if is_slim:
-            summary_str = f" Tracked: {total_models} free models │ {top_info}"
-        else:
-            summary_str = f" Tracked: {total_models} free models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
-
-        out.append(top_box)
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner(title_str, inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner(summary_str, inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-
-        # Catalog diff alert line in banner
-        diff_notices = []
-        if added_ids:
-            diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
-        if removed_models:
-            rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
-            diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
-        if diff_notices:
-            diff_line = " │ ".join(diff_notices)
-            out.append(f"{C_CYAN}│{C_RESET} {pad_banner(diff_line, inner_w - 2)} {C_CYAN}│{C_RESET}")
-
-        out.append(bot_box)
-        out.append("")
-
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
         bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in headers) + "┘"
@@ -327,16 +323,6 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
-        out.append("=" * (inner_w + 2))
-        out.append(f" FREE MODEL RADAR (OpenRouter + OpenCode + Cline) — Tracked: {total_models} free models")
-        if added_ids or removed_models:
-            diff_parts = []
-            if added_ids:
-                diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
-            if removed_models:
-                diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join([m.get('display') or m.get('model_id', 'unknown') for m in removed_models])}]")
-            out.append(" " + " | ".join(diff_parts))
-        out.append("=" * (inner_w + 2))
         hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
@@ -354,13 +340,14 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         else:
             rank_str = f" #{rank_num}"
 
+        meds = col_medals.get(r.get("model_id"), {})
         b = r["benchmarks"]
         q_val = b.get("capability_q")
-        q_s = f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—"
+        q_s = (f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—") + medal_badge(meds.get("q"), color=color)
         p_val = b.get("p_success")
-        p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
+        p_s = (f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—") + medal_badge(meds.get("psucc"), color=color)
         fgi_val = b.get("fgi_score")
-        fgi_s = f"{fgi_val:.1f}" if isinstance(fgi_val, (int, float)) else "—"
+        fgi_s = (f"{fgi_val:.1f}" if isinstance(fgi_val, (int, float)) else "—") + medal_badge(meds.get("fgi"), color=color)
 
         aa_s = f"{b['aa_intelligence']:.1f}" if isinstance(b["aa_intelligence"], (int, float)) else "—"
         lm_s = f"{b['lmarena_elo']:.0f}" if isinstance(b["lmarena_elo"], (int, float)) else "—"
@@ -460,22 +447,19 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         out.append("")
         out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="display"))
 
-    if color:
-        out.append("")
-        out.append(f"{C_CYAN}🧭 Free Model Intelligence Guide{C_RESET}:")
-        out.append(f"  • {C_BOLD}{C_GOLD}#1 Gold Leader{C_RESET}: Highest composite capability index across evaluated free tiers.")
-        out.append(f"  • {C_BOLD}{C_GREEN}Green (+){C_RESET}: Newly added free model vs previous baseline snapshot.")
-        out.append(f"  • {C_BOLD}Q(Cap){C_RESET}: Normalized Capability Score (40.0–99.9) across Artificial Analysis and Arena.ai.")
-        out.append(f"  • {C_BOLD}P(Succ){C_RESET}: Estimated autonomous single-turn pass probability on non-trivial logic.")
-        out.append(f"  • {C_MAGENTA}[STL]{C_RESET}: OpenRouter anonymous namespace model (see `scheck` for dedicated analysis).")
-    else:
-        out.append("")
-        out.append("Free Model Intelligence Guide:")
-        out.append("  • #1 Gold Leader: Highest composite capability index across evaluated free tiers.")
-        out.append("  • Green (+): Newly added free model vs previous baseline snapshot.")
-        out.append("  • Q(Cap): Normalized Capability Score (40.0–99.9) across Artificial Analysis and Arena.ai.")
-        out.append("  • P(Succ): Estimated autonomous single-turn pass probability on non-trivial logic.")
-        out.append("  • [STL]: OpenRouter anonymous namespace model (see `scheck` for dedicated analysis).")
+    out.append("")
+    out.extend(bc.render_metric_guide_cli(
+        "Free Model Intelligence Guide",
+        [
+            ("#1 Gold Leader", "Highest composite capability index across evaluated free tiers.", C_GOLD),
+            ("Green (+)", "Newly added free model vs previous baseline snapshot.", C_GREEN),
+            ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
+            ("Q(Cap)", "Normalized Capability Score (40.0–99.9) across Artificial Analysis and Arena.ai.", C_WHITE),
+            ("P(Succ)", "Estimated autonomous single-turn pass probability on non-trivial logic.", C_WHITE),
+            ("[STL]", "OpenRouter anonymous namespace model (see `scheck` for dedicated analysis).", C_MAGENTA),
+        ],
+        color=color,
+    ))
 
     return "\n".join(out)
 
@@ -554,12 +538,19 @@ def main():  # noqa: PLR0915
     else:
         print("  OpenCode free: none found")
 
-    # ---- 1c. Cline provided models (FreeModel gateway) ----
-    cline_json = fetch_or_load_cached_json(CLINE_FREEMODEL_API, "cline_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
+    # ---- 1c. Cline provided models (Recommended Models API / Free tier) ----
+    cline_json = fetch_or_load_cached_json(CLINE_RECOMMENDED_MODELS_API, "cline_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
     cline_ids: list[str] = []
-    if isinstance(cline_json, dict) and "data" in cline_json:
-        for m in cline_json["data"]:
-            mid = m.get("id", "")
+    if isinstance(cline_json, dict):
+        raw_cline_models = cline_json.get("free", []) if "free" in cline_json else cline_json.get("data", [])
+        if isinstance(raw_cline_models, list):
+            for m in raw_cline_models:
+                mid = m.get("id", "") if isinstance(m, dict) else str(m)
+                if mid and mid not in cline_ids:
+                    cline_ids.append(mid)
+    elif isinstance(cline_json, list):
+        for m in cline_json:
+            mid = m.get("id", "") if isinstance(m, dict) else str(m)
             if mid and mid not in cline_ids:
                 cline_ids.append(mid)
 
@@ -568,7 +559,12 @@ def main():  # noqa: PLR0915
         norm = ogc.norm_id(base_id(cid))
         if norm in or_norms:
             continue
-        rec = {"id": cid, "context_length": None, "pricing": {"prompt": "0", "completion": "0"}, "_source": "CLN"}
+        ctx = None
+        if cid in or_map:
+            ctx = or_map[cid].get("context_length")
+        elif base_id(cid) in or_map:
+            ctx = or_map[base_id(cid)].get("context_length")
+        rec = {"id": cid, "context_length": ctx, "pricing": {"prompt": "0", "completion": "0"}, "_source": "CLN"}
         free_recs.append(rec)
         or_norms.add(norm)
         cln_added += 1
@@ -695,13 +691,7 @@ def main():  # noqa: PLR0915
         )
 
     # ---- 5. normalized composite — mean of available z-scores ----
-    aa_vals = [r["benchmarks"]["aa_intelligence"] for r in rows if r["benchmarks"]["aa_intelligence"] is not None]
-    lm_vals = [r["benchmarks"]["lmarena_elo"] for r in rows if r["benchmarks"]["lmarena_elo"] is not None]
-
-    aa_mean = statistics.fmean(aa_vals) if aa_vals else None
-    aa_std = statistics.pstdev(aa_vals) if len(aa_vals) > 1 else (0.0 if aa_vals else None)
-    lm_mean = statistics.fmean(lm_vals) if lm_vals else None
-    lm_std = statistics.pstdev(lm_vals) if len(lm_vals) > 1 else (0.0 if lm_vals else None)
+    aa_vals, lm_vals, aa_mean, aa_std, lm_mean, lm_std = compute_meanfill_composite(rows)
 
     if aa_vals:
         print(f"  AA Intelligence across {len(aa_vals)} free models: mean {aa_mean:.1f}  std {aa_std:.2f}")
@@ -709,27 +699,12 @@ def main():  # noqa: PLR0915
         print(f"  LMArena ELO across {len(lm_vals)} free models: mean {lm_mean:.1f}  std {lm_std:.2f}")
     if not aa_vals and not lm_vals:
         print("  Note: no free model found on AA or LMArena — composites will be \u2014", file=sys.stderr)
-    if not aa_vals and not lm_vals:
         print("  OpenRouter has no public bulk intelligence metric (per this repo's finding) — composite falls back to ordering by OR context.", file=sys.stderr)
 
     for r in rows:
         b = r["benchmarks"]
-        zs = []
-        a = b["aa_intelligence"]
-        if a is not None and aa_std is not None and aa_std > 0:
-            zs.append((a - aa_mean) / aa_std)  # type: ignore[operator]
-        elif a is not None and aa_std == 0.0:
-            zs.append(0.0)
-        e = b["lmarena_elo"]
-        if e is not None and lm_std is not None and lm_std > 0:
-            zs.append((e - lm_mean) / lm_std)  # type: ignore[operator]
-        elif e is not None and lm_std == 0.0:
-            zs.append(0.0)
-        comp_val = round(statistics.fmean(zs), 3) if zs else None
-        r["composite"] = comp_val
-        if comp_val is not None:
-            q_score = compute_capability_q(comp_val)
-            b["capability_q"] = q_score
+        if b["capability_q"] is not None:
+            q_score = b["capability_q"]
             p_succ = compute_p_success(q_score)
             b["p_success"] = p_succ
             t_mult = compute_token_multiplier(p_succ)
@@ -737,20 +712,9 @@ def main():  # noqa: PLR0915
             fgi = compute_fgi(q_score, p_succ)
             b["fgi_score"] = fgi
         else:
-            b["capability_q"] = None
             b["p_success"] = None
             b["token_multiplier"] = None
             b["fgi_score"] = None
-
-    # Sort: composite desc, then AA, then LM, then id. None composites last.
-    def comp_key(r):
-        c = r.get("composite")
-        k_c = -(c) if isinstance(c, (int, float)) else 1e9
-        a = r["benchmarks"]["aa_intelligence"]
-        k_a = -(a) if isinstance(a, (int, float)) else 1e9
-        e = r["benchmarks"]["lmarena_elo"]
-        k_e = -(e) if isinstance(e, (int, float)) else 1e9
-        return (k_c, k_a, k_e, r["model_id"])
 
     rows_sorted = sorted(rows, key=comp_key)
     n_aa = sum(1 for r in rows if r["benchmarks"]["aa_intelligence"] is not None)
@@ -780,10 +744,11 @@ def main():  # noqa: PLR0915
                 "openrouter_api": OPENROUTER_API,
                 "opencode_zen_api": OPENCODE_ZEN_API,
                 "opencode_go_api": OPENCODE_GO_API,
+                "cline_recommended_models_api": CLINE_RECOMMENDED_MODELS_API,
                 "cline_freemodel_api": CLINE_FREEMODEL_API,
                 "artificial_analysis": AA_URL,
                 "lmarena": LMARENA_URL,
-                "note": "free = OpenRouter prompt+completion $0 + OpenCode Zen/Go free tiers + Cline FreeModel gateway; composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable; OpenRouter/OpenCode/Cline contribute list + context (no public bulk intelligence metric)",
+                "note": "free = OpenRouter prompt+completion $0 + OpenCode Zen/Go free tiers + Cline Free tier; composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable; OpenRouter/OpenCode/Cline contribute list + context (no public bulk intelligence metric)",
             },
             "catalog_diff": {
                 "added": sorted(list(added_ids)),

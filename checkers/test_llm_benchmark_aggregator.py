@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import unittest
 import sys
 from pathlib import Path
@@ -119,6 +120,34 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         rec = bc.find_lmarena({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, lm_map)
         self.assertIsNotNone(rec)
         self.assertEqual(rec["elo"], 1490.0)
+
+    def test_aa_parsing_and_matching(self):
+        # Mirrors the real AA page shape: no static __NEXT_DATA__ blob, data ships
+        # as a "models":[...] array inside an RSC flight chunk.
+        models_json = json.dumps([
+            {
+                "slug": "gemini-3-7-flash",
+                "name": "Gemini 3.7 Flash",
+                "intelligenceIndex": 89.0,
+                "codingIndex": 91.0,
+                "agenticIndex": 85.0,
+                "medianOutputTokensPerSecond": 135.0,
+                "price1mInputTokens": 0.38,
+                "price1mOutputTokens": 1.88,
+            }
+        ])
+        html_sample = (
+            'irrelevant preamble noise\n'
+            'self.__next_f.push([1,"' + '"models":' + models_json + '"])'
+        )
+        aa_map = bc.parse_aa(html_sample)
+        self.assertIn("gemini-3-7-flash", aa_map)
+        self.assertEqual(aa_map["gemini-3-7-flash"]["intelligenceIndex"], 89.0)
+        self.assertEqual(aa_map["gemini-3-7-flash"]["medianTps"], 135.0)
+
+        rec = bc.find_aa({"aa_slug": "gemini-3-7-flash", "lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, aa_map)
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["codingIndex"], 91.0)
 
     def test_pareto_frontier_and_close_calls(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)

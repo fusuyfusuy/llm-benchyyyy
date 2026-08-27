@@ -46,17 +46,17 @@ OUT = ROOT / "docs" / "reports"
 
 import benchmark_common as bc
 from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM, C_UNDER,
+    C_RESET, C_BOLD, C_DIM,
     BG_EVEN, BG_ODD, BG_HEADER,
     C_GOLD, C_SILVER, C_BRONZE,
-    C_CLAUDE, C_AGY, C_OCGO, C_FRONTIER,
-    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_PURPLE, C_WHITE, C_GRAY, C_RED,
-    _safe_float, _safe_int, _safe_int_round, parse_price,
-    norm_id, norm_model_slug, pick_latest_raw,
+    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
+    norm_model_slug,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
-    parse_livebench, parse_lmarena,
-    display_len, color_cell, pad_banner, medal_badge, pool_badge,
+    compute_pareto_frontier,
+    parse_livebench, parse_lmarena, parse_aa,
+    display_len, color_cell, medal_badge, pool_badge,
+    compute_column_medals, render_banner_box, render_metric_guide_cli,
     score_color_q, score_color_p, score_color_avi, score_color_fgi,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
     compute_role_recommendations, render_role_recommendations_cli,
@@ -746,6 +746,11 @@ LIVEBENCH_URL = "https://livebench.ai"
 LIVEBENCH_CSV_URL = "https://livebench.ai/table_2026_06_25.csv"
 LIVEBENCH_CAT_URL = "https://livebench.ai/categories_2026_06_25.json"
 LMARENA_URL = "https://arena.ai/leaderboard/text"
+AA_URL = "https://artificialanalysis.ai/leaderboards/models"
+# ponytail: arc_agi is static MODELS_CATALOG data, no live fetcher <- arcprize.org/leaderboard
+# is a client-rendered Next.js App Router page w/ no static API or __NEXT_DATA__/RSC payload
+# found in the raw HTML -> wire a load_arc_data()/find_arc() pair (mirroring load_aa_data)
+# once a stable ARC-AGI-2 JSON endpoint is identified via browser network inspection
 
 
 def find_livebench(model_id_or_dict, live_map):
@@ -816,6 +821,42 @@ def find_lmarena(model_id_or_dict, lm_map):
                 if versions_in_cn and not all(ver in kn for ver in versions_in_cn):
                     continue
                 if v.get("elo") is not None:
+                    return v
+    return None
+
+
+def find_aa(model_id_or_dict, aa_map):
+    """Version-safe matching for Artificial Analysis models."""
+    if not aa_map:
+        return None
+    if isinstance(model_id_or_dict, dict):
+        cands = [
+            model_id_or_dict.get("aa_slug"),
+            model_id_or_dict.get("lm_slug"),
+            model_id_or_dict.get("or_slug"),
+            model_id_or_dict.get("display"),
+        ]
+    else:
+        cands = [model_id_or_dict]
+
+    for c in cands:
+        if not c:
+            continue
+        cn = norm_model_slug(c)
+        if not cn:
+            continue
+        # 1. Exact match
+        for k, v in aa_map.items():
+            if norm_model_slug(k) == cn:
+                return v
+        # 2. Variant match with strict version preservation
+        versions_in_cn = re.findall(r"\d+(?:-\d+)?", cn)
+        for k, v in aa_map.items():
+            kn = norm_model_slug(k)
+            if cn in kn or kn in cn:
+                if versions_in_cn and not all(ver in kn for ver in versions_in_cn):
+                    continue
+                if v.get("intelligenceIndex") is not None:
                     return v
     return None
 
@@ -904,6 +945,35 @@ def load_lmarena_data(verbose=False, offline=False, do_fetch=False):
     return out
 
 
+def load_aa_data(verbose=False, offline=False, do_fetch=False):
+    """Load Artificial Analysis data from snapshots in data/raw/ or live website."""
+    out = {}
+    matches = sorted(glob.glob(str(RAW / "*artificial_analysis*20*.html")))
+    for p_html in matches:
+        try:
+            p = pathlib.Path(p_html)
+            data = parse_aa(p.read_text(encoding="utf-8", errors="ignore"), verbose=verbose)
+            out.update(data)
+        except Exception:
+            pass
+    if not offline:
+        try:
+            html_txt = fetch_url(AA_URL)
+            if html_txt:
+                if do_fetch:
+                    RAW.mkdir(parents=True, exist_ok=True)
+                    stamp = dt.date.today().isoformat().replace("-", "")
+                    s = RAW / f"artificial_analysis_{stamp}.html"
+                    if not s.exists():
+                        s.write_text(html_txt, encoding="utf-8")
+                        print(f"  saved Artificial Analysis -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
+                live_data = parse_aa(html_txt, verbose=verbose)
+                out.update(live_data)
+        except Exception:
+            pass
+    return out
+
+
 def calculate_composite_scores(models_dict):
     """
     Computes:
@@ -964,36 +1034,6 @@ def calculate_composite_scores(models_dict):
         m["bfi_score"] = compute_bfi(q_score, speed, blended_price)
 
 
-def display_len(s):
-    """Calculate terminal display width (accounting for ANSI escapes and wide emoji characters)."""
-    clean = re.sub(r"\033\[[0-9;]*m", "", str(s))
-    w = 0
-    for ch in clean:
-        if ord(ch) in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1) or (0x1F300 <= ord(ch) <= 0x1FAFF):
-            w += 2
-        else:
-            w += 1
-    return w
-
-
-def color_cell(text, color_code="", width=0, align="<", bg=None):
-    """Pad and align text while properly applying ANSI color escapes without breaking widths."""
-    raw_w = display_len(text)
-    pad_needed = max(0, width - raw_w)
-
-    if align == ">":
-        padded = (" " * pad_needed) + str(text)
-    elif align == "^":
-        left_pad = pad_needed // 2
-        right_pad = pad_needed - left_pad
-        padded = (" " * left_pad) + str(text) + (" " * right_pad)
-    else:
-        padded = str(text) + (" " * pad_needed)
-
-    bg_prefix = bg if bg else ""
-    return f"{bg_prefix}{color_code} {padded} {C_RESET}"
-
-
 def format_compact_price(p_in, p_out):
     """Format prompt and completion price compactly e.g. $5/$25 or $0.41/$0.83."""
     def fmt(v):
@@ -1007,74 +1047,18 @@ def format_compact_price(p_in, p_out):
     return f"{fmt(p_in)}/{fmt(p_out)}"
 
 
-def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
-    """Compute Pareto-optimal frontier models on Effective Cost vs Composite Capability,
-    including close-call / near-frontier models with generous headroom tolerances.
-    """
-    pareto_set = set()
-    for a in models_list:
-        a_cost = a.get("effective_cost") or (a.get("price_in", 999) + a.get("price_out", 999)) or 999
-        a_q = a.get("capability_q", 0)
-        dominated = False
-        for b in models_list:
-            if b is a:
-                continue
-            b_cost = b.get("effective_cost") or (b.get("price_in", 999) + b.get("price_out", 999)) or 999
-            b_q = b.get("capability_q", 0)
-            if b_cost <= a_cost and b_q >= a_q:
-                cost_diff = (a_cost - b_cost) / max(0.01, a_cost)
-                q_diff = b_q - a_q
-                if cost_diff > cost_tolerance or q_diff > q_tolerance:
-                    dominated = True
-                    break
-        if not dominated:
-            pareto_set.add(a.get("display"))
-            if a.get("aa_slug"):
-                pareto_set.add(a.get("aa_slug"))
-            if a.get("lm_slug"):
-                pareto_set.add(a.get("lm_slug"))
-            if a.get("display")[:22]:
-                pareto_set.add(a.get("display")[:22])
-            if a.get("display")[:20]:
-                pareto_set.add(a.get("display")[:20])
-    return pareto_set
-
-
-def compute_column_medals(models_list):
-    """Compute top-3 ranks for each column to attach 1st 🥇, 2nd 🥈, 3rd 🥉 badges."""
-    col_keys = {
-        "q": (lambda m: m.get("capability_q", 0), True, None),
-        "psucc": (lambda m: m.get("p_success", 0), True, None),
-        "eff_cost": (lambda m: m.get("effective_cost", 999), False, None),
-        "avi": (lambda m: m.get("avi_score", 0), True, None),
-        "fgi": (lambda m: m.get("fgi_score", 0), True, None),
-        "live": (lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float))),
-        "arc": (lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float))),
-        "arena": (lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float))),
-        "speed": (lambda m: m["base_metrics"].get("speed_tps", 0), True, lambda m: isinstance(m["base_metrics"].get("speed_tps"), (int, float))),
-        "price": (lambda m: m.get("blended_price", 999), False, None),
-    }
-    col_medals = {}
-    for col, (fn, rev, filt) in col_keys.items():
-        valid = [m for m in models_list if filt(m)] if filt else models_list
-        sorted_col = sorted(valid, key=fn, reverse=rev)
-        for pos, m in enumerate(sorted_col[:3]):
-            mid = m["display"]
-            if mid not in col_medals:
-                col_medals[mid] = {}
-            col_medals[mid][col] = pos + 1
-    return col_medals
-
-
-def medal_badge(rank_num, color=True):
-    """Format superscript medal badge: ¹ (Gold), ² (Silver), ³ (Bronze)."""
-    if not rank_num:
-        return ""
-    char = {1: "¹", 2: "²", 3: "³"}.get(rank_num, "")
-    if not color:
-        return char
-    colr = {1: C_BOLD + C_GOLD, 2: C_BOLD + C_SILVER, 3: C_BOLD + C_BRONZE}.get(rank_num, "")
-    return f"{colr}{char}{C_RESET}"
+BCHECK_COL_MEDAL_KEYS = {
+    "q": (lambda m: m.get("capability_q", 0), True, None),
+    "psucc": (lambda m: m.get("p_success", 0), True, None),
+    "eff_cost": (lambda m: m.get("effective_cost", 999), False, None),
+    "avi": (lambda m: m.get("avi_score", 0), True, None),
+    "fgi": (lambda m: m.get("fgi_score", 0), True, None),
+    "live": (lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float))),
+    "arc": (lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float))),
+    "arena": (lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float))),
+    "speed": (lambda m: m["base_metrics"].get("speed_tps", 0), True, lambda m: isinstance(m["base_metrics"].get("speed_tps"), (int, float))),
+    "price": (lambda m: m.get("blended_price", 999), False, None),
+}
 
 
 def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None):
@@ -1090,7 +1074,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     if removed_models is None:
         removed_models = []
 
-    col_medals = compute_column_medals(models_list)
+    col_medals = compute_column_medals(models_list, BCHECK_COL_MEDAL_KEYS, id_key="display")
 
     # Adaptive width detection (detect split panes or small windows)
     term_cols = shutil.get_terminal_size((120, 24)).columns
@@ -1106,7 +1090,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Pool", 5, "^"),
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
-            ("Eff $/M", 7, ">"),
+            ("Eff $/M", 8, ">"),
             ("AVI", 6, ">"),
             ("FGI", 5, ">"),
             ("Live%", 6, ">"),
@@ -1119,14 +1103,14 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Pool", 5, "^"),
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
-            ("Eff $/M", 7, ">"),
+            ("Eff $/M", 8, ">"),
             ("AVI", 6, ">"),
             ("FGI", 5, ">"),
             ("Live%", 6, ">"),
             ("ARC-2", 6, ">"),
             ("Arena", 6, ">"),
             ("Speed", 7, ">"),
-            ("Price", 11, ">"),
+            ("Price", 12, ">"),
         ]
 
     total_models = len(models_list)
@@ -1137,55 +1121,35 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     # Total inner width between outer box borders
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
-    def pad_banner(line, target_w):
-        dlen = display_len(line)
-        if dlen > target_w:
-            clean = re.sub(r"\033\[[0-9;]*m", "", str(line))
-            return clean[:target_w]
-        pad = max(0, target_w - dlen)
-        return line + (" " * pad)
-
     # 1. Executive Summary Banner
-    if color:
-        top_box = f"{C_CYAN}╭{'─' * inner_w}╮{C_RESET}"
-        bot_box = f"{C_CYAN}╰{'─' * inner_w}╯{C_RESET}"
-        title_str = "⚡ AGENTIC BENCHMARK & COST-BENEFIT RADAR (Arena.ai · LiveBench · ARC-AGI-2 · AA)"
-        f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score', 0):.1f})" if top_frontier else ""
-        v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score', 0):.1f})" if top_avi else ""
-        s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed['base_metrics'].get('speed_tps', 0):.0f}t/s)" if top_speed else ""
-        if is_slim:
-            summary_str = f" Tracked: {total_models} models │ {f_info} │ {v_info}"
-        else:
-            summary_str = f" Tracked: {total_models} models │ {f_info} │ {v_info} │ {s_info}"
-
-        out.append(top_box)
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner(title_str, inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner(summary_str, inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-
-        # Diff banner line
-        diff_notices = []
-        if added_ids:
-            diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
-        if removed_models:
-            rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
-            diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
-        if diff_notices:
-            diff_line = " │ ".join(diff_notices)
-            out.append(f"{C_CYAN}│{C_RESET} {pad_banner(diff_line, inner_w - 2)} {C_CYAN}│{C_RESET}")
-
-        out.append(bot_box)
-        out.append("")
+    title_str = "⚡ AGENTIC BENCHMARK & COST-BENEFIT RADAR (Arena.ai · LiveBench · ARC-AGI-2 · AA)"
+    f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score', 0):.1f})" if top_frontier else ""
+    v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score', 0):.1f})" if top_avi else ""
+    s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed['base_metrics'].get('speed_tps', 0):.0f}t/s)" if top_speed else ""
+    if is_slim:
+        summary_str = f" Tracked: {total_models} models │ {f_info} │ {v_info}"
     else:
-        out.append("=" * (inner_w + 2))
-        out.append(f" AGENTIC BENCHMARK & COST-BENEFIT RADAR (LiveBench · ARC-2 · Arena · AA) — Tracked: {total_models} models")
-        if added_ids or removed_models:
-            diff_parts = []
-            if added_ids:
-                diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
-            if removed_models:
-                diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join([m.get('display') or m.get('model_id', 'unknown') for m in removed_models])}]")
-            out.append(" " + " | ".join(diff_parts))
-        out.append("=" * (inner_w + 2))
+        summary_str = f" Tracked: {total_models} models │ {f_info} │ {v_info} │ {s_info}"
+
+    diff_notices = []
+    diff_parts = []
+    if added_ids:
+        diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
+        diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
+    if removed_models:
+        rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
+        diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
+        diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
+
+    out.extend(render_banner_box(
+        title_str,
+        summary_lines=[summary_str],
+        diff_notices=diff_notices,
+        inner_w=inner_w,
+        color=color,
+        plain_title_line=f" AGENTIC BENCHMARK & COST-BENEFIT RADAR (LiveBench · ARC-2 · Arena · AA) — Tracked: {total_models} models",
+        plain_diff_parts=diff_parts,
+    ))
 
     # Border templates
     if color:
@@ -1223,12 +1187,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         raw_mid = m["display"]
         mid = f"+{raw_mid}"[:m_name_w] if is_added else raw_mid[:m_name_w]
         pool = m["pool"].upper()
-        pool_badge = {
-            "CLAUDE": "[CLD]",
-            "AGY": "[AGY]",
-            "OCGO": "[OCG]",
-            "FRONTIER": "[FRT]",
-        }.get(pool, f"[{pool[:3]}]")
+        pool_badge_str = pool_badge(m["pool"], color=color)
 
         is_pareto = (m.get("display") in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (raw_mid in pareto_ids)
 
@@ -1271,13 +1230,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         price_disp = price_str + price_badge
 
         if color:
-            pool_color = {
-                "CLAUDE": C_CLAUDE,
-                "AGY": C_AGY,
-                "OCGO": C_OCGO,
-                "FRONTIER": C_FRONTIER,
-            }.get(pool, C_WHITE)
-
             if is_added:
                 mid_color = C_BOLD + C_GREEN
             elif is_pareto:
@@ -1285,11 +1237,11 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             else:
                 mid_color = C_WHITE
 
-            q_color = C_GREEN if q_val >= 85 else (C_CYAN if q_val >= 78 else (C_YELLOW if q_val >= 70 else C_GRAY))
-            p_color = C_GREEN if p_val >= 80 else (C_CYAN if p_val >= 60 else (C_YELLOW if p_val >= 40 else C_MAGENTA))
+            q_color = score_color_q(q_val)
+            p_color = score_color_p(p_val)
             eff_color = C_GREEN if eff_cost < 2.0 else (C_CYAN if eff_cost < 10.0 else (C_YELLOW if eff_cost < 25.0 else C_MAGENTA))
-            avi_color = C_GREEN if avi >= 300 else (C_CYAN if avi >= 200 else (C_YELLOW if avi >= 140 else C_WHITE))
-            fgi_color = C_GREEN if fgi >= 70 else (C_CYAN if fgi >= 55 else (C_YELLOW if fgi >= 40 else C_GRAY))
+            avi_color = score_color_avi(avi)
+            fgi_color = score_color_fgi(fgi)
             lb_color = C_GREEN if (isinstance(lb_res, (int, float)) and lb_res >= 78.0) else (C_CYAN if (isinstance(lb_res, (int, float)) and lb_res >= 70.0) else (C_YELLOW if (isinstance(lb_res, (int, float)) and lb_res >= 60.0) else C_GRAY))
             arc_color = C_GREEN if (isinstance(arc, (int, float)) and arc >= 75.0) else (C_CYAN if (isinstance(arc, (int, float)) and arc >= 55.0) else (C_YELLOW if (isinstance(arc, (int, float)) and arc >= 40.0) else C_GRAY))
             elo_color = C_GREEN if (isinstance(elo, (int, float)) and elo >= 1480) else (C_CYAN if (isinstance(elo, (int, float)) and elo >= 1440) else (C_YELLOW if (isinstance(elo, (int, float)) and elo >= 1400) else C_GRAY))
@@ -1298,10 +1250,10 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             row_cells = [
                 color_cell(rank_str, C_BOLD + (C_GOLD if rank_num == 1 else (C_SILVER if rank_num == 2 else (C_BRONZE if rank_num == 3 else C_WHITE))), width=4, align="^", bg=bg),
                 color_cell(mid, mid_color, width=m_name_w, align="<", bg=bg),
-                color_cell(pool_badge, pool_color, width=5, align="^", bg=bg),
+                color_cell(pool_badge_str, "", width=5, align="^", bg=bg),
                 color_cell(q_disp, q_color, width=6, align=">", bg=bg),
                 color_cell(p_disp, p_color, width=7, align=">", bg=bg),
-                color_cell(eff_disp, eff_color, width=7, align=">", bg=bg),
+                color_cell(eff_disp, eff_color, width=8, align=">", bg=bg),
                 color_cell(avi_disp, avi_color, width=6, align=">", bg=bg),
                 color_cell(fgi_disp, fgi_color, width=5, align=">", bg=bg),
                 color_cell(lb_disp, lb_color, width=6, align=">", bg=bg),
@@ -1311,17 +1263,17 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
                 row_cells.extend([
                     color_cell(elo_disp, elo_color, width=6, align=">", bg=bg),
                     color_cell(spd_disp, spd_color, width=7, align=">", bg=bg),
-                    color_cell(price_disp, C_DIM, width=11, align=">", bg=bg),
+                    color_cell(price_disp, C_DIM, width=12, align=">", bg=bg),
                 ])
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
             row_items = [
                 f"{rank_str:^4}",
                 f"{mid:<{m_name_w}}",
-                f"{pool_badge:^5}",
+                f"{pool_badge_str:^5}",
                 f"{q_disp:>6}",
                 f"{p_disp:>7}",
-                f"{eff_disp:>7}",
+                f"{eff_disp:>8}",
                 f"{avi_disp:>6}",
                 f"{fgi_disp:>5}",
                 f"{lb_disp:>6}",
@@ -1331,7 +1283,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
                 row_items.extend([
                     f"{elo_disp:>6}",
                     f"{spd_disp:>7}",
-                    f"{price_disp:>11}",
+                    f"{price_disp:>12}",
                 ])
             out.append(" ".join(row_items))
 
@@ -1345,30 +1297,22 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         out.append("")
         out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="display"))
 
-    if color:
-        out.append("")
-        out.append(f"{C_BOLD}{C_CYAN}🧭 Metric Decision Guide:{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GOLD}Gold Bold{C_RESET}  {C_DIM}Pareto Frontier (undefeated capability vs cost curve).{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}Green (+){C_RESET}  {C_DIM}Newly added benchmark model vs previous baseline snapshot.{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_YELLOW}Badges ¹²³{C_RESET} {C_DIM}🥇/🥈/🥉 place leaders in respective column.{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}Q(Cap){C_RESET}     {C_DIM}Capability (40–99.9) across Arena, LiveBench, ARC-2, AA.{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}FGI{C_RESET}        {C_DIM}Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}AVI{C_RESET}        {C_DIM}Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}Eff $/M{C_RESET}    {C_DIM}Real Cost/Task: Price × retry multiplier (T_mult).{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}P(Succ){C_RESET}    {C_DIM}Estimated 1-turn pass rate (<40% = high multi-file risk).{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}Live/ARC{C_RESET}   {C_DIM}LiveBench coding % · ARC-AGI-2 fluid reasoning %.{C_RESET}")
-    else:
-        out.append("")
-        out.append("Metric Decision Guide:")
-        out.append("  • Gold Bold  Pareto Frontier (undefeated capability vs cost curve).")
-        out.append("  • Green (+)  Newly added benchmark model vs previous baseline snapshot.")
-        out.append("  • Badges ¹²³ 🥇/🥈/🥉 place leaders in respective column.")
-        out.append("  • Q(Cap)     Capability (40–99.9) across Arena, LiveBench, ARC-2, AA.")
-        out.append("  • FGI        Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.")
-        out.append("  • AVI        Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.")
-        out.append("  • Eff $/M    Real Cost/Task: Price × retry multiplier (T_mult).")
-        out.append("  • P(Succ)    Estimated 1-turn pass rate (<40% = high multi-file risk).")
-        out.append("  • Live/ARC   LiveBench coding % · ARC-AGI-2 fluid reasoning %.")
+    out.append("")
+    out.extend(render_metric_guide_cli(
+        "Metric Decision Guide",
+        [
+            ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
+            ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
+            ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
+            ("Q(Cap)", "Capability (40–99.9) across Arena, LiveBench, ARC-2, AA.", C_GREEN),
+            ("FGI", "Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.", C_GREEN),
+            ("AVI", "Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.", C_GREEN),
+            ("Eff $/M", "Real Cost/Task: Price × retry multiplier (T_mult).", C_GREEN),
+            ("P(Succ)", "Estimated 1-turn pass rate (<40% = high multi-file risk).", C_GREEN),
+            ("Live/ARC", "LiveBench coding % · ARC-AGI-2 fluid reasoning %.", C_GREEN),
+        ],
+        color=color,
+    ))
 
     role_recs = compute_role_recommendations(models_list, context="bcheck")
     if role_recs:
@@ -1436,8 +1380,7 @@ def render_podium_table(models_list, color=None):
                 if pos < len(sorted_m):
                     m = sorted_m[pos]
                     val = fmt_fn(m)
-                    pool = m["pool"].upper()
-                    p_badge = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(pool, f"[{pool[:3]}]")
+                    p_badge = pool_badge(m["pool"], color=False)
                     disp_name = m["display"][:16]
                     txt = f"{disp_name} {p_badge} ({val})"
                     colr = medal_colors[pos]
@@ -1463,8 +1406,7 @@ def render_podium_table(models_list, color=None):
                 if pos < len(sorted_m):
                     m = sorted_m[pos]
                     val = fmt_fn(m)
-                    pool = m["pool"].upper()
-                    p_badge = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(pool, f"[{pool[:3]}]")
+                    p_badge = pool_badge(m["pool"], color=False)
                     disp_name = m["display"][:16]
                     txt = f"{disp_name} {p_badge} ({val})"
                 else:
@@ -1544,8 +1486,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None):
             if pos < len(sorted_m):
                 m = sorted_m[pos]
                 val = fmt_fn(m)
-                pool = m["pool"].upper()
-                p_badge = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(pool, f"[{pool[:3]}]")
+                p_badge = pool_badge(m["pool"], color=False)
                 places.append(f"**{m['display']}** `{p_badge}` ({val})")
             else:
                 places.append("—")
@@ -1594,12 +1535,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         mid_raw = m['display']
         is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
         is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (mid_raw[:22] in pareto_ids) or (mid_raw[:20] in pareto_ids)
-        p_color = {
-            "claude": "#d97706",
-            "agy": "#3b82f6",
-            "ocgo": "#10b981",
-            "frontier": "#8b5cf6",
-        }.get(m["pool"], "#6b7280")
+        pool_cls = {"claude": "badge-cld", "agy": "badge-agy", "ocgo": "badge-ocg", "frontier": "badge-frt"}.get(m["pool"], "")
 
         lb = m.get("livebench", {})
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
@@ -1615,13 +1551,13 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         if is_added:
             row_cls_parts.append("added")
         if is_pareto:
-            row_cls_parts.append("pareto-row")
+            row_cls_parts.append("pareto")
         row_cls = f" class='{' '.join(row_cls_parts)}'" if row_cls_parts else ""
 
         trs.append(f"""
         <tr{row_cls}>
             <td style="font-weight:600;">{name_html}</td>
-            <td><span style="background:{p_color}22; color:{p_color}; padding:2px 6px; border-radius:4px; font-weight:600;">{m['pool'].upper()}</span></td>
+            <td><span class="badge {pool_cls}">{m['pool'].upper()}</span></td>
             <td>{html.escape(m['tier'])}</td>
             <td style="font-weight:700; color:#2563eb;">{m.get('capability_q', 0):.1f}</td>
             <td>{m.get('p_success', 0):.1f}%</td>
@@ -1659,8 +1595,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             if pos < len(sorted_m):
                 m = sorted_m[pos]
                 val = fmt_fn(m)
-                pool = m["pool"].upper()
-                p_badge = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(pool, f"[{pool[:3]}]")
+                p_badge = pool_badge(m["pool"], color=False)
                 cells.append(f"<b>{html.escape(m['display'])}</b> <small style='color:#94a3b8;'>{p_badge}</small> <span style='color:#f59e0b;'>({val})</span>")
             else:
                 cells.append("—")
@@ -1697,31 +1632,15 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 <head>
     <meta charset="utf-8">
     <title>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }}
-        h1 {{ font-size: 24px; margin-bottom: 8px; }}
-        h2 {{ font-size: 18px; margin-top: 32px; margin-bottom: 12px; color: #38bdf8; }}
-        .sub {{ color: #94a3b8; font-size: 14px; margin-bottom: 24px; }}
-        table {{ width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }}
-        th, td {{ padding: 10px 14px; text-align: left; border-bottom: 1px solid #334155; font-size: 13px; }}
-        th {{ background: #0f172a; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 11px; }}
-        tr:hover {{ background: #2d3748; }}
-        .badge {{ display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 10.5px; }}
-        .badge-gold {{ background: rgba(210,153,34,0.18); color: #d29922; border: 1px solid #d29922; }}
-        .badge-new {{ background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; margin-left: 6px; }}
-        tr.added {{ background: rgba(16, 185, 129, 0.08); font-weight: 600; }}
-        .removed-section {{ background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 14px 18px; margin: 20px 0; }}
-        .removed-title {{ color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 6px; }}
-        .removed-tag {{ display: inline-block; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; border-radius: 4px; padding: 3px 8px; margin: 3px 4px; font-size: 12px; }}
-        .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px 18px; margin: 20px 0; }}
-    </style>
+    <style>{HTML_CSS_COMMON}</style>
 </head>
 <body>
+<div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
     <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · ARC Prize (ARC-AGI-2) · Agentic Value Index (AVI)</div>
-    
+
     <h2>1. Master Agentic Value Leaderboard</h2>
-    <table>
+    <table id="tbl">
         <thead>
             <tr>
                 <th>Model</th>
@@ -1762,6 +1681,8 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
     {removed_html}
 
     {role_recs_html}
+</div>
+{HTML_SORT_SCRIPT}
 </body>
 </html>
 """
@@ -1814,6 +1735,24 @@ def main():
             rec = find_lmarena(m, lm_map)
             if rec and rec.get("elo"):
                 m["base_metrics"]["lm_elo"] = rec["elo"]
+
+    # Load Artificial Analysis live or snapshot data
+    aa_map = load_aa_data(offline=args.offline, do_fetch=bool(args.fetch and not args.offline))
+    if aa_map:
+        for mid, m in MODELS_CATALOG.items():
+            rec = find_aa(m, aa_map)
+            if not rec:
+                continue
+            # aa_reasoning has no live AA equivalent since AA retired its unified
+            # reasoning index in favor of raw sub-benchmarks (gpqa/hle/critpt/...);
+            # left as static catalog data.
+            bm = m["base_metrics"]
+            if rec.get("intelligenceIndex") is not None:
+                bm["aa_quality"] = rec["intelligenceIndex"]
+            if rec.get("codingIndex") is not None:
+                bm["aa_coding"] = rec["codingIndex"]
+            if rec.get("medianTps") is not None:
+                bm["speed_tps"] = rec["medianTps"]
 
     calculate_composite_scores(MODELS_CATALOG)
 

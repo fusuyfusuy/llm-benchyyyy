@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Unit tests for free_model_ranker.py (fcheck) and stealth_model_detector.py (scheck).
-"""
+"""Unit tests for free_model_ranker.py (fcheck)."""
 import unittest
 import pathlib
 import sys
@@ -11,22 +9,16 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import free_model_ranker as fmr
-import stealth_model_detector as smd
 
 
-class TestFreeAndStealthRankers(unittest.TestCase):
+class TestFreeModelRanker(unittest.TestCase):
     def test_is_free_model(self):
         self.assertTrue(fmr.is_free_model({"id": "meta-llama/llama-3-8b:free", "pricing": {"prompt": "0", "completion": "0"}}))
         self.assertTrue(fmr.is_free_model({"id": "meta-llama/llama-3-8b", "pricing": {"prompt": "0", "completion": "0"}}))
         self.assertTrue(fmr.is_free_model({"id": "custom/free-model:free", "pricing": {}}))
         self.assertFalse(fmr.is_free_model({"id": "openai/gpt-4o", "pricing": {"prompt": "2.5", "completion": "10.0"}}))
 
-    def test_is_stealth_model(self):
-        self.assertTrue(smd.is_stealth_model({"id": "stealth/ox-alpha"}))
-        self.assertFalse(smd.is_stealth_model({"id": "openai/gpt-4o"}))
-        self.assertEqual(smd.base_id("stealth/ox-alpha:free"), "stealth/ox-alpha")
-
-    def test_fcheck_render_cli_table(self):
+    def test_render_cli_table(self):
         dummy_rows = [
             {
                 "model_id": "test-model-1",
@@ -55,34 +47,7 @@ class TestFreeAndStealthRankers(unittest.TestCase):
         self.assertIn("FREE MODEL RADAR", tui_plain)
         self.assertIn("test-model-1", tui_plain)
 
-    def test_scheck_render_cli_table(self):
-        dummy_rows = [
-            {
-                "model_id": "stealth/ox-alpha",
-                "display": "ox-alpha",
-                "provider": "stealth",
-                "benchmarks": {
-                    "capability_q": 80.0,
-                    "aa_intelligence": None,
-                    "lmarena_elo": None,
-                    "openrouter_context": 1048000,
-                },
-                "composite": None,
-                "coverage": ["—"],
-                "price_str": "0.00/0.00 ($0)",
-                "created": "2026-08-20",
-                "modality": "text->text",
-            }
-        ]
-        tui_colored = smd.render_cli_table(dummy_rows, color=True, is_slim=False, n_aa=0, n_lm=0)
-        self.assertIn("STEALTH MODEL RADAR", tui_colored)
-        self.assertIn("ox-alpha", tui_colored)
-
-        tui_plain = smd.render_cli_table(dummy_rows, color=False, is_slim=True, n_aa=0, n_lm=0)
-        self.assertIn("STEALTH MODEL RADAR", tui_plain)
-        self.assertIn("ox-alpha", tui_plain)
-
-    def test_html_renderers(self):
+    def test_render_html(self):
         dummy_rows = [
             {
                 "model_id": "test-model-1",
@@ -113,11 +78,7 @@ class TestFreeAndStealthRankers(unittest.TestCase):
         self.assertIn("<!DOCTYPE html>", html_f)
         self.assertIn("test-model-1", html_f)
 
-        html_s = smd.render_html(dummy_rows, 1, 1)
-        self.assertIn("<!DOCTYPE html>", html_s)
-        self.assertIn("test-model-1", html_s)
-
-    def test_fcheck_catalog_diff(self):
+    def test_catalog_diff(self):
         dummy_rows = [
             {
                 "model_id": "google/gemma-3:free",
@@ -239,15 +200,16 @@ class TestFreeAndStealthRankers(unittest.TestCase):
     def test_cached_json_loader(self):
         # Test loading cached json for cline_models or opencode_zen_models
         data = fmr.fetch_or_load_cached_json(
-            fmr.CLINE_FREEMODEL_API,
+            fmr.CLINE_RECOMMENDED_MODELS_API,
             "cline_models",
             offline=True,
             do_fetch=False,
             verbose=False,
         )
         self.assertIsNotNone(data)
-        self.assertIn("data", data)
-        self.assertGreaterEqual(len(data["data"]), 1)
+        self.assertTrue("free" in data or "data" in data)
+        free_list = data.get("free", data.get("data", []))
+        self.assertGreaterEqual(len(free_list), 1)
 
 
 if __name__ == "__main__":

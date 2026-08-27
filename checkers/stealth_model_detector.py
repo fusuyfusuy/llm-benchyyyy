@@ -14,10 +14,8 @@ No API keys. Console table by default; --json / --html flag the files.
 """
 import argparse
 import datetime as dt
-import glob
 import html
 import json
-import math
 import pathlib
 import statistics
 import sys
@@ -41,17 +39,14 @@ import os
 import shutil
 import benchmark_common as bc
 from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM, C_UNDER,
+    C_RESET, C_BOLD, C_DIM,
     BG_EVEN, BG_ODD, BG_HEADER,
     C_GOLD, C_SILVER, C_BRONZE,
-    C_CLAUDE, C_AGY, C_OCGO, C_FRONTIER, C_OPENROUTER,
-    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_PURPLE, C_WHITE, C_GRAY, C_RED,
-    _safe_float, _safe_int, _safe_int_round, parse_price,
-    norm_id, norm_model_slug,
-    get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
-    compute_fgi,
-    display_len, color_cell, pad_banner, medal_badge, pool_badge,
-    score_color_q, score_color_p, score_color_fgi,
+    C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE,
+    _safe_float, _safe_int,
+    compute_meanfill_composite, comp_key, is_stealth_model, base_id,
+    color_cell, medal_badge,
+    score_color_q,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
 )
 
@@ -62,17 +57,6 @@ AA_URL = ogc.AA_URL
 LMARENA_URL = ogc.LMARENA_URL
 
 STEALTH_PREFIX = "stealth/"
-
-
-def is_stealth_model(rec):
-    """OpenRouter anonymous-model namespace: id starts with 'stealth/'."""
-    oid = rec.get("id", "") or ""
-    return oid.startswith(STEALTH_PREFIX)
-
-
-def base_id(oid):
-    """Strip trailing :free tag so cross-source matching sees the real slug."""
-    return oid.rsplit(":free", 1)[0] if oid.endswith(":free") else oid
 
 
 def pick_latest_raw(name_part):
@@ -170,20 +154,26 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
     total_models = len(rows_sorted)
     top_model = rows_sorted[0] if rows_sorted and rows_sorted[0].get("composite") is not None else None
 
+    col_medals = bc.compute_column_medals(
+        rows_sorted,
+        {"q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None)},
+        id_key="model_id",
+    )
+
     out = []
+    title_str = "⚡ STEALTH MODEL RADAR (OpenRouter stealth/ Anonymous Namespace)"
+    top_info = f"Top Leader: {top_model['display'][:16]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model and top_model.get("composite") is not None else "No benchmarked models"
+    summary_str = f" Tracked: {total_models} stealth models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
+
+    out.extend(bc.render_banner_box(
+        title_str,
+        summary_lines=[summary_str],
+        inner_w=inner_w,
+        color=color,
+        plain_title_line=f" STEALTH MODEL RADAR (OpenRouter stealth/ namespace) — Tracked: {total_models} models",
+    ))
+
     if color:
-        top_box = f"{C_CYAN}╭{'─' * inner_w}╮{C_RESET}"
-        bot_box = f"{C_CYAN}╰{'─' * inner_w}╯{C_RESET}"
-        title_str = "⚡ STEALTH MODEL RADAR (OpenRouter stealth/ Anonymous Namespace)"
-        top_info = f"Top Leader: {top_model['display'][:16]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model and top_model.get("composite") is not None else "No benchmarked models"
-        summary_str = f" Tracked: {total_models} stealth models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
-
-        out.append(top_box)
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner(title_str, inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner(summary_str, inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-        out.append(bot_box)
-        out.append("")
-
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
         bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in headers) + "┘"
@@ -193,9 +183,6 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
         out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
-        out.append("=" * (inner_w + 2))
-        out.append(f" STEALTH MODEL RADAR (OpenRouter stealth/ namespace) — Tracked: {total_models} models")
-        out.append("=" * (inner_w + 2))
         hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
@@ -213,9 +200,10 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
         else:
             rank_str = f" #{rank_num}"
 
+        meds = col_medals.get(r.get("model_id"), {})
         b = r["benchmarks"]
         q_val = b.get("capability_q")
-        q_s = f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—"
+        q_s = (f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—") + medal_badge(meds.get("q"), color=color)
         aa_s = f"{b['aa_intelligence']:.1f}" if isinstance(b["aa_intelligence"], (int, float)) else "—"
         lm_s = f"{b['lmarena_elo']:.0f}" if isinstance(b["lmarena_elo"], (int, float)) else "—"
         comp_val = r.get("composite")
@@ -284,16 +272,18 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
 
     if color:
         out.append(f"{C_DIM}{bot_border}{C_RESET}")
-        out.append("")
-        out.append(f"{C_CYAN}🧭 Stealth Model Intelligence Guide{C_RESET}:")
-        out.append(f"  • {C_BOLD}{C_MAGENTA}Stealth Namespace{C_RESET}: Anonymous / blind test candidate models on OpenRouter.")
-        out.append(f"  • {C_BOLD}Q(Cap){C_RESET}: Normalized Capability Score (40.0–99.9) when cross-indexed with benchmark sources.")
     else:
         out.append("-" * (inner_w + 2))
-        out.append("")
-        out.append("Stealth Model Intelligence Guide:")
-        out.append("  • Stealth Namespace: Anonymous / blind test candidate models on OpenRouter.")
-        out.append("  • Q(Cap): Normalized Capability Score (40.0–99.9) when cross-indexed with benchmark sources.")
+    out.append("")
+    out.extend(bc.render_metric_guide_cli(
+        "Stealth Model Intelligence Guide",
+        [
+            ("Stealth Namespace", "Anonymous / blind test candidate models on OpenRouter.", C_MAGENTA),
+            ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
+            ("Q(Cap)", "Normalized Capability Score (40.0–99.9) when cross-indexed with benchmark sources.", C_WHITE),
+        ],
+        color=color,
+    ))
 
     return "\n".join(out)
 
@@ -463,44 +453,13 @@ def main():  # noqa: PLR0915
         )
 
     # ---- 5. normalized composite — mean of available z-scores ----
-    aa_vals = [r["benchmarks"]["aa_intelligence"] for r in rows if r["benchmarks"]["aa_intelligence"] is not None]
-    lm_vals = [r["benchmarks"]["lmarena_elo"] for r in rows if r["benchmarks"]["lmarena_elo"] is not None]
-    aa_mean = statistics.fmean(aa_vals) if aa_vals else None
-    aa_std = statistics.pstdev(aa_vals) if len(aa_vals) > 1 else (0.0 if aa_vals else None)
-    lm_mean = statistics.fmean(lm_vals) if lm_vals else None
-    lm_std = statistics.pstdev(lm_vals) if len(lm_vals) > 1 else (0.0 if lm_vals else None)
+    aa_vals, lm_vals, aa_mean, aa_std, lm_mean, lm_std = compute_meanfill_composite(rows)
     if not aa_vals and not lm_vals:
         print("  Note: no stealth model found on AA or LMArena — composites will be \u2014", file=sys.stderr)
 
-    for r in rows:
-        b = r["benchmarks"]
-        zs = []
-        a = b["aa_intelligence"]
-        if a is not None and aa_std is not None and aa_std > 0:
-            zs.append((a - aa_mean) / aa_std)  # type: ignore[operator]
-        elif a is not None and aa_std == 0.0:
-            zs.append(0.0)
-        e = b["lmarena_elo"]
-        if e is not None and lm_std is not None and lm_std > 0:
-            zs.append((e - lm_mean) / lm_std)  # type: ignore[operator]
-        elif e is not None and lm_std == 0.0:
-            zs.append(0.0)
-        comp_val = round(statistics.fmean(zs), 3) if zs else None
-        r["composite"] = comp_val
-        b["capability_q"] = compute_capability_q(comp_val) if isinstance(comp_val, (int, float)) else None
-
-    def comp_key(r):
-        c = r.get("composite")
-        k_c = -(c) if isinstance(c, (int, float)) else 1e9
-        a = r["benchmarks"]["aa_intelligence"]
-        k_a = -(a) if isinstance(a, (int, float)) else 1e9
-        e = r["benchmarks"]["lmarena_elo"]
-        k_e = -(e) if isinstance(e, (int, float)) else 1e9
-        return (k_c, k_a, k_e, r["model_id"])
-
     rows_sorted = sorted(rows, key=comp_key)
-    n_aa = sum(1 for r in rows if r["benchmarks"]["aa_intelligence"] is not None)
-    n_lm = sum(1 for r in rows if r["benchmarks"]["lmarena_elo"] is not None)
+    n_aa = len(aa_vals)
+    n_lm = len(lm_vals)
 
     # ---- 6. console table (always, the default output) ----
     print("")

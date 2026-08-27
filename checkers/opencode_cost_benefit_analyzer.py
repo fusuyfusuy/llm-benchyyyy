@@ -38,19 +38,16 @@ OUT = ROOT / "docs" / "reports"
 
 import benchmark_common as bc
 from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM, C_UNDER,
+    C_RESET, C_BOLD, C_DIM,
     BG_EVEN, BG_ODD, BG_HEADER,
     C_GOLD, C_SILVER, C_BRONZE,
-    C_CLAUDE, C_AGY, C_OCGO, C_FRONTIER,
-    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_PURPLE, C_WHITE, C_GRAY, C_RED,
+    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
     _safe_float, _safe_int, _safe_int_round, parse_price,
-    norm_id, norm_model_slug,
+    norm_id,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
     parse_livebench, parse_lmarena, parse_aa, parse_openrouter,
-    display_len, color_cell, pad_banner, medal_badge, pool_badge,
-    score_color_q, score_color_p, score_color_avi, score_color_fgi,
-    HTML_CSS_COMMON, HTML_SORT_SCRIPT,
+    display_len, color_cell,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_html,
     load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
@@ -213,15 +210,6 @@ def parse_ocgo_docs(html, verbose=False):
             # For models with two tiers, keep the cheaper (first) entry
             if mid in pricing:
                 continue
-            def parse_price(s):
-                s = s.replace("$", "").replace(",", "").strip()
-                if s in ("", "-", "—"):
-                    return None
-                try:
-                    return float(s)
-                except Exception:
-                    return None
-
             usage = parse_price(usage_raw)
             # For pricing, take first occurrence (cheapest tier)
             pricing[mid] = {
@@ -496,71 +484,6 @@ def parse_aa(html, verbose=False):
         return {}
 
 
-def parse_lmarena(html, verbose=False):
-    """Parse LMArena HTML table. Returns dict slug-> {rank, elo, votes, price, context}."""
-    trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html, flags=re.S)
-    if verbose:
-        print(f"  LMArena: found {len(trs)} tr rows")
-    out = {}
-    for tr in trs[1:]:  # skip header
-        cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
-        if len(cells) < 7:
-            continue
-        # rank
-        rank_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
-        # model slug: prefer title="..." attribute inside cell[2] (most reliable)
-        # e.g. <span title="hy3">hy3</span> or title="claude-fable-5"
-        m_title = re.search(r'title="([^"]+)"', cells[2])
-        if m_title:
-            slug = m_title.group(1).strip().lower()
-        else:
-            # Fallback: href path (internal model pages) or visible text
-            href_m = re.search(r'href="[^"]*?/([^"/\?]+)', cells[2])
-            slug = href_m.group(1).lower() if href_m else ""
-            if not slug or "." not in slug and "-" not in slug:
-                # Try visible text token with digit and dash/dot
-                text = re.sub(r"<[^>]+>", " ", cells[2]).strip()
-                tokens = re.findall(r"[a-z0-9][a-z0-9\.\-]*", text.lower())
-                with_digit = [t for t in tokens if any(ch.isdigit() for ch in t) and ("-" in t or "." in t)]
-                if with_digit:
-                    slug = with_digit[-1]
-                elif tokens:
-                    # Fallback to last token that looks like model
-                    slug = tokens[-1]
-        if not slug:
-            continue
-        slug = slug.strip().lower()
-        # Score like "1507±5"
-        score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
-        elo = score_raw.split("±")[0].strip()
-        try:
-            elo_f = float(elo.replace(",", ""))
-        except Exception:
-            elo_f = None
-        try:
-            rank_i = int(rank_raw)
-        except Exception:
-            rank_i = None
-        votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")
-        try:
-            votes_i = int(votes_raw)
-        except Exception:
-            votes_i = None
-        price_raw = re.sub(r"<[^>]+>", " ", cells[5]).strip()
-        ctx_raw = re.sub(r"<[^>]+>", "", cells[6]).strip()
-        out[slug] = {
-            "rank": rank_i,
-            "elo": elo_f,
-            "votes": votes_i,
-            "price_raw": price_raw,
-            "context_raw": ctx_raw,
-            "score_raw": score_raw,
-        }
-    if verbose:
-        print(f"  LMArena: parsed {len(out)} entries")
-    return out
-
-
 def parse_openrouter(data_json, verbose=False):
     """Parse OpenRouter models API. Returns dict id->record."""
     try:
@@ -723,9 +646,6 @@ def find_livebench_for_ocgo(ocgo_id, live_map):
             if all(t in slug for t in tokens) and rec.get("overall") is not None:
                 return rec
     return None
-    # Pick candidate with pricing and smallest length difference
-    candidates.sort(key=lambda x: abs(len(norm_id(x[0])) - len(n)))
-    return candidates[0]
 
 
 def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output):
@@ -861,27 +781,6 @@ def _pct_color(pct, for_html=False):
 
 # --- ANSI Styling & Theme Constants ---
 C_RESET = "\033[0m"
-C_BOLD = "\033[1m"
-C_DIM = "\033[2m"
-C_UNDER = "\033[4m"
-
-# Zebra row backgrounds
-BG_EVEN = "\033[48;5;233m"  # Deep subtle charcoal
-BG_ODD = "\033[48;5;236m"   # Slate dark tint
-BG_HEADER = "\033[48;5;235m"
-
-# Accent Colors
-C_GOLD = "\033[38;5;220m"
-C_SILVER = "\033[38;5;250m"
-C_BRONZE = "\033[38;5;208m"
-C_GREEN = "\033[38;5;48m"
-C_CYAN = "\033[38;5;51m"
-C_YELLOW = "\033[38;5;221m"
-C_MAGENTA = "\033[38;5;205m"
-C_WHITE = "\033[38;5;255m"
-C_GRAY = "\033[38;5;244m"
-
-
 def display_len(s):
     """Calculate terminal display width (accounting for ANSI escapes and wide emoji characters)."""
     clean = re.sub(r"\033\[[0-9;]*m", "", str(s))
@@ -975,58 +874,49 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
     top_avi = max(models_list, key=lambda m: m["value"].get("avi_score", 0)) if models_list else None
     top_req = max(models_list, key=lambda m: (m["requests"].get("per_5h_docs") or m["requests"].get("per_5h_computed") or 0)) if models_list else None
 
+    col_medals = bc.compute_column_medals(
+        models_list,
+        {
+            "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
+            "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
+            "avi": (lambda r: r["value"].get("avi_score") or 0, True, None),
+            "fgi": (lambda r: r["value"].get("fgi_score") or 0, True, None),
+        },
+        id_key="model_id",
+    )
+
     # Total inner width between outer box borders
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
-    def pad_banner(line, target_w):
-        dlen = display_len(line)
-        if dlen > target_w:
-            clean = re.sub(r"\033\[[0-9;]*m", "", str(line))
-            return clean[:target_w]
-        pad = max(0, target_w - dlen)
-        return line + (" " * pad)
-
-    if color:
-        top_box = f"{C_CYAN}╭{'─' * inner_w}╮{C_RESET}"
-        bot_box = f"{C_CYAN}╰{'─' * inner_w}╯{C_RESET}"
-        title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/docs/go/#usage-limits)"
-        f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
-        v_info = f"Top ROI: {top_avi['model_id'][:14]} (AVI {top_avi['value'].get('avi_score', 0):.1f})" if top_avi else ""
-        top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
-        s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
-        if is_slim:
-            summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info}"
-        else:
-            summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info} │ {s_info}"
-
-        out.append(top_box)
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner(title_str, inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner(summary_str, inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-
-        # Catalog diff alert line in banner if any additions or removals
-        diff_notices = []
-        if added_ids:
-            diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
-        if removed_models:
-            rem_names = [m.get("model_id", "unknown") for m in removed_models]
-            diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
-        if diff_notices:
-            diff_line = " │ ".join(diff_notices)
-            out.append(f"{C_CYAN}│{C_RESET} {pad_banner(diff_line, inner_w - 2)} {C_CYAN}│{C_RESET}")
-
-        out.append(bot_box)
-        out.append("")
+    title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/docs/go/#usage-limits)"
+    f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
+    v_info = f"Top ROI: {top_avi['model_id'][:14]} (AVI {top_avi['value'].get('avi_score', 0):.1f})" if top_avi else ""
+    top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
+    s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
+    if is_slim:
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info}"
     else:
-        out.append("=" * (inner_w + 2))
-        out.append(f" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Account Caps: $12/5h · $30/wk · $60/mo")
-        if added_ids or removed_models:
-            diff_parts = []
-            if added_ids:
-                diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
-            if removed_models:
-                diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join([m.get('model_id', 'unknown') for m in removed_models])}]")
-            out.append(" " + " | ".join(diff_parts))
-        out.append("=" * (inner_w + 2))
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info} │ {s_info}"
+
+    diff_notices = []
+    diff_parts = []
+    if added_ids:
+        diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
+        diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
+    if removed_models:
+        rem_names = [m.get("model_id", "unknown") for m in removed_models]
+        diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
+        diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
+
+    out.extend(bc.render_banner_box(
+        title_str,
+        summary_lines=[summary_str],
+        diff_notices=diff_notices,
+        inner_w=inner_w,
+        color=color,
+        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Account Caps: $12/5h · $30/wk · $60/mo",
+        plain_diff_parts=diff_parts,
+    ))
 
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
@@ -1071,12 +961,17 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         req5_val = reqs.get("per_5h_docs") if reqs.get("per_5h_docs") is not None else reqs.get("per_5h_computed")
         req5_str = format_compact_num(req5_val)
 
+        meds = col_medals.get(r["model_id"], {})
         q_val = r["benchmarks"].get("capability_q", 0)
         p_val = r["benchmarks"].get("p_success", 0)
         eff_c_val = r["value"].get("effective_cost_per_request")
         eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
         avi_val = r["value"].get("avi_score", 0)
         fgi_val = r["value"].get("fgi_score", 0)
+        q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color)
+        p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color)
+        avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color)
+        fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color)
 
         rem = r.get("remaining", {})
         overall = rem.get("overall_pct")
@@ -1117,11 +1012,15 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 mid_color = C_WHITE
 
             # Metric color grading (Monotonic: Green -> Cyan -> Yellow -> Gray)
-            q_color = C_GREEN if q_val >= 85 else (C_CYAN if q_val >= 78 else (C_YELLOW if q_val >= 70 else C_GRAY))
-            p_color = C_GREEN if p_val >= 80 else (C_CYAN if p_val >= 60 else (C_YELLOW if p_val >= 40 else C_MAGENTA))
-            eff_color = C_GREEN if (eff_c_val and eff_c_val < 0.002) else (C_CYAN if (eff_c_val and eff_c_val < 0.01) else (C_YELLOW if (eff_c_val and eff_c_val < 0.03) else C_MAGENTA))
-            avi_color = C_GREEN if avi_val >= 400 else (C_CYAN if avi_val >= 250 else (C_YELLOW if avi_val >= 150 else C_WHITE))
-            fgi_color = C_GREEN if fgi_val >= 70 else (C_CYAN if fgi_val >= 50 else (C_YELLOW if fgi_val >= 30 else C_GRAY))
+            q_color = bc.score_color_q(q_val)
+            p_color = bc.score_color_p(p_val)
+            eff_color = bc.color_ladder(eff_c_val, [
+                (lambda v: v < 0.002, C_GREEN),
+                (lambda v: v < 0.01, C_CYAN),
+                (lambda v: v < 0.03, C_YELLOW),
+            ], default_color=C_MAGENTA)
+            avi_color = bc.score_color_avi(avi_val)
+            fgi_color = bc.score_color_fgi(fgi_val)
 
             # Remaining color
             rem_color = C_GREEN if (overall and overall > 50) else (C_YELLOW if (overall and overall > 25) else (C_MAGENTA if overall is not None else C_DIM))
@@ -1135,11 +1034,11 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 row_cells.append(color_cell(cap_5h_str, C_WHITE, width=6, align=">", bg=bg))
             row_cells.extend([
                 color_cell(req5_str, C_CYAN if (req5_val and req5_val >= 3000) else C_WHITE, width=6, align=">", bg=bg),
-                color_cell(f"{q_val:.1f}", q_color, width=6, align=">", bg=bg),
-                color_cell(f"{p_val:.1f}%", p_color, width=7, align=">", bg=bg),
+                color_cell(q_disp, q_color, width=6, align=">", bg=bg),
+                color_cell(p_disp, p_color, width=7, align=">", bg=bg),
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
-                color_cell(f"{avi_val:.1f}", avi_color, width=5, align=">", bg=bg),
-                color_cell(f"{fgi_val:.1f}", fgi_color, width=4, align=">", bg=bg),
+                color_cell(avi_disp, avi_color, width=5, align=">", bg=bg),
+                color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg),
                 color_cell(rem_str, rem_color, width=10, align="^", bg=bg),
             ])
             if not is_slim:
@@ -1156,11 +1055,11 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 row_items.append(f"{cap_5h_str:>6}")
             row_items.extend([
                 f"{req5_str:>6}",
-                f"{q_val:>6.1f}",
-                f"{p_val:>7.1f}%",
+                f"{q_disp:>6}",
+                f"{p_disp:>7}",
                 f"{eff_c_str:>7}",
-                f"{avi_val:>5.1f}",
-                f"{fgi_val:>4.1f}",
+                f"{avi_disp:>5}",
+                f"{fgi_disp:>4}",
                 f"{rem_str:^10}",
             ])
             if not is_slim:
@@ -1177,28 +1076,22 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         out.append("")
         out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="model_id"))
 
-    if color:
-        out.append("")
-        out.append(f"{C_BOLD}{C_CYAN}🧭 OpenCode Go Usage Limits & Metric Guide:{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GOLD}Gold Bold{C_RESET}  {C_DIM}Pareto Frontier (undefeated capability vs cost curve).{C_RESET}")
-        out.append(f"  • {C_BOLD}{C_GREEN}Green (+){C_RESET}  {C_DIM}Newly added model vs previous baseline snapshot.{C_RESET}")
-        out.append(f"  • {C_BOLD}Quota Model{C_RESET} {C_DIM}Pooled $12/5h · $30/wk · $60/mo. Window cap = $12 × (Usage / 60).{C_RESET}")
-        out.append(f"  • {C_YELLOW}$15/mo Tier{C_RESET} {C_DIM}($3.00/5h): GLM-5.3 (~220 req/5h), Kimi K3 (~110) — spec lock, no loops.{C_RESET}")
-        out.append(f"  • {C_CYAN}$30/mo Tier{C_RESET} {C_DIM}($6.00/5h): DeepSeek V4 Flash (~7.6k req/5h) — daily driver iterative coder.{C_RESET}")
-        out.append(f"  • {C_GREEN}$60/mo Tier{C_RESET} {C_DIM}($12.00/5h): MiMo-V2.5 (~30k), Muse Spark (~45k), LongCat (~16k) — bulk fills.{C_RESET}")
-        out.append(f"  • {C_BOLD}Eff c/r{C_RESET}     {C_DIM}Real Cost/Task = Base cost/req × retry multiplier (T_mult).{C_RESET}")
-        out.append(f"  • {C_BOLD}Allowed Limits{C_RESET} {C_DIM}Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.{C_RESET}")
-    else:
-        out.append("")
-        out.append("OpenCode Go Usage Limits & Metric Guide:")
-        out.append("  • Gold Bold  Pareto Frontier (undefeated capability vs cost curve).")
-        out.append("  • Green (+)  Newly added model vs previous baseline snapshot.")
-        out.append("  • Quota Model Pooled $12/5h · $30/wk · $60/mo. Window cap = $12 × (Usage / 60).")
-        out.append("  • $15/mo Tier ($3.00/5h): GLM-5.3 (~220 req/5h), Kimi K3 (~110) — spec lock, no loops.")
-        out.append("  • $30/mo Tier ($6.00/5h): DeepSeek V4 Flash (~7.6k req/5h) — daily driver iterative coder.")
-        out.append("  • $60/mo Tier ($12.00/5h): MiMo-V2.5 (~30k), Muse Spark (~45k), LongCat (~16k) — bulk fills.")
-        out.append("  • Eff c/r     Real Cost/Task = Base cost/req × retry multiplier (T_mult).")
-        out.append("  • Allowed Limits: Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.")
+    out.append("")
+    out.extend(bc.render_metric_guide_cli(
+        "OpenCode Go Usage Limits & Metric Guide",
+        [
+            ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
+            ("Green (+)", "Newly added model vs previous baseline snapshot.", C_GREEN),
+            ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
+            ("Quota Model", "Pooled $12/5h · $30/wk · $60/mo. Window cap = $12 × (Usage / 60).", C_WHITE),
+            ("$15/mo Tier", "($3.00/5h): GLM-5.3 (~220 req/5h), Kimi K3 (~110) — spec lock, no loops.", C_YELLOW),
+            ("$30/mo Tier", "($6.00/5h): DeepSeek V4 Flash (~7.6k req/5h) — daily driver iterative coder.", C_CYAN),
+            ("$60/mo Tier", "($12.00/5h): MiMo-V2.5 (~30k), Muse Spark (~45k), LongCat (~16k) — bulk fills.", C_GREEN),
+            ("Eff c/r", "Real Cost/Task = Base cost/req × retry multiplier (T_mult).", C_WHITE),
+            ("Allowed Limits", "Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.", C_WHITE),
+        ],
+        color=color,
+    ))
 
     role_recs = compute_role_recommendations(models_list, context="ocheck")
     if role_recs:
@@ -1266,26 +1159,15 @@ def render_limits_table(
     ]
     win_inner_w = sum(w + 2 for _, w, _ in win_headers) + len(win_headers) - 1
 
-    def pad_banner_win(line, target_w):
-        dlen = display_len(line)
-        if dlen > target_w:
-            clean = re.sub(r"\033\[[0-9;]*m", "", str(line))
-            return clean[:target_w]
-        pad = max(0, target_w - dlen)
-        return line + (" " * pad)
-
     top_banner = "⚡ OPENCODE GO SUBSCRIPTION POOLED WINDOWS & LIVE BALANCE"
     sub_banner = "Official limits: $12.00 / 5h rolling · $30.00 / weekly · $60.00 / monthly"
-    if color:
-        out.append(f"{C_CYAN}╭{'─' * win_inner_w}╮{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner_win(top_banner, win_inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner_win(sub_banner, win_inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}╰{'─' * win_inner_w}╯{C_RESET}")
-    else:
-        out.append(f"/{'=' * win_inner_w}\\")
-        out.append(f"| {top_banner.ljust(win_inner_w - 2)} |")
-        out.append(f"| {sub_banner.ljust(win_inner_w - 2)} |")
-        out.append(f"\\{'=' * win_inner_w}/")
+    out.extend(bc.render_banner_box(
+        top_banner,
+        summary_lines=[sub_banner],
+        inner_w=win_inner_w,
+        color=color,
+        plain_title_line=f" {top_banner}",
+    ))
 
     window_defs = [
         ("rolling", "5h Rolling", 12.00),
@@ -1405,16 +1287,13 @@ def render_limits_table(
     sec2_title = "📋 OPENCODE GO MODEL ALLOWANCES & MULTI-WINDOW REQUEST LIMITS"
     sec2_sub = "Cap formula: Window Limit = Window Pool ($12, $30, $60) * (Tier Cap / $60) / Cost_per_req"
 
-    if color:
-        out.append(f"{C_CYAN}╭{'─' * mod_inner_w}╮{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET} {C_BOLD}{C_WHITE}{pad_banner_win(sec2_title, mod_inner_w - 2)}{C_RESET} {C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}│{C_RESET}{C_DIM} {pad_banner_win(sec2_sub, mod_inner_w - 2)} {C_RESET}{C_CYAN}│{C_RESET}")
-        out.append(f"{C_CYAN}╰{'─' * mod_inner_w}╯{C_RESET}")
-    else:
-        out.append(f"/{'=' * mod_inner_w}\\")
-        out.append(f"| {sec2_title.ljust(mod_inner_w - 2)} |")
-        out.append(f"| {sec2_sub.ljust(mod_inner_w - 2)} |")
-        out.append(f"\\{'=' * mod_inner_w}/")
+    out.extend(bc.render_banner_box(
+        sec2_title,
+        summary_lines=[sec2_sub],
+        inner_w=mod_inner_w,
+        color=color,
+        plain_title_line=f" {sec2_title}",
+    ))
 
     if color:
         m_top = f"{C_CYAN}┌" + "┬".join("─" * (w + 2) for _, w, _ in mod_headers) + f"┐{C_RESET}"
@@ -2117,19 +1996,12 @@ def main():
         for a in cand:
             a_cost = a["value"].get("effective_cost_per_request") or a.get("cost_per_request_usd") or 999
             a_q = a["benchmarks"].get("capability_q", 0)
-            dominated = False
-            for b in cand:
-                if b is a:
-                    continue
-                b_cost = b["value"].get("effective_cost_per_request") or b.get("cost_per_request_usd") or 999
-                b_q = b["benchmarks"].get("capability_q", 0)
-                if b_cost <= a_cost and b_q >= a_q:
-                    cost_diff = (a_cost - b_cost) / max(0.0001, a_cost)
-                    q_diff = b_q - a_q
-                    if cost_diff > 0.20 or q_diff > 3.2:
-                        dominated = True
-                        break
-            if not dominated:
+            candidates = [
+                (b["value"].get("effective_cost_per_request") or b.get("cost_per_request_usd") or 999, b["benchmarks"].get("capability_q", 0))
+                for b in cand
+                if b is not a
+            ]
+            if not bc.pareto_dominated(a_cost, a_q, candidates, cost_epsilon=0.0001):
                 pareto_ids.add(a["model_id"])
     except Exception:
         pareto_ids = set()
@@ -2248,7 +2120,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
     for r in rows:
         is_added = r["model_id"] in added_ids
         raw_mid = html_lib.escape(r["model_id"])
-        mid = f'{raw_mid}<span class="badge-new">+NEW</span>' if is_added else raw_mid
+        mid = f'{raw_mid}<span class="badge badge-new">+NEW</span>' if is_added else raw_mid
         usage = r["pricing"]["monthly_usage_limit_usd"]
         usage_s = f"${usage:.0f}" if usage is not None else "—"
         c = r["cost_per_request_usd"]
@@ -2389,50 +2261,8 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 
 <p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
 <div class="footer"><span class="path">path: outputs/ocgo_cost_benefit.html</span><span class="work">{html_lib.escape(work_sentence)}</span></div>
-<script>
-(function(){{
-  var tbl=document.getElementById('tbl');
-  function getVal(tr,i){{
-    var td=tr.children[i];
-    var t=(td.innerText||'').replace(/[^0-9.\\-]/g,'').trim();
-    var n=parseFloat(t);
-    return isNaN(n)? (td.innerText||'').toLowerCase() : n;
-  }}
-  tbl.querySelectorAll('th').forEach(function(th,i){{
-    th.addEventListener('click',function(){{
-      var tbody=tbl.tBodies[0];
-      var rows=[].slice.call(tbody.rows);
-      var asc=th.asc=!th.asc;
-      rows.sort(function(a,b){{
-        var av=getVal(a,i), bv=getVal(b,i);
-        if(typeof av==='number' && typeof bv==='number') return asc? av-bv : bv-av;
-        return asc? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-      }});
-      rows.forEach(function(r){{tbody.appendChild(r);}});
-    }});
-  }});
-}})();
-</script>
 """
-    css = """
-:root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;--gr:#3fb950;--bl:#58a6ff;--yl:#d29922}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:28px}
-.wrap{max-width:1280px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}a{color:var(--bl)}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{color:var(--mut);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}th:hover{color:var(--bl)}
-td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.m{font-weight:600}.mid{display:block;color:var(--mut);font-size:10px;font-weight:400;white-space:nowrap}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
-.call{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--yl);border-radius:8px;padding:12px 16px;margin:14px 0}
-.call b{color:var(--yl)}.sub{color:var(--mut);margin:0 0 14px;font-size:13px}
-.legend{color:var(--mut);font-size:11px;margin-top:8px}.note{color:var(--mut);font-size:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
-.footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
-.footer .path{color:var(--mut);font-size:12px}
-.footer .work{color:var(--txt);font-size:12px;font-style:italic;max-width:60%}
-tr.flagship{background:rgba(63,185,80,0.07)}tr.value{background:rgba(88,166,255,0.07)}tr.pareto{background:rgba(210,153,34,0.18);border-left:3px solid #d29922}tr.free{opacity:0.6}
-"""
-    return f"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{html_lib.escape(title)}</title><style>{css}</style></head><body><div class=\"wrap\">{body}</div></body></html>\n"
+    return f"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{html_lib.escape(title)}</title><style>{bc.HTML_CSS_COMMON}</style></head><body><div class=\"wrap\">{body}</div>{bc.HTML_SORT_SCRIPT}</body></html>\n"
 
 
 def one_sentence_work(rows, usage_percents=None):

@@ -208,6 +208,118 @@ def compute_bfi(q_score: float, speed_tps: float, blended_price: float) -> float
     return round((q_score * speed_tps) / (100.0 * ((max(0.0, blended_price) ** 0.8) + 0.1)), 1)
 
 
+def pareto_dominated(a_cost, a_q, candidates, q_tolerance=3.2, cost_tolerance=0.20, cost_epsilon=0.01):
+    """
+    True if (a_cost, a_q) is dominated by any (cost, q) pair in candidates,
+    beyond the given headroom tolerances. Shared dominance-check primitive
+    behind each script's own Pareto-frontier sweep (row shapes differ too
+    much across bcheck/ocheck to share one end-to-end function).
+    """
+    for b_cost, b_q in candidates:
+        if b_cost <= a_cost and b_q >= a_q:
+            cost_diff = (a_cost - b_cost) / max(cost_epsilon, a_cost)
+            q_diff = b_q - a_q
+            if cost_diff > cost_tolerance or q_diff > q_tolerance:
+                return True
+    return False
+
+
+def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
+    """Compute Pareto-optimal frontier models on Effective Cost vs Composite Capability,
+    including close-call / near-frontier models with generous headroom tolerances.
+    """
+    pareto_set = set()
+    for a in models_list:
+        a_cost = a.get("effective_cost") or (a.get("price_in", 999) + a.get("price_out", 999)) or 999
+        a_q = a.get("capability_q", 0)
+        candidates = [
+            (
+                b.get("effective_cost") or (b.get("price_in", 999) + b.get("price_out", 999)) or 999,
+                b.get("capability_q", 0),
+            )
+            for b in models_list
+            if b is not a
+        ]
+        if not pareto_dominated(a_cost, a_q, candidates, q_tolerance, cost_tolerance):
+            pareto_set.add(a.get("display"))
+            if a.get("aa_slug"):
+                pareto_set.add(a.get("aa_slug"))
+            if a.get("lm_slug"):
+                pareto_set.add(a.get("lm_slug"))
+            if a.get("display")[:22]:
+                pareto_set.add(a.get("display")[:22])
+            if a.get("display")[:20]:
+                pareto_set.add(a.get("display")[:20])
+    return pareto_set
+
+
+def compute_meanfill_composite(rows):
+    """
+    Composite capability_q from the MEAN of whichever z-scored sources
+    (AA intelligence, LMArena elo) are available per row, skipping missing
+    sources rather than zero-filling them (unlike get_z_scores, which
+    zero-fills). Used by fcheck/scheck, whose catalogs have much sparser
+    per-source coverage than bcheck/ocheck's curated model lists.
+    Mutates each row in place: sets row["composite"] and
+    row["benchmarks"]["capability_q"]. Returns (aa_vals, lm_vals, aa_mean,
+    aa_std, lm_mean, lm_std) so callers can report coverage/diagnostics
+    without rescanning rows.
+    """
+    aa_vals = [r["benchmarks"]["aa_intelligence"] for r in rows if r["benchmarks"]["aa_intelligence"] is not None]
+    lm_vals = [r["benchmarks"]["lmarena_elo"] for r in rows if r["benchmarks"]["lmarena_elo"] is not None]
+    aa_mean = statistics.fmean(aa_vals) if aa_vals else None
+    aa_std = statistics.pstdev(aa_vals) if len(aa_vals) > 1 else (0.0 if aa_vals else None)
+    lm_mean = statistics.fmean(lm_vals) if lm_vals else None
+    lm_std = statistics.pstdev(lm_vals) if len(lm_vals) > 1 else (0.0 if lm_vals else None)
+
+    for r in rows:
+        b = r["benchmarks"]
+        zs = []
+        a = b["aa_intelligence"]
+        if a is not None and aa_std is not None and aa_std > 0:
+            zs.append((a - aa_mean) / aa_std)
+        elif a is not None and aa_std == 0.0:
+            zs.append(0.0)
+        e = b["lmarena_elo"]
+        if e is not None and lm_std is not None and lm_std > 0:
+            zs.append((e - lm_mean) / lm_std)
+        elif e is not None and lm_std == 0.0:
+            zs.append(0.0)
+        comp_val = round(statistics.fmean(zs), 3) if zs else None
+        r["composite"] = comp_val
+        b["capability_q"] = compute_capability_q(comp_val) if isinstance(comp_val, (int, float)) else None
+    return aa_vals, lm_vals, aa_mean, aa_std, lm_mean, lm_std
+
+
+def comp_key(r):
+    """Sort key: composite desc, then AA, then LMArena, then id. None composites last."""
+    c = r.get("composite")
+    k_c = -(c) if isinstance(c, (int, float)) else 1e9
+    a = r["benchmarks"]["aa_intelligence"]
+    k_a = -(a) if isinstance(a, (int, float)) else 1e9
+    e = r["benchmarks"]["lmarena_elo"]
+    k_e = -(e) if isinstance(e, (int, float)) else 1e9
+    return (k_c, k_a, k_e, r["model_id"])
+
+
+def is_stealth_model(rec):
+    """OpenRouter anonymous-model namespace: id starts with 'stealth/'."""
+    oid = rec.get("id", "") or ""
+    return oid.startswith("stealth/")
+
+
+def base_id(oid: str) -> str:
+    """Strip trailing :free or -free tags, or leading cline-free/ so cross-source matching sees the real slug."""
+    s = oid
+    if s.startswith("cline-free/"):
+        s = s[len("cline-free/"):]
+    if s.endswith(":free"):
+        s = s[:-5]
+    elif s.endswith("-free"):
+        s = s[:-5]
+    return s
+
+
 # ==============================================================================
 # 4. LEADERBOARD PARSERS
 # ==============================================================================
@@ -323,63 +435,79 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
 
 def parse_aa(html_text: str, verbose: bool = False) -> dict:
     """
-    Parse Artificial Analysis HTML / Next.js data snapshot.
-    Returns: dict[model_slug -> {slug, name, intelligenceIndex, codingIndex, reasoningIndex, ...}]
+    Parse Artificial Analysis leaderboard from its Next.js App Router RSC-streamed
+    page payload (no static __NEXT_DATA__ blob; data ships escaped inside a
+    `self.__next_f.push(...)` chunk as a `"models":[...]` array).
+    Returns: dict[model_slug -> {slug, name, intelligenceIndex, codingIndex, agenticIndex, medianTps, price_in, price_out}]
     """
-    out = {}
-    data_match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html_text, flags=re.S)
-    if data_match:
-        try:
-            data = json.loads(data_match.group(1))
-            def walk(obj):
-                if isinstance(obj, dict):
-                    if "slug" in obj and ("intelligenceIndex" in obj or "qualityIndex" in obj or "codingIndex" in obj):
-                        slug = obj.get("slug") or norm_id(obj.get("name", ""))
-                        if slug:
-                            out[slug] = {
-                                "slug": slug,
-                                "name": obj.get("name") or obj.get("modelName") or slug,
-                                "intelligenceIndex": _safe_float(obj.get("intelligenceIndex") or obj.get("qualityIndex")),
-                                "codingIndex": _safe_float(obj.get("codingIndex")),
-                                "reasoningIndex": _safe_float(obj.get("mathReasoningIndex") or obj.get("reasoningIndex")),
-                                "agenticIndex": _safe_float(obj.get("agenticIndex") or obj.get("codingIndex")),
-                                "medianTps": _safe_float(obj.get("medianOutputSpeedTps") or obj.get("outputSpeed")),
-                                "priceBlended": _safe_float(obj.get("priceBlendedPer1m") or obj.get("blendedPricePer1m")),
-                            }
-                    for v in obj.values():
-                        walk(v)
-                elif isinstance(obj, list):
-                    for item in obj:
-                        walk(item)
-            walk(data)
-        except Exception as e:
-            if verbose:
-                print(f"  WARN Artificial Analysis NEXT_DATA parse: {e}", file=sys.stderr)
+    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
+    idxs = []
+    pos = 0
+    while True:
+        idx = unescaped.find('"models":[', pos)
+        if idx == -1:
+            break
+        idxs.append(idx)
+        pos = idx + 1
+    if not idxs:
+        if verbose:
+            print("  Artificial Analysis: no models array found", file=sys.stderr)
+        return {}
 
-    if not out:
-        trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
-        for tr in trs:
-            cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
-            if len(cells) < 4:
-                continue
-            clean = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
-            name = clean[0]
-            slug = norm_id(name)
+    # Pick the largest "models":[...] array that actually carries score data
+    # (the payload repeats a slimmer nav/marketing copy of the array elsewhere).
+    best_idx, best_end, best_len = -1, -1, -1
+    for idx in idxs:
+        if "intelligenceIndex" not in unescaped[idx: idx + 3000]:
+            continue
+        start = idx + len('"models":[')
+        depth, p, in_str, esc = 1, start, False, False
+        while p < len(unescaped) and depth > 0:
+            c = unescaped[p]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
+            else:
+                if c == '"':
+                    in_str = True
+                elif c == "[":
+                    depth += 1
+                elif c == "]":
+                    depth -= 1
+            p += 1
+        if (p - idx) > best_len:
+            best_len, best_idx, best_end = (p - idx), idx, p
+    if best_idx == -1:
+        if verbose:
+            print("  Artificial Analysis: no intelligenceIndex array found", file=sys.stderr)
+        return {}
+
+    out = {}
+    try:
+        seg = unescaped[best_idx:best_end]
+        models = json.loads("{" + seg + "}")["models"]
+        for m in models:
+            slug = m.get("slug")
             if not slug:
                 continue
-            intel = _safe_float(clean[1])
-            coding = _safe_float(clean[2]) if len(clean) > 2 else None
-            speed = _safe_float(clean[3]) if len(clean) > 3 else None
             out[slug] = {
                 "slug": slug,
-                "name": name,
-                "intelligenceIndex": intel,
-                "codingIndex": coding,
-                "reasoningIndex": coding,
-                "agenticIndex": coding,
-                "medianTps": speed,
-                "priceBlended": None,
+                "name": m.get("name") or m.get("shortName") or slug,
+                "intelligenceIndex": _safe_float(m.get("intelligenceIndex")),
+                "codingIndex": _safe_float(m.get("codingIndex")),
+                "agenticIndex": _safe_float(m.get("agenticIndex")),
+                "medianTps": _safe_float(m.get("medianOutputTokensPerSecond")),
+                "price_in": _safe_float(m.get("price1mInputTokens")),
+                "price_out": _safe_float(m.get("price1mOutputTokens")),
             }
+    except Exception as e:
+        if verbose:
+            print(f"  WARN Artificial Analysis parse: {e}", file=sys.stderr)
+        return {}
     if verbose:
         print(f"  Artificial Analysis: parsed {len(out)} models")
     return out
@@ -431,9 +559,15 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
 # 5. CLI & ANSI DISPLAY FORMATTING UTILITIES
 # ==============================================================================
 def display_len(text: str) -> int:
-    """Return true visible terminal width by stripping ANSI escape codes."""
+    """Return true visible terminal width: strips ANSI escapes, counts wide/emoji glyphs as 2 columns."""
     clean = re.sub(r"\x1b\[[0-9;]*m", "", str(text))
-    return len(clean)
+    w = 0
+    for ch in clean:
+        if ord(ch) in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1) or (0x1F300 <= ord(ch) <= 0x1FAFF):
+            w += 2
+        else:
+            w += 1
+    return w
 
 
 def color_cell(text, color: str = "", width: int | None = None, align: str = "<", bg: str = "") -> str:
@@ -516,16 +650,17 @@ def score_color_p(p_val: float | None) -> str:
 
 
 def score_color_avi(avi_val: float | None) -> str:
-    """Return color for Agentic Value Index (AVI)."""
+    """Return color for Agentic Value Index (AVI). Calibrated against AVI's
+    real ~100-600 output range (Q^2.2/log(effective_cost) formula)."""
     if avi_val is None:
         return C_DIM
-    if avi_val >= 85.0:
-        return C_BOLD + C_GREEN
-    if avi_val >= 60.0:
-        return C_BOLD + C_CYAN
-    if avi_val >= 40.0:
+    if avi_val >= 300.0:
+        return C_GREEN
+    if avi_val >= 200.0:
+        return C_CYAN
+    if avi_val >= 140.0:
         return C_YELLOW
-    return C_GRAY
+    return C_WHITE
 
 
 def score_color_fgi(fgi_val: float | None) -> str:
@@ -539,6 +674,121 @@ def score_color_fgi(fgi_val: float | None) -> str:
     if fgi_val >= 30.0:
         return C_CYAN
     return C_GRAY
+
+
+def compute_column_medals(models_list, col_keys, id_key="display"):
+    """
+    Compute top-3 ranks per column to attach 1st/2nd/3rd (superscript ¹²³ via
+    medal_badge) badges to table cells. Generic over any row shape/column set.
+
+    col_keys: dict of col_name -> (value_fn(row), reverse: bool, filter_fn(row)|None).
+    id_key: the row dict key that uniquely identifies a row (e.g. "display" for
+    bcheck's flat catalog rows, "model_id" for ocheck/fcheck/scheck's rows).
+    Returns: dict[row_id -> dict[col_name -> rank(1|2|3)]]
+    """
+    col_medals = {}
+    for col, (fn, rev, filt) in col_keys.items():
+        valid = [m for m in models_list if filt(m)] if filt else models_list
+        sorted_col = sorted(valid, key=fn, reverse=rev)
+        for pos, m in enumerate(sorted_col[:3]):
+            mid = m.get(id_key)
+            if mid is None:
+                continue
+            if mid not in col_medals:
+                col_medals[mid] = {}
+            col_medals[mid][col] = pos + 1
+    return col_medals
+
+
+def _pad_to_width(line, target_w):
+    """Truncate-or-left-pad a (possibly ANSI-colored) line to an exact visible width."""
+    dlen = display_len(line)
+    if dlen > target_w:
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", str(line))
+        return clean[:target_w]
+    return str(line) + (" " * max(0, target_w - dlen))
+
+
+def render_banner_box(
+    title,
+    summary_lines=None,
+    diff_notices=None,
+    inner_w=100,
+    color=True,
+    plain_title_line=None,
+    plain_diff_parts=None,
+    box_color=None,
+):
+    """
+    Shared rounded-box (color) / `=`-rule (plain) banner used atop every
+    checker's main CLI table. Callers pre-format their own title/summary/diff
+    text (business logic stays local); this only handles box-drawing + padding.
+
+    color mode: title on its own row, each entry in summary_lines on its own
+    dim row, then an optional diff-notice row — all inside a ╭─╮/╰─╯ box.
+    plain mode: a single `plain_title_line` (falls back to `title`), then an
+    optional single diff line built from `plain_diff_parts` joined by " | ",
+    wrapped in `=` full-width rules.
+    """
+    box_color = box_color or C_CYAN
+    out = []
+    if color:
+        out.append(f"{box_color}╭{'─' * inner_w}╮{C_RESET}")
+        out.append(f"{box_color}│{C_RESET} {C_BOLD}{C_WHITE}{_pad_to_width(title, inner_w - 2)}{C_RESET} {box_color}│{C_RESET}")
+        for line in (summary_lines or []):
+            out.append(f"{box_color}│{C_RESET}{C_DIM} {_pad_to_width(line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
+        if diff_notices:
+            diff_line = " │ ".join(diff_notices)
+            out.append(f"{box_color}│{C_RESET} {_pad_to_width(diff_line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
+        out.append(f"{box_color}╰{'─' * inner_w}╯{C_RESET}")
+        out.append("")
+    else:
+        out.append("=" * (inner_w + 2))
+        out.append(plain_title_line if plain_title_line is not None else title)
+        if plain_diff_parts:
+            out.append(" " + " | ".join(plain_diff_parts))
+        out.append("=" * (inner_w + 2))
+    return out
+
+
+def render_metric_guide_cli(title, bullets, color=True):
+    """
+    Shared "🧭 ... Guide:" footer box. bullets: list of (label, description,
+    label_color) tuples; label_color is a C_* constant applied in color mode
+    only. Labels are left-padded to align every description at the same column.
+    """
+    if not bullets:
+        return []
+    label_w = max(display_len(lbl) for lbl, _, _ in bullets) + 1
+    out = []
+    if color:
+        out.append(f"{C_BOLD}{C_CYAN}🧭 {title}:{C_RESET}")
+        for lbl, desc, lbl_color in bullets:
+            pad = " " * max(0, label_w - display_len(lbl))
+            out.append(f"  • {C_BOLD}{lbl_color}{lbl}{C_RESET}{pad}{C_DIM}{desc}{C_RESET}")
+    else:
+        out.append(f"{title}:")
+        for lbl, desc, _ in bullets:
+            out.append(f"  • {lbl:<{label_w}}{desc}")
+    return out
+
+
+def color_ladder(val, checks, default_color=None):
+    """
+    Shared color-ladder pattern for metrics whose numeric breakpoints are
+    script/unit-specific (e.g. ocheck's cost-per-request vs bcheck's
+    cost-per-million-tokens) but whose tiered-color logic is the same
+    everywhere: try each (predicate, color) in order, first match wins.
+
+    checks: ordered list of (lambda v: bool, color) tuples, best tier first,
+    e.g. [(lambda v: v < 0.002, C_GREEN), (lambda v: v < 0.01, C_CYAN), ...].
+    """
+    if val is None:
+        return default_color if default_color is not None else C_DIM
+    for pred, col in checks:
+        if pred(val):
+            return col
+    return default_color if default_color is not None else C_DIM
 
 
 def pool_badge(pool: str, color: bool = True) -> str:
@@ -669,6 +919,16 @@ tr.added td.m, tr.added td:first-child { color: #3fb950 !important; font-weight:
 }
 .footer .path { color: var(--mut); font-size: 12px; }
 .footer .work { color: var(--txt); font-size: 12px; font-style: italic; }
+tr.pareto { background: rgba(210,153,34,0.18); border-left: 3px solid #d29922; }
+tr.flagship { background: rgba(63,185,80,0.07); }
+tr.value { background: rgba(88,166,255,0.07); }
+tr.free { opacity: 0.6; }
+.sub { color: var(--mut); margin: 0 0 14px; font-size: 13px; }
+.m { font-weight: 600; }
+.mid { display: block; color: var(--mut); font-size: 10px; font-weight: 400; white-space: nowrap; }
+.call { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--yl); border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+.call b { color: var(--yl); }
+.note { color: var(--mut); font-size: 12px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
 """
 
 HTML_SORT_SCRIPT = """

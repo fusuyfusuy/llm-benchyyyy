@@ -8,7 +8,6 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import opencode_cost_benefit_analyzer as ogc
-import free_model_ranker as fmc
 
 
 class TestOcgoCheck(unittest.TestCase):
@@ -238,13 +237,6 @@ class TestOcgoCheck(unittest.TestCase):
         c = ogc.format_countdown("2026-08-26T21:10:00Z")
         self.assertIsNotNone(c)
         self.assertNotEqual(c, "—")
-
-
-class TestFreeModelsCheck(unittest.TestCase):
-    def test_free_model_filter(self):
-        self.assertTrue(fmc.is_free_model({"id": "google/gemma-2-9b-it:free"}))
-        self.assertTrue(fmc.is_free_model({"id": "some/model", "pricing": {"prompt": "0", "completion": "0"}}))
-        self.assertFalse(fmc.is_free_model({"id": "some/paid", "pricing": {"prompt": "1.5", "completion": "3.0"}}))
 
 
 if __name__ == "__main__":
