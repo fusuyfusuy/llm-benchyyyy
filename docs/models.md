@@ -9,7 +9,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * **CLI Command**: `agy -p "{prompt}" --output-format json --dangerously-skip-permissions`
 * **Model Flag**: `--model {model}`
 * **Effort Flag**: `--effort <low|medium|high>` (also selectable directly via model IDs)
-* **Configuration File**: [`bench/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/bench/harness/configs.py#L63-L74)
+* **Configuration File**: [`engine/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/engine/harness/configs.py#L63-L74)
 
 ### Available Models (`agy models`)
 | Model Identifier | Display Name | Built-in Effort Level |
@@ -36,7 +36,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * **CLI Command**: `claude -p "{prompt}" --output-format json --dangerously-skip-permissions`
 * **Model Flag**: `--model {model}`
 * **Effort Flag**: `--effort <low|medium|high|xhigh|max>`
-* **Configuration File**: [`bench/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/bench/harness/configs.py#L37-L48)
+* **Configuration File**: [`engine/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/engine/harness/configs.py#L37-L48)
 
 > **Important Domain Gotcha**: Use canonical model IDs like `claude-sonnet-5` or aliases. Do **not** use date suffixes such as `claude-sonnet-5-20260115`.
 
@@ -57,7 +57,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * **Thinking / Effort Settings**:
   * Shorthand Suffix: `{model}:{level}` (e.g. `x-preview-f-free:high`, `sonnet:medium`)
   * CLI Flag: `--thinking <off|minimal|low|medium|high|xhigh>`
-* **Configuration File**: [`bench/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/bench/harness/configs.py#L76-L95)
+* **Configuration File**: [`engine/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/engine/harness/configs.py#L76-L95)
 
 ### Key Provider Models in Registry (`~/.pi/agent/models-store.json`)
 
@@ -102,7 +102,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 
 * **CLI Command**: `opencode run --format json "{prompt}"`
 * **Model Flag**: `--model {model}` (Format: `provider/model`)
-* **Configuration File**: [`bench/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/bench/harness/configs.py#L96-L110)
+* **Configuration File**: [`engine/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/engine/harness/configs.py#L96-L110)
 
 ### Common Identifiers
 * `opencode-go/deepseek-v4-flash`
@@ -118,7 +118,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 
 * **CLI Command**: `codex exec --json --full-auto "{prompt}"`
 * **Model Flag**: `--model {model}`
-* **Configuration File**: [`bench/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/bench/harness/configs.py#L50-L62)
+* **Configuration File**: [`engine/harness/configs.py`](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/engine/harness/configs.py#L50-L62)
 
 ### Common Identifiers
 * `gpt-5.1-codex-max`
@@ -130,18 +130,18 @@ This document lists supported model identifiers, provider mappings, and reasonin
 
 ## 6. Model Verification Cheat-Sheet
 
-Before initiating large-scale benchmark runs, use `bench verify` to confirm API availability and container authentication:
+Before initiating large-scale benchmark runs, use `engine verify` to confirm API availability and container authentication:
 
 ```bash
 # Verify Pi Agent (Ox Alpha Free)
-python3 -m bench verify --harness pi-agent --model x-preview-f-free
+python3 -m engine verify --harness pi-agent --model x-preview-f-free
 
 # Verify Claude Code (Sonnet 5)
-python3 -m bench verify --harness claude-code --model claude-sonnet-5
+python3 -m engine verify --harness claude-code --model claude-sonnet-5
 
 # Verify Antigravity (GPT-OSS 120B)
-python3 -m bench verify --harness antigravity --model gpt-oss-120b-medium
+python3 -m engine verify --harness antigravity --model gpt-oss-120b-medium
 
 # Verify OpenCode (DeepSeek V4 Flash)
-python3 -m bench verify --harness opencode --model opencode-go/deepseek-v4-flash
+python3 -m engine verify --harness opencode --model opencode-go/deepseek-v4-flash
 ```
