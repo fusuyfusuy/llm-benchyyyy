@@ -84,20 +84,22 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         parsed = bc.parse_livebench(sample_csv, sample_cats)
         self.assertEqual(len(parsed), 2)
         # Category averages are computed by the parser itself; read the parsed row
-        # directly — find_livebench deliberately refuses the effort-suffixed key
-        # for a bare query (P1 1.4: "-xhigh" surplus is a variant conflict).
+        # directly — find_livebench links tier-suffixed keys via the tier-stripped
+        # base name (effort tiers are the only listing for many flagships).
         opus = parsed["claude-opus-5-xhigh-effort"]
         self.assertAlmostEqual(opus["coding"], 83.75)
         self.assertAlmostEqual(opus["reasoning"], 83.5)
         self.assertAlmostEqual(opus["overall"], 83.62)
-        self.assertIsNone(bc.find_livebench("claude-opus-5", parsed))
+        self.assertEqual(bc.find_livebench("claude-opus-5", parsed)["overall"], 83.62)
         flash = parsed["gemini-3.7-flash-high"]
         self.assertAlmostEqual(flash["coding"], 79.0)
-        self.assertIsNone(bc.find_livebench("gemini-3.7-flash", parsed))
+        self.assertEqual(bc.find_livebench("gemini-3.7-flash", parsed)["overall"], 79.88)
 
     def test_version_safe_matching(self):
         # Variant fallback (P1 1.4 / S2-C2): exact-normalized keys match; a longer
-        # key whose surplus carries variant or digit tokens never matches.
+        # key whose surplus carries digit tokens never matches (versions are
+        # load-bearing). Tier/effort suffixes link via the tier-stripped base
+        # name (best overall per base) — LiveBench lists flagships only there.
         live_mock = {
             "gemini-2-5-flash": {"model": "gemini-2.5-flash", "overall": 46.89},
             "gemini-3-7-flash": {"model": "gemini-3.7-flash", "overall": 79.90},
@@ -106,10 +108,23 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         rec37 = bc.find_livebench({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, live_mock)
         self.assertIsNotNone(rec37)  # exact-family match retained
         self.assertEqual(rec37["overall"], 79.90)
-        self.assertIsNone(bc.find_livebench({"lm_slug": "gemini-3.1-pro", "display": "Gemini 3.1 Pro (High)"}, live_mock))  # -preview surplus = variant
+        rec31 = bc.find_livebench({"lm_slug": "gemini-3.1-pro", "display": "Gemini 3.1 Pro (High)"}, live_mock)
+        self.assertIsNotNone(rec31)  # -preview surplus = tier token -> tier-base link
+        self.assertEqual(rec31["overall"], 77.99)
         self.assertIsNone(bc.find_livebench({"lm_slug": "gemini-3.7-pro", "display": "Gemini 3.7 Pro"}, live_mock))  # version divergence
         suffixed_only = {"claude-opus-5-max": {"model": "claude-opus-5-max", "overall": 80.5}}
-        self.assertIsNone(bc.find_livebench("claude-opus-5", suffixed_only))  # -max surplus = variant, static value kept
+        rec_opus = bc.find_livebench("claude-opus-5", suffixed_only)
+        self.assertIsNotNone(rec_opus)  # -max tier suffix -> tier-base link
+        self.assertEqual(rec_opus["overall"], 80.5)
+        # Best-per-base: multiple effort tiers collapse to the highest overall.
+        tiered = {
+            "claude-sonnet-4-6-thinking-auto-medium-effort": {"model": "cs46-m", "overall": 73.41},
+            "claude-sonnet-4-6-thinking-auto-high-effort": {"model": "cs46-h", "overall": 75.59},
+        }
+        rec_s46 = bc.find_livebench({"lm_slug": "claude-sonnet-4-6"}, tiered)
+        self.assertEqual(rec_s46["overall"], 75.59)
+        # Model-variant tokens are NOT tiers: 'mimo-v2-pro' must never link to mimo-v2.5.
+        self.assertIsNone(bc.find_livebench({"lm_slug": "mimo-v2.5"}, {"mimo-v2-pro": {"model": "mimo-v2-pro", "overall": 58.35}}))
 
     def test_lmarena_parsing_and_matching(self):
         html_sample = """

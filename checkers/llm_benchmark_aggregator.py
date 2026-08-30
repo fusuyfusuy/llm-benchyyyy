@@ -51,7 +51,7 @@ from benchmark_common import (
     C_GOLD, C_SILVER, C_BRONZE,
     C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
     norm_model_slug,
-    get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
+    compute_capability_q, compute_p_success, compute_token_multiplier,
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
     compute_pareto_frontier,
     parse_livebench, parse_lmarena, parse_aa,
@@ -765,8 +765,34 @@ def arc_base_name(s):
     return s
 
 
+# Trailing effort/tier hyphen-tokens stripped for LiveBench base-name matching
+# (LiveBench lists one row per effort tier). Deliberately EXCLUDES model-variant
+# tokens (pro/mini/nano/lite/codex/...) — those are distinct models, not tiers.
+LIVEBENCH_TIER_TOKENS = frozenset({
+    "effort", "max", "xhigh", "high", "medium", "low", "minimal",
+    "nothinking", "thinking", "preview", "auto", "base",
+})
+
+
+def livebench_base_name(s):
+    """Strip trailing effort/tier tokens: 'claude-opus-5-max-effort' -> 'claude-opus-5'."""
+    toks = (s or "").split("-")
+    while toks and toks[-1] in LIVEBENCH_TIER_TOKENS:
+        toks.pop()
+    return "-".join(toks)
+
+
 def find_livebench(model_id_or_dict, live_map):
-    """Version-safe fuzzy matching for LiveBench models."""
+    """Version-safe matching for LiveBench models.
+
+    Stages per candidate slug, first hit wins:
+      1. Exact normalized match.
+      2. Tier-base match: LiveBench lists many flagships ONLY under effort/tier
+         suffixes (-max-effort, -preview-high); link via the tier-stripped base
+         name, best overall per base (same best-per-base rule as parse_arc).
+      3. Variant fallback: shared token-safe matcher (S2-C2).
+    Miss at every stage => caller keeps the static catalog value.
+    """
     if not live_map:
         return None
     if isinstance(model_id_or_dict, dict):
@@ -779,6 +805,15 @@ def find_livebench(model_id_or_dict, live_map):
     else:
         cands = [model_id_or_dict]
 
+    base_map = {}
+    for k, v in live_map.items():
+        kb = norm_model_slug(livebench_base_name(k))
+        if not kb or v.get("overall") is None:
+            continue
+        cur = base_map.get(kb)
+        if cur is None or v["overall"] > cur["overall"]:
+            base_map[kb] = v
+
     for c in cands:
         if not c:
             continue
@@ -789,8 +824,11 @@ def find_livebench(model_id_or_dict, live_map):
         for k, v in live_map.items():
             if norm_model_slug(k) == cn:
                 return v
-        # 2. Variant fallback: shared token-safe matcher (S2-C2). Only a token-prefix
-        # run with no variant/digit surplus links; None => caller keeps static catalog value.
+        # 2. Tier-base match (best overall per stripped base)
+        rec = base_map.get(cn)
+        if rec is not None:
+            return rec
+        # 3. Variant fallback: shared token-safe matcher (S2-C2); None => static value kept.
         qn = bc.norm_id(c)
         for k, v in live_map.items():
             if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("overall") is not None:
@@ -1106,6 +1144,23 @@ def parse_arc(snap, verbose=False):
     return out
 
 
+def _z_scores(values: list) -> list:
+    """Z-scores with None passthrough: missing stays None (never cohort-mean 0.0).
+
+    Callers renormalize the weighted sum over present signals only, so a model
+    without a signal is scored on what it actually has instead of banking the
+    cohort mean at full weight.
+    """
+    valid = [v for v in values if isinstance(v, (int, float))]
+    if len(valid) < 2:
+        return [0.0 if isinstance(v, (int, float)) else None for v in values]
+    mean_val = statistics.mean(valid)
+    std_val = statistics.stdev(valid)
+    if std_val == 0.0:
+        std_val = 1.0
+    return [(v - mean_val) / std_val if isinstance(v, (int, float)) else None for v in values]
+
+
 def calculate_composite_scores(models_dict):
     """
     Computes:
@@ -1117,32 +1172,58 @@ def calculate_composite_scores(models_dict):
          - AVI (Agentic Value Index): Balanced capability vs effective cost ROI.
          - FGI (Frontier Gate Index): High-difficulty architectural gating.
          - BFI (Bulk Fill Index): Throughput & raw cost efficiency on bounded tasks.
+
+    Missing signals are EXCLUDED from the weighted sum and the surviving weights
+    renormalized — never banked at the cohort mean.
     """
     keys = list(models_dict.keys())
     m_list = [models_dict[k] for k in keys]
 
-    z_lm_elo = get_z_scores([m["base_metrics"].get("lm_elo") for m in m_list])
-    z_lm_cod = get_z_scores([m["base_metrics"].get("lm_coding") for m in m_list])
-    z_aa_qual = get_z_scores([m["base_metrics"].get("aa_quality") for m in m_list])
-    z_aa_cod = get_z_scores([m["base_metrics"].get("aa_coding") for m in m_list])
-    z_aa_reas = get_z_scores([m["base_metrics"].get("aa_reasoning") for m in m_list])
-    z_arc = get_z_scores([m.get("arc_agi") for m in m_list])
-    z_live = get_z_scores([
+    # AA live intelligenceIndex/codingIndex use a NEW scale vs the static catalog's
+    # retired old-AA-Quality-Index seeds (~93-96): never mix the two cohorts in one
+    # z-distribution. Prefer the live cohort when any live match exists; fall back
+    # to the uniform static cohort only when the whole catalog is offline-static.
+    # ponytail: AA live/static cohort split <- old-vs-new scale drift -> remove split when AA restores a unified live quality index
+    live_q = [m.get("aa_live_quality") for m in m_list]
+    if any(v is not None for v in live_q):
+        z_aa_qual = _z_scores(live_q)
+    else:
+        z_aa_qual = _z_scores([m["base_metrics"].get("aa_quality") for m in m_list])
+    live_c = [m.get("aa_live_coding") for m in m_list]
+    if any(v is not None for v in live_c):
+        z_aa_cod = _z_scores(live_c)
+    else:
+        z_aa_cod = _z_scores([m["base_metrics"].get("aa_coding") for m in m_list])
+    z_lm_elo = _z_scores([m["base_metrics"].get("lm_elo") for m in m_list])
+    z_lm_cod = _z_scores([m["base_metrics"].get("lm_coding") for m in m_list])
+    z_aa_reas = _z_scores([m["base_metrics"].get("aa_reasoning") for m in m_list])  # static for ALL: no live AA equivalent, uniform scale
+    z_arc = _z_scores([m.get("arc_agi") for m in m_list])
+    z_live = _z_scores([
         m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") if isinstance(m.get("livebench"), (int, float)) else None)
         for m in m_list
     ])
 
+    signals = (
+        (0.125, z_lm_elo),
+        (0.125, z_lm_cod),
+        (0.150, z_aa_qual),
+        (0.125, z_aa_cod),
+        (0.125, z_aa_reas),
+        (0.175, z_arc),
+        (0.175, z_live),
+    )
+
     for i, k in enumerate(keys):
         m = models_dict[k]
-        cz = (
-            0.125 * z_lm_elo[i]
-            + 0.125 * z_lm_cod[i]
-            + 0.150 * z_aa_qual[i]
-            + 0.125 * z_aa_cod[i]
-            + 0.125 * z_aa_reas[i]
-            + 0.175 * z_arc[i]
-            + 0.175 * z_live[i]
-        )
+        num = 0.0
+        den = 0.0
+        for weight, zs in signals:
+            z = zs[i]
+            if z is None:
+                continue
+            num += weight * z
+            den += weight
+        cz = num / den if den else 0.0
         q_score = compute_capability_q(cz)
         m["composite_score"] = q_score
         m["capability_q"] = q_score
@@ -1905,8 +1986,10 @@ def main():
             bm = m["base_metrics"]
             if rec.get("intelligenceIndex") is not None:
                 bm["aa_quality"] = rec["intelligenceIndex"]
+                m["aa_live_quality"] = rec["intelligenceIndex"]  # new-scale live value marker for cohort-split z-scoring
             if rec.get("codingIndex") is not None:
                 bm["aa_coding"] = rec["codingIndex"]
+                m["aa_live_coding"] = rec["codingIndex"]
             if rec.get("medianTps") is not None:
                 bm["speed_tps"] = rec["medianTps"]
 
