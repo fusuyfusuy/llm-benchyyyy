@@ -30,9 +30,9 @@ Crossed against the four dimensions above:
   held-out test suite in an actual codebase. Modeled on the terminal-bench task schema:
   instruction + sandboxed environment + executable verifier + (in `expected/`) an oracle
   reference solution.
-- **General reasoning/QA** (`tasks/reasoning/`) — prompts with a known-good answer or
-  rubric, graded automatically where possible (exact match / unit test) and by
-  judge-ensemble where not.
+- **General reasoning/QA** (`tasks/reasoning/`) — prompts with a known-good answer,
+  graded deterministically (exact match / unit test / state check); nothing is graded by
+  an LLM judge.
 - **Team workflows** (`tasks/team-workflows/`) — tasks pulled from what this team
   actually asks these tools to do. Highest relevance, most maintenance burden; start
   from the template and add real examples as they come up.
@@ -76,7 +76,7 @@ Three independent reasons, all confirmed by how existing eval frameworks are bui
    is independent from how a run is graded (Scorer). Keeping tasks/ and expected/ as
    separate trees is that same separation expressed as a filesystem layout, so a task
    can be run through any Solver without adaptation and graded consistently.
-3. **Grading changes more often than tasks do.** Rubrics get refined, judges get
+3. **Grading changes more often than tasks do.** Rubrics get refined, graders get
    swapped, exact-match graders get replaced by unit tests. Keeping grading criteria in
    its own tree means that churn never touches the task prompts, which is what would
    actually invalidate historical comparisons.
@@ -110,5 +110,4 @@ skepticism here:
 A single run's pass/fail is not a result. Every task should be run **N ≥ 3 trials**
 per (model, harness, tool-access) combination, and results reported as pass-rate +
 variance, not a single boolean. See `expected/grading-methodology.md` for the full
-protocol, including judge-ensemble rules for anything graded by an LLM rather than an
-executable check.
+deterministic-grading protocol.

@@ -279,3 +279,10 @@ requiring an existing member.
 - Move-in-same-array is the most commonly botched op — both direction tests matter.
 - Atomicity here falls out of deepcopy-then-mutate; solutions mutating the input in
   place fail `test_input_document_never_mutated_or_shared` immediately.
+
+## Grader Notes
+
+Moved from `tasks/` (contamination hygiene 2026-08-30).
+
+- The structural-independence constraint is graded by held-out tests that check object
+  identity of nested substructures between input and output, not just `==`.

@@ -167,3 +167,13 @@ positions — exactly the unordered index pairs; duplicates handled naturally.)
 - `count_pairs_within` solutions via `bisect` (`insort` into a sorted list) are
   O(n²) worst case due to list insertion — they may pass the 8s gate marginally;
   that's fine, it's a real algorithmic choice.
+
+## Grader Notes
+
+Moved from `tasks/` (contamination hygiene 2026-08-30).
+
+- The held-out tests probe edge cases AND equivalence against a brute-force oracle on
+  randomized inputs.
+- Performance tests are part of the suite: functions that still run the old quadratic
+  algorithm fail. The oracle equivalence tests deliberately use different data than
+  the performance tests, so special-casing benchmark inputs cannot pass.

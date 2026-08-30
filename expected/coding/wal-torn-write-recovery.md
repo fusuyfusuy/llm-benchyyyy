@@ -196,3 +196,12 @@ final seek-to-END matters: after reading, the append position must be re-anchore
 - A fix that truncates but forgets to re-anchor the append position can pass every
   test except `test_append_after_torn_recovery_survives_reopen` on some platforms;
   run it at least twice if it looks borderline.
+
+## Grader Notes
+
+Moved from `tasks/` (contamination hygiene 2026-08-30).
+
+- The "on-disk format must not change" constraint is graded by held-out tests that
+  hand-craft record bytes.
+- The "never alter a complete record" constraint is graded by held-out tests that
+  snapshot the bytes of complete records before recovery runs.

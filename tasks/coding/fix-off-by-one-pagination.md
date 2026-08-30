@@ -23,17 +23,9 @@ def paginate(items, page, page_size):
     return items[start:end]
 ```
 
-```python
-# test_paginate.py  (present in the repo but NOT run for the agent — held out, see expected/)
-```
-
-Give the agent `paginate.py` and a natural-language bug report only. Do not show it
-`test_paginate.py`.
-
 ## Constraints
 
 - Must not modify the function signature.
-- Must not modify or delete the held-out test file if it's visible in the working tree.
 - Fix should be a minimal diff — flag (don't fail) a submission that rewrites the whole
   function unnecessarily; note it under `constraint_violations` in metrics, it's a
   style signal not a correctness one.

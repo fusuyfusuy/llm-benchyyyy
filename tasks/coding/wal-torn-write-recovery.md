@@ -139,8 +139,8 @@ required behavior, the required behavior wins.
 
 ## Constraints
 
-- On-disk format must not change (held-out tests hand-craft record bytes).
+- On-disk format must not change.
 - Public API signatures must not change.
 - Standard library only.
 - Recovery may truncate an invalid tail, but must never alter any byte belonging
-  to a complete record (held-out tests snapshot those bytes).
+  to a complete record.

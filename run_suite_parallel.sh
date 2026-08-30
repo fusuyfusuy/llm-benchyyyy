@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Usage: ./run_suite_parallel.sh [harness:model] [harness:model] ...
 # Example: ./run_suite_parallel.sh antigravity:gemini-3.7-flash pi-agent:x-preview-f-free
@@ -15,7 +15,8 @@ JOBS_PER_HARNESS="${JOBS_PER_HARNESS:-4}"
 TRIALS="${TRIALS:-3}"
 
 echo "🚀 Starting full suite parallel benchmark execution..."
-
+suite_pids=()
+suite_names=()
 for arg in "$@"; do
     IFS=':' read -r harness model <<< "$arg"
     
@@ -34,10 +35,24 @@ for arg in "$@"; do
         --model "$model" \
         --trials "$TRIALS" \
         --jobs "$JOBS_PER_HARNESS" &
+    suite_pids+=("$!")
+    suite_names+=("$harness:$model")
 done
 
 echo "⏳ All harness suites dispatched. Waiting for all sandboxes to finish..."
-wait
+# A bare `wait` returns 0 no matter how the children exited — collect the PIDs
+# and wait on each one so a failed suite cannot slip past into report generation.
+failed=0
+for i in "${!suite_pids[@]}"; do
+    if ! wait "${suite_pids[$i]}"; then
+        echo "❌ Suite failed: ${suite_names[$i]}" >&2
+        failed=$((failed + 1))
+    fi
+done
+if [ "$failed" -gt 0 ]; then
+    echo "❌ $failed/${#suite_pids[@]} harness suite(s) failed — skipping report; see errors above." >&2
+    exit 1
+fi
 
 echo "📊 All runs finished. Generating aggregate report..."
 python3 -m engine report

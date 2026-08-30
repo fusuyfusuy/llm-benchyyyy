@@ -6,7 +6,8 @@ one attempt by one (model, harness, tool-access config) combination at one task.
 ## Identity / attribution (required — see scope.md's layer-attribution rule)
 
 - `task_id` — matches the task's filename in `tasks/`.
-- `model` — exact model id/version (e.g. `claude-sonnet-5-20260115`, not just "Sonnet").
+- `model` — exact model id/version (e.g. `claude-sonnet-5`, not just "Sonnet"). No date
+  suffixes: `claude-sonnet-5-20260115` is an invalid id (see .mimori/memory.md rules).
 - `harness` — the tool/agent under test (e.g. `claude-code`, `cursor`, `aider`, `raw-api`
   for a no-harness baseline).
 - `harness_version` — version/commit of the harness, if applicable. Harnesses change
@@ -22,8 +23,10 @@ one attempt by one (model, harness, tool-access config) combination at one task.
 
 - `result` — pass / fail / partial (for rubric-graded tasks, partial credit per the
   rubric in `expected/`).
-- `grading_method` — exact-match / unit-test / judge-ensemble / human. See
-  `expected/grading-methodology.md` for judge protocol.
+- `grading_method` — exact-match / unit-test / state-check / human. Grading is
+  deterministic-only; the judge ensemble was decommissioned — see `.mimori/decisions.md`
+  ADR 2026-08-30. `human` has no automatic grader: the runner refuses it at dispatch.
+  See `expected/grading-methodology.md` for the protocol.
 - `constraint_violations` — did the run break any constraint listed in the task file
   (e.g. modified a file it shouldn't have)? Track separately from task success —
   a run can pass the task and still violate policy.
@@ -31,8 +34,11 @@ one attempt by one (model, harness, tool-access config) combination at one task.
 ## Cost / latency (normalize per successful task, not per attempt — see scope.md)
 
 - `wall_clock_seconds` — start to final answer/patch.
-- `input_tokens` / `output_tokens` (and cached-token counts if the provider reports
-  them — prompt caching materially changes $/task and should not be hidden).
+- `input_tokens` / `output_tokens`, and `cached_tokens` — recorded when the provider or
+  harness reports it (raw-api: Anthropic `cache_read_input_tokens` /
+  `cache_creation_input_tokens`; CLI harnesses: only where their JSON output exposes it,
+  else null). Prompt caching materially changes $/task and should not be hidden when
+  present.
 - `cost_usd` — computed from the above at the pricing tier actually used; note the tier
   (batch vs. realtime) since it affects both cost and latency.
 - `tool_call_count` — number of tool invocations; a proxy for efficiency and for

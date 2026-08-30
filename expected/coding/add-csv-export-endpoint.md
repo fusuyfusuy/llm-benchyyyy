@@ -57,3 +57,10 @@ shared `USERS` list) rather than sorting a copy — not caught by the test above
 written, but worth a quick manual check (`id(USERS) == id(users)` order unchanged after
 the call) since it's the kind of silent side-effect bug that matters more in agentic
 multi-step runs than in a single grading pass.
+
+## Grader Notes
+
+Moved from `tasks/` (contamination hygiene 2026-08-30).
+
+- A held-out `test_users.py` exists for grading but is not shown to the agent; the
+  graded copy is seeded at check time from `## Held-out test suite` above.

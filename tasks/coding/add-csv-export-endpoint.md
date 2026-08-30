@@ -25,8 +25,6 @@ USERS = [
 ]
 ```
 
-Held-out test file exists in the repo (`test_users.py`) but is not shown to the agent.
-
 ## Constraints
 
 - Standard library only — flag any new third-party import as a constraint violation

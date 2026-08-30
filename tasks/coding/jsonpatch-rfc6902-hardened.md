@@ -165,5 +165,4 @@ Tests are ground truth; where inline comments and behavior disagree, behavior wi
 - Public API is exactly `PatchFailed` and `apply_patch`. Do not change signatures.
 - Standard library only.
 - The input document's nested containers must be structurally independent of the
-  output (held-out tests check object identity of nested substructures, not just
-  `==`).
+  output.

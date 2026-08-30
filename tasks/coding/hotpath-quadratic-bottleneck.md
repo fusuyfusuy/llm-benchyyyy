@@ -59,9 +59,5 @@ def count_pairs_within(values, threshold):
 
 ## Constraints
 
-- Public signatures and documented behavior must not change (held-out tests probe
-  edge cases AND equivalence against a brute-force oracle on randomized inputs).
+- Public signatures and documented behavior must not change.
 - Standard library only; no third-party imports; no subprocess tricks.
-- The performance tests are part of the suite: if either function still runs the
-  old algorithm, they fail. Do not special-case the benchmark inputs — the oracle
-  equivalence tests use different data than the performance tests.
