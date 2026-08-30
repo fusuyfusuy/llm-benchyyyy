@@ -8,14 +8,14 @@ runner engine (`engine/`) that executes tasks in a Docker sandbox, and analysis 
 ## Quickstart
 
 ```bash
-pip install -e .
-export ANTHROPIC_API_KEY=...        # needed for raw-api harness + judge-graded tasks
+python3 -m pip install -e .
+export ANTHROPIC_API_KEY=...        # needed for the raw-api harness
 docker build -f docker/harness-base.Dockerfile -t llm-bench-harness .
 
-python -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
+python3 -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
     --harness claude-code --model claude-sonnet-5 --trials 3
 
-python -m engine report
+python3 -m engine report
 ```
 
 `--harness` is one of `raw-api`, `claude-code`, `codex-cli`, `antigravity`, `pi-agent`,
@@ -36,12 +36,15 @@ authenticate the same way they do on your host — see "Credentials" below.
   a separate directory on purpose — see "Why tasks and expected outputs are split" in
   `scope.md`.
 - `expected/grading-methodology.md` — cross-cutting rules for how to score a run
-  (repeated trials, judge protocol, layer attribution), not specific to any one task.
+  (repeated trials, deterministic-only grading, layer attribution), not specific to any
+  one task.
 - `engine/` — the execution engine: `task.py`/`markdown.py` parse task/expected files,
   `sandbox.py` drives the Docker container, `harness/` holds the raw-api adapter and
-  the generic CLI-harness adapter + per-harness configs, `grading/` holds the three
-  graders (executable, exact-match, judge-ensemble), `results.py`/`report.py` log and
-  aggregate runs, `score.py` provides 100-point categorical scoring.
+  the generic CLI-harness adapter + per-harness configs, `grading/` holds the
+  deterministic graders (executable/unit-test + state-check via `## Check`, exact-match;
+  the judge ensemble was decommissioned, see `.mimori/decisions.md` ADR 2026-08-30),
+  `results.py`/`report.py` log and aggregate runs, `score.py` provides 100-point
+  categorical scoring.
 - `checkers/` — standalone analysis tools, live benchmark aggregators, OpenCode Go cost-benefit
   analyzers, stealth model detectors, and task checkers.
 - `docker/harness-base.Dockerfile` — one image with all 5 CLI harnesses installed;
@@ -67,12 +70,14 @@ authenticate the same way they do on your host — see "Credentials" below.
    line is `# path/to/file.ext` gets written verbatim to that path in the sandbox
    before the run; a `## Setup` bash block runs before the run for anything beyond
    writing files.
-2. Write `expected/<category>/<id>.md` — the pass criteria or rubric, plus a `## Check`
-   bash block (exit code 0 = pass) for executable-graded tasks, or a numbered `##
-   Rubric` for judge-graded ones. Never restate the task instruction there beyond what's
-   needed to grade it.
-3. Run it: `python -m engine run --task tasks/<category>/<id>.md --harness <harness>
-   --model <model> --trials 3`, then `python -m engine report`.
+2. Write `expected/<category>/<id>.md` — the pass criteria, plus a `## Check`
+   bash block (exit code 0 = pass) for executable-graded tasks or a `## Pass criteria`
+   section with the exact expected value for exact-match tasks. Grading is
+   deterministic-only — the runner refuses any `judge` method at parse time (see
+   `.mimori/decisions.md` ADR 2026-08-30). Never restate the task instruction there beyond
+   what's needed to grade it.
+3. Run it: `python3 -m engine run --task tasks/<category>/<id>.md --harness <harness>
+   --model <model> --trials 3`, then `python3 -m engine report`.
 
 ## Credentials
 
@@ -81,8 +86,8 @@ credential directories are bind-mounted read-only into the container rather than
 runner reimplementing auth. `claude-code` is verified working this way; the mount paths
 for `codex-cli`/`antigravity`/`pi-agent`/`opencode` may need adjusting in
 `engine/sandbox.py` to match where those tools store credentials on your machine. The
-`raw-api` harness and judge-ensemble grading call the Anthropic API directly and only
-need `ANTHROPIC_API_KEY` exported.
+`raw-api` harness calls the Anthropic API directly and only needs `ANTHROPIC_API_KEY`
+exported.
 
 ## Secrets & results
 
