@@ -8,5 +8,4 @@ dependencies = [
 
 [project.scripts]
 engine = "engine.cli:main"
-bench = "engine.cli:main"
 

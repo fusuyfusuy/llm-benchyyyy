@@ -39,6 +39,20 @@ def parse_task(path: Path) -> Task:
     ]
     setup_script = md.first_bash_block(setup_section) if setup_section else None
 
+    # Required-field validation: a task with an empty id/instruction/
+    # dimension used to run the full harness pipeline and record a real
+    # "fail" against blank data (F-10 data-integrity hole).
+    # id derives from the filename stem; a name that IS all suffix (".md")
+    # has no stem (Path('.md').stem == '.md' is dotfile trivia).
+    task_id = "" if path.stem == path.name else path.stem
+    for field_name, value in (
+        ("id", task_id),
+        ("instruction", instruction),
+        ("dimension(s)", dimensions),
+    ):
+        if not value:
+            raise ValueError(f"Task {path}: missing required field '{field_name}'")
+
     if "## Setup" in text and not setup_script:
         raise ValueError(f"Task {path.stem} contains '## Setup' but failed to extract a bash block.")
     if "## Environment/setup" in text and not env_section and not seed_files:

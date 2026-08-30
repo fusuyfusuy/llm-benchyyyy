@@ -26,13 +26,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 RUN pip install --no-cache-dir --break-system-packages pytest
 
-# CLI harnesses that install cleanly as root via a package manager.
+# ponytail: unpinned CLI versions <- docker build w/ --version capture -> first container rebuild
 RUN npm install -g @anthropic-ai/claude-code
 RUN npm install -g @openai/codex
 # Same package the host runs (@earendil-works fork, not the original
 # @mariozechner one) -- benchmarking a different pi than the host uses would
-# measure the wrong harness.
-RUN npm install -g @earendil-works/pi-coding-agent
+# measure the wrong harness. Pinned to the 0.84.x range: the host runs
+# 0.84.x and the image must match (memory.md gotcha); npm reads bare "0.84"
+# as >=0.84.0 <0.85.0.
+RUN npm install -g @earendil-works/pi-coding-agent@0.84
 
 # Claude Code refuses --dangerously-skip-permissions as root ("cannot be used
 # with root/sudo privileges") -- every harness in this system needs unattended
@@ -46,7 +48,8 @@ ENV HOME=/home/ubuntu
 # opencode and antigravity install per-user (into $HOME), not system-wide --
 # installing them as `ubuntu` here means their binaries land somewhere ubuntu
 # can actually read/execute, unlike a root-owned /root/... a non-root user
-# can't reach.
+# can't reach. Their installer scripts have no version slot to pin, so they
+# carry the same "unpinned CLI versions" ponytail debt flagged above.
 RUN curl -fsSL https://opencode.ai/install | bash
 RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
