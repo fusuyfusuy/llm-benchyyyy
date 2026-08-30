@@ -747,10 +747,22 @@ LIVEBENCH_CSV_URL = "https://livebench.ai/table_2026_06_25.csv"
 LIVEBENCH_CAT_URL = "https://livebench.ai/categories_2026_06_25.json"
 LMARENA_URL = "https://arena.ai/leaderboard/text"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-# ponytail: arc_agi is static MODELS_CATALOG data, no live fetcher <- arcprize.org/leaderboard
-# is a client-rendered Next.js App Router page w/ no static API or __NEXT_DATA__/RSC payload
-# found in the raw HTML -> wire a load_arc_data()/find_arc() pair (mirroring load_aa_data)
-# once a stable ARC-AGI-2 JSON endpoint is identified via browser network inspection
+ARC_MODELS_URL = "https://arcprize.org/media/data/models.json"
+ARC_EVALS_URL = "https://arcprize.org/media/data/evaluations.json"
+ARC_DATASET = "v2_Semi_Private"  # main public ARC-AGI-2 leaderboard column (arcprize.org/leaderboard)
+CACHE_TTL_H = bc.CACHE_TTL_H  # canonical 24h freshness window lives in benchmark_common (rule 7)
+
+# Trailing effort/tier parentheticals stripped for base-name matching (ARC lists one row per tier)
+ARC_TIER_RE = re.compile(r"\s*\((?:[^()]*(?:max|x-?high|high|medium|low|thinking|preview|cot|effort|reasoning|flagship|bedrock)[^()]*)\)\s*$", re.I)
+
+
+def arc_base_name(s):
+    """Strip trailing effort/tier parentheticals: 'Claude Opus 5 (Max)' -> 'Claude Opus 5'."""
+    prev = None
+    while s and prev != s:
+        prev = s
+        s = ARC_TIER_RE.sub("", s).strip()
+    return s
 
 
 def find_livebench(model_id_or_dict, live_map):
@@ -777,15 +789,12 @@ def find_livebench(model_id_or_dict, live_map):
         for k, v in live_map.items():
             if norm_model_slug(k) == cn:
                 return v
-        # 2. Variant match with strict version preservation
-        versions_in_cn = re.findall(r"\d+(?:-\d+)?", cn)
+        # 2. Variant fallback: shared token-safe matcher (S2-C2). Only a token-prefix
+        # run with no variant/digit surplus links; None => caller keeps static catalog value.
+        qn = bc.norm_id(c)
         for k, v in live_map.items():
-            kn = norm_model_slug(k)
-            if cn in kn or kn in cn:
-                if versions_in_cn and not all(ver in kn for ver in versions_in_cn):
-                    continue
-                if v.get("overall") is not None:
-                    return v
+            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("overall") is not None:
+                return v
     return None
 
 
@@ -813,15 +822,11 @@ def find_lmarena(model_id_or_dict, lm_map):
         for k, v in lm_map.items():
             if norm_model_slug(k) == cn:
                 return v
-        # 2. Variant match with strict version preservation
-        versions_in_cn = re.findall(r"\d+(?:-\d+)?", cn)
+        # 2. Variant fallback: shared token-safe matcher (S2-C2); None => static value kept.
+        qn = bc.norm_id(c)
         for k, v in lm_map.items():
-            kn = norm_model_slug(k)
-            if cn in kn or kn in cn:
-                if versions_in_cn and not all(ver in kn for ver in versions_in_cn):
-                    continue
-                if v.get("elo") is not None:
-                    return v
+            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("elo") is not None:
+                return v
     return None
 
 
@@ -849,15 +854,42 @@ def find_aa(model_id_or_dict, aa_map):
         for k, v in aa_map.items():
             if norm_model_slug(k) == cn:
                 return v
-        # 2. Variant match with strict version preservation
-        versions_in_cn = re.findall(r"\d+(?:-\d+)?", cn)
+        # 2. Variant fallback: shared token-safe matcher (S2-C2); None => static value kept.
+        qn = bc.norm_id(c)
         for k, v in aa_map.items():
-            kn = norm_model_slug(k)
-            if cn in kn or kn in cn:
-                if versions_in_cn and not all(ver in kn for ver in versions_in_cn):
-                    continue
-                if v.get("intelligenceIndex") is not None:
-                    return v
+            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("intelligenceIndex") is not None:
+                return v
+    return None
+
+
+def find_arc(model_id_or_dict, arc_map):
+    """Version-safe matching for ARC-AGI-2 leaderboard models."""
+    if not arc_map:
+        return None
+    if isinstance(model_id_or_dict, dict):
+        cands = [
+            model_id_or_dict.get("display"),
+            arc_base_name(model_id_or_dict.get("display") or ""),
+            model_id_or_dict.get("aa_slug"),
+            model_id_or_dict.get("or_slug"),
+        ]
+    else:
+        cands = [model_id_or_dict]
+    for c in cands:
+        if not c:
+            continue
+        cn = norm_model_slug(c)
+        if not cn:
+            continue
+        # 1. Exact match
+        for k, v in arc_map.items():
+            if norm_model_slug(k) == cn:
+                return v
+        # 2. Variant fallback: shared token-safe matcher (S2-C2); None => static value kept.
+        qn = bc.norm_id(c)
+        for k, v in arc_map.items():
+            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("score_pct") is not None:
+                return v
     return None
 
 
@@ -871,12 +903,12 @@ def fetch_url(url, timeout=15):
         return None
 
 
-def load_livebench_data(verbose=False, offline=False, do_fetch=False):
-    """Load LiveBench from snapshots in data/raw/ or live website.
+def load_livebench_data(verbose=False, fetch=False):
+    """Load LiveBench from the 24h response cache (docs/data/raw/) — no network by default.
 
-    do_fetch: save the live CSV + categories to data/raw/ as
+    fetch: pull the live CSV + categories and save them to data/raw/ as
     livebench_YYYYMMDD.csv / livebench_categories_YYYYMMDD.json (skipped when
-    offline or when today's snapshot already exists).
+    today's snapshot already exists).
     """
     out = {}
     csv_matches = sorted(glob.glob(str(RAW / "*livebench*20*.csv")))
@@ -892,32 +924,31 @@ def load_livebench_data(verbose=False, offline=False, do_fetch=False):
             out.update(data)
         except Exception:
             pass
-    if not offline:
+    if fetch:
         try:
             csv_text = fetch_url(LIVEBENCH_CSV_URL)
             cat_text = fetch_url(LIVEBENCH_CAT_URL)
             if csv_text:
-                if do_fetch:
-                    RAW.mkdir(parents=True, exist_ok=True)
+                if fetch:
                     stamp = dt.date.today().isoformat().replace("-", "")
                     s_csv = RAW / f"livebench_{stamp}.csv"
                     if not s_csv.exists():
-                        s_csv.write_text(csv_text, encoding="utf-8")
+                        bc.atomic_write_text(s_csv, csv_text)
                         print(f"  saved LiveBench -> {s_csv.relative_to(ROOT)} ({len(csv_text)} bytes)")
                     if cat_text:
                         s_cat = RAW / f"livebench_categories_{stamp}.json"
                         if not s_cat.exists():
-                            s_cat.write_text(cat_text, encoding="utf-8")
+                            bc.atomic_write_text(s_cat, cat_text)
                             print(f"  saved LiveBench categories -> {s_cat.relative_to(ROOT)} ({len(cat_text)} bytes)")
                 live_data = parse_livebench(csv_text, categories_json=cat_text, verbose=verbose)
                 out.update(live_data)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 — never swallow silently (S2-C1)
+            print(f"  WARN LiveBench fetch/save failed: {e}", file=sys.stderr)
     return out
 
 
-def load_lmarena_data(verbose=False, offline=False, do_fetch=False):
-    """Load LMArena / Arena.ai data from snapshots in data/raw/ or live website."""
+def load_lmarena_data(verbose=False, fetch=False):
+    """Load LMArena / Arena.ai data from the 24h response cache (data/raw/), or live with fetch=True."""
     out = {}
     matches = sorted(glob.glob(str(RAW / "*lmarena*20*.html")))
     for p_html in matches:
@@ -927,26 +958,25 @@ def load_lmarena_data(verbose=False, offline=False, do_fetch=False):
             out.update(data)
         except Exception:
             pass
-    if not offline:
+    if fetch:
         try:
             html_txt = fetch_url(LMARENA_URL)
             if html_txt:
-                if do_fetch:
-                    RAW.mkdir(parents=True, exist_ok=True)
+                if fetch:
                     stamp = dt.date.today().isoformat().replace("-", "")
                     s = RAW / f"lmarena_{stamp}.html"
                     if not s.exists():
-                        s.write_text(html_txt, encoding="utf-8")
+                        bc.atomic_write_text(s, html_txt)
                         print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
                 live_data = parse_lmarena(html_txt, verbose=verbose)
                 out.update(live_data)
-        except Exception:
-            pass
+        except Exception as e:  # noqa: BLE001 — never swallow silently (S2-C1)
+            print(f"  WARN LMArena fetch/save failed: {e}", file=sys.stderr)
     return out
 
 
-def load_aa_data(verbose=False, offline=False, do_fetch=False):
-    """Load Artificial Analysis data from snapshots in data/raw/ or live website."""
+def load_aa_data(verbose=False, fetch=False):
+    """Load Artificial Analysis data from the 24h response cache (data/raw/), or live with fetch=True."""
     out = {}
     matches = sorted(glob.glob(str(RAW / "*artificial_analysis*20*.html")))
     for p_html in matches:
@@ -956,21 +986,123 @@ def load_aa_data(verbose=False, offline=False, do_fetch=False):
             out.update(data)
         except Exception:
             pass
-    if not offline:
+    if fetch:
         try:
             html_txt = fetch_url(AA_URL)
             if html_txt:
-                if do_fetch:
-                    RAW.mkdir(parents=True, exist_ok=True)
+                if fetch:
                     stamp = dt.date.today().isoformat().replace("-", "")
                     s = RAW / f"artificial_analysis_{stamp}.html"
                     if not s.exists():
-                        s.write_text(html_txt, encoding="utf-8")
+                        bc.atomic_write_text(s, html_txt)
                         print(f"  saved Artificial Analysis -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
                 live_data = parse_aa(html_txt, verbose=verbose)
                 out.update(live_data)
-        except Exception:
+        except Exception as e:  # noqa: BLE001 — never swallow silently (S2-C1)
+            print(f"  WARN Artificial Analysis fetch/save failed: {e}", file=sys.stderr)
+    return out
+
+
+def newest_snapshot_age_h(pattern):
+    """Hours since the newest docs/data/raw/ snapshot matching `pattern`; None when none exists.
+
+    Age keys on the _YYYYMMDD date embedded in the filename when present — a
+    fresh clone/checkout rewrites mtimes and would mask weeks-old data (S2-M2);
+    mtime is only the fallback for date-less files.
+    """
+    matches = glob.glob(str(RAW / pattern))
+    if not matches:
+        return None
+    return min(bc.snapshot_age_hours(p) for p in matches)
+
+
+def cache_staleness_note():
+    """Staleness warning for the default offline run: sources with no cache or cache older than CACHE_TTL_H."""
+    parts = []
+    for name, pat in (
+        ("LiveBench", "*livebench*20*.csv"),
+        ("LMArena", "*lmarena*20*.html"),
+        ("Artificial Analysis", "*artificial_analysis*20*.html"),
+        ("ARC-AGI", "arc_agi_20*.json"),
+    ):
+        age = newest_snapshot_age_h(pat)
+        if age is None:
+            parts.append(f"{name} missing")
+        elif age > CACHE_TTL_H:
+            parts.append(f"{name} {age:.0f}h old")
+    if not parts:
+        return ""
+    return "cached responses >24h — run with --fetch: " + ", ".join(parts)
+
+
+def load_arc_data(verbose=False, fetch=False):
+    """ARC-AGI-2 leaderboard data from the 24h response cache (arc_agi_YYYYMMDD.json) or live endpoints."""
+    if fetch:
+        m_txt = fetch_url(ARC_MODELS_URL)
+        e_txt = fetch_url(ARC_EVALS_URL)
+        if m_txt and e_txt:
+            try:
+                snap = {
+                    "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                    "models": json.loads(m_txt),
+                    "evaluations": json.loads(e_txt),
+                }
+                stamp = dt.date.today().isoformat().replace("-", "")
+                s = RAW / f"arc_agi_{stamp}.json"
+                bc.atomic_write_text(s, json.dumps(snap, indent=2))
+                print(f"  saved ARC-AGI -> {s.relative_to(ROOT)} ({len(snap['evaluations'])} evals)")
+                return snap
+            except Exception as e:  # noqa: BLE001
+                print(f"  WARN ARC-AGI fetch/parse: {e}", file=sys.stderr)
+        else:
+            print("  WARN ARC-AGI endpoints fetch failed, falling back to cached snapshot", file=sys.stderr)
+    matches = sorted(glob.glob(str(RAW / "arc_agi_20*.json")))
+    for p_json in reversed(matches):
+        try:
+            return json.loads(pathlib.Path(p_json).read_text(encoding="utf-8", errors="ignore"))
+        except Exception:  # noqa: BLE001
             pass
+    return None
+
+
+def parse_arc(snap, verbose=False):
+    """Normalize ARC-AGI-2 scores keyed by full displayName, modelGroup, and tier-stripped base name.
+
+    Only ARC_DATASET rows, display != False, Human excluded; best (max) score per group/base.
+    """
+    if not isinstance(snap, dict):
+        return {}
+    models = {m.get("id"): m for m in snap.get("models", []) if isinstance(m, dict) and m.get("id")}
+    best_group = {}
+    for e in snap.get("evaluations", []):
+        if not isinstance(e, dict) or e.get("datasetId") != ARC_DATASET or e.get("display") is False:
+            continue
+        m = models.get(e.get("modelId"))
+        if not m or m.get("providerId") == "Human":
+            continue
+        if not isinstance(e.get("score"), (int, float)):
+            continue
+        pct = round(float(e["score"]) * 100.0, 1)
+        group = m.get("modelGroup") or m["id"]
+        cur = best_group.get(group)
+        if cur is None or pct > cur["score_pct"]:
+            best_group[group] = {
+                "score_pct": pct,
+                "display": m.get("displayName") or group,
+                "released": m.get("modelReleaseDate"),
+            }
+    out = {}
+
+    def _put(key, rec):
+        if key and (key not in out or rec["score_pct"] > out[key]["score_pct"]):
+            out[key] = rec
+
+    for group, rec in best_group.items():
+        _put(rec["display"], rec)
+        _put(group, rec)
+        _put(arc_base_name(rec["display"]), rec)
+    if verbose:
+        print(f"  ARC: {len(best_group)} scored groups ({ARC_DATASET})")
     return out
 
 
@@ -1003,12 +1135,13 @@ def calculate_composite_scores(models_dict):
     for i, k in enumerate(keys):
         m = models_dict[k]
         cz = (
-            0.15 * z_lm_elo[i]
-            + 0.15 * z_lm_cod[i]
-            + 0.15 * z_aa_cod[i]
-            + 0.15 * z_aa_reas[i]
-            + 0.20 * z_arc[i]
-            + 0.20 * z_live[i]
+            0.125 * z_lm_elo[i]
+            + 0.125 * z_lm_cod[i]
+            + 0.150 * z_aa_qual[i]
+            + 0.125 * z_aa_cod[i]
+            + 0.125 * z_aa_reas[i]
+            + 0.175 * z_arc[i]
+            + 0.175 * z_live[i]
         )
         q_score = compute_capability_q(cz)
         m["composite_score"] = q_score
@@ -1061,7 +1194,7 @@ BCHECK_COL_MEDAL_KEYS = {
 }
 
 
-def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None):
+def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None):
     """Render structured TUI table with adaptive terminal width and alternating row zebra striping."""
     if color is None:
         color = not os.getenv("NO_COLOR")
@@ -1140,6 +1273,9 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
         diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
         diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
+    if stale_note:
+        diff_notices.append(f"{C_BOLD}{C_YELLOW}⚠ {stale_note}{C_RESET}")
+        diff_parts.append(f"[!] {stale_note}")
 
     out.extend(render_banner_box(
         title_str,
@@ -1516,7 +1652,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None):
     return "\n".join(lines)
 
 
-def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None):
+def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None):
     """Render standalone HTML dashboard."""
     if pareto_ids is None:
         pareto_ids = compute_pareto_frontier(models_list)
@@ -1638,6 +1774,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 <div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
     <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · ARC Prize (ARC-AGI-2) · Agentic Value Index (AVI)</div>
+    {f'<div class="legend">⚠ {html.escape(stale_note)}</div>' if stale_note else ""}
 
     <h2>1. Master Agentic Value Leaderboard</h2>
     <table id="tbl">
@@ -1688,6 +1825,23 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 """
 
 
+def save_baseline(models_list, catalog_diff, path=None):
+    """Persist the NEW/REMOVED baseline (with first_seen) that drives the 7-day green window."""
+    p = pathlib.Path(path) if path else (DATA / "benchmarks.json")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "catalog_diff": {
+            "added": sorted(str(x) for x in catalog_diff["added_ids"]),
+            "removed": sorted(str(x) for x in catalog_diff["removed_ids"]),
+            "total_current": len(models_list),
+        },
+        "models": models_list,
+    }
+    bc.atomic_write_text(p, json.dumps(payload, indent=2))
+    return p
+
+
 # ==============================================================================
 # 4. MAIN CLI LOGIC
 # ==============================================================================
@@ -1712,16 +1866,18 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     parser.add_argument("--md", type=str, nargs="?", const="stdout", help="Output Markdown report")
     parser.add_argument("--html", type=str, nargs="?", const="docs/reports/benchmarks.html", help="Generate HTML dashboard")
-    parser.add_argument("--offline", action="store_true", help="Run offline without network fetch")
-    parser.add_argument("--fetch", action="store_true", help="Save live LiveBench CSV + categories to docs/data/raw/ snapshots")
+    parser.add_argument("--fetch", "--refresh", action="store_true",
+                        help="Refresh the 24h response cache now: fetch LiveBench/LMArena/Artificial Analysis/ARC-AGI live, save dated snapshots to docs/data/raw/, and update the benchmarks.json NEW baseline. Default runs fully offline on cache.")
     parser.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     parser.add_argument("--slim", action="store_true", help="Force compact 95-column table layout (for split panes)")
     parser.add_argument("--wide", action="store_true", help="Force full 125-column table layout")
 
     args = parser.parse_args()
 
-    # Load LiveBench live or snapshot data
-    live_map = load_livebench_data(offline=args.offline, do_fetch=bool(args.fetch and not args.offline))
+    do_fetch = bool(args.fetch)
+
+    # Load LiveBench from 24h response cache (or live + refresh cache with --fetch)
+    live_map = load_livebench_data(fetch=do_fetch)
     if live_map:
         for mid, m in MODELS_CATALOG.items():
             rec = find_livebench(m, live_map)
@@ -1729,7 +1885,7 @@ def main():
                 m["livebench"] = rec
 
     # Load LMArena / Arena.ai live or snapshot data
-    lm_map = load_lmarena_data(offline=args.offline, do_fetch=bool(args.fetch and not args.offline))
+    lm_map = load_lmarena_data(fetch=do_fetch)
     if lm_map:
         for mid, m in MODELS_CATALOG.items():
             rec = find_lmarena(m, lm_map)
@@ -1737,7 +1893,7 @@ def main():
                 m["base_metrics"]["lm_elo"] = rec["elo"]
 
     # Load Artificial Analysis live or snapshot data
-    aa_map = load_aa_data(offline=args.offline, do_fetch=bool(args.fetch and not args.offline))
+    aa_map = load_aa_data(fetch=do_fetch)
     if aa_map:
         for mid, m in MODELS_CATALOG.items():
             rec = find_aa(m, aa_map)
@@ -1754,9 +1910,31 @@ def main():
             if rec.get("medianTps") is not None:
                 bm["speed_tps"] = rec["medianTps"]
 
+    # Load ARC-AGI-2 (arcprize.org static JSON); best tier per group; static catalog value stays the offline fallback
+    arc_map = parse_arc(load_arc_data(fetch=do_fetch))
+    if arc_map:
+        for mid, m in MODELS_CATALOG.items():
+            rec = find_arc(m, arc_map)
+            if rec and rec.get("score_pct") is not None:
+                m["arc_agi"] = rec["score_pct"]
+                m["arc_display"] = rec["display"]
+                m["created_date"] = rec.get("released")
+
     calculate_composite_scores(MODELS_CATALOG)
 
     models = list(MODELS_CATALOG.values())
+
+    # Diffing + baseline run catalog-wide BEFORE --pool view filtering: a subset baseline would
+    # fake-REMOVE every model excluded by the current view.
+    prev_snapshot = load_previous_snapshot(DATA / "benchmarks.json")
+    catalog_diff = diff_model_catalog(models, prev_snapshot, id_key="display")
+    added_ids = catalog_diff["added_ids"]
+    removed_models = catalog_diff["removed_models"]
+    if do_fetch:
+        p = save_baseline(models, catalog_diff)
+        print(f"  updated NEW-baseline -> {p.relative_to(ROOT)}")
+    stale_note = cache_staleness_note()
+
     if args.pool in ("accessible", "my-pools"):
         models = [m for m in models if m["pool"] in ("claude", "agy", "ocgo")]
     elif args.pool == "post-claude":
@@ -1785,12 +1963,6 @@ def main():
     elif args.sort == "effective_cost":
         models.sort(key=lambda m: m.get("effective_cost", 999))
 
-    # Diffing logic
-    prev_snapshot = load_previous_snapshot(DATA / "benchmarks.json")
-    catalog_diff = diff_model_catalog(models, prev_snapshot, id_key="display")
-    added_ids = catalog_diff["added_ids"]
-    removed_models = catalog_diff["removed_models"]
-
     if args.json:
         print(json.dumps(models, indent=2))
         return
@@ -1801,16 +1973,14 @@ def main():
             print(md_text)
         else:
             p = pathlib.Path(args.md)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(md_text, encoding="utf-8")
+            bc.atomic_write_text(p, md_text)
             print(f"Wrote Markdown report to {args.md}")
         return
 
     if args.html:
-        html_text = render_html_report(models, added_ids=added_ids, removed_models=removed_models)
+        html_text = render_html_report(models, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note)
         p = pathlib.Path(args.html)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(html_text, encoding="utf-8")
+        bc.atomic_write_text(p, html_text)
         print(f"Wrote HTML dashboard to {args.html}")
         return
 
@@ -1820,7 +1990,7 @@ def main():
         return
 
     slim_opt = True if args.slim else (False if args.wide else None)
-    print(render_cli_table(models, color=use_color, slim=slim_opt, wide=args.wide, added_ids=added_ids, removed_models=removed_models))
+    print(render_cli_table(models, color=use_color, slim=slim_opt, wide=args.wide, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note))
 
 
 if __name__ == "__main__":

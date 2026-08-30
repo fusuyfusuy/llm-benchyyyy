@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
+import io
 import json
-import unittest
+import os
 import sys
+import tempfile
+import unittest
+import unittest.mock
+from datetime import datetime, timedelta, timezone
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -77,31 +83,33 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         }"""
         parsed = bc.parse_livebench(sample_csv, sample_cats)
         self.assertEqual(len(parsed), 2)
-        opus = bc.find_livebench("claude-opus-5", parsed)
-        self.assertIsNotNone(opus)
+        # Category averages are computed by the parser itself; read the parsed row
+        # directly — find_livebench deliberately refuses the effort-suffixed key
+        # for a bare query (P1 1.4: "-xhigh" surplus is a variant conflict).
+        opus = parsed["claude-opus-5-xhigh-effort"]
         self.assertAlmostEqual(opus["coding"], 83.75)
         self.assertAlmostEqual(opus["reasoning"], 83.5)
-        self.assertEqual(opus["overall"], 83.62)
-
-        flash = bc.find_livebench("gemini-3.7-flash", parsed)
-        self.assertIsNotNone(flash)
+        self.assertAlmostEqual(opus["overall"], 83.62)
+        self.assertIsNone(bc.find_livebench("claude-opus-5", parsed))
+        flash = parsed["gemini-3.7-flash-high"]
         self.assertAlmostEqual(flash["coding"], 79.0)
+        self.assertIsNone(bc.find_livebench("gemini-3.7-flash", parsed))
 
     def test_version_safe_matching(self):
+        # Variant fallback (P1 1.4 / S2-C2): exact-normalized keys match; a longer
+        # key whose surplus carries variant or digit tokens never matches.
         live_mock = {
-            "gemini-2-5-flash-high": {"model": "gemini-2.5-flash-high", "overall": 46.89},
-            "gemini-3-7-flash-high": {"model": "gemini-3.7-flash-high", "overall": 79.90},
-            "gemini-3-1-pro-preview-high": {"model": "gemini-3.1-pro-preview-high", "overall": 77.99},
+            "gemini-2-5-flash": {"model": "gemini-2.5-flash", "overall": 46.89},
+            "gemini-3-7-flash": {"model": "gemini-3.7-flash", "overall": 79.90},
+            "gemini-3-1-pro-preview": {"model": "gemini-3.1-pro-preview", "overall": 77.99},
         }
-        # Gemini 3.7 Flash should match 3.7, NOT 2.5
         rec37 = bc.find_livebench({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, live_mock)
-        self.assertIsNotNone(rec37)
+        self.assertIsNotNone(rec37)  # exact-family match retained
         self.assertEqual(rec37["overall"], 79.90)
-
-        # Gemini 3.1 Pro should match 3.1, NOT 2.5
-        rec31 = bc.find_livebench({"lm_slug": "gemini-3.1-pro", "display": "Gemini 3.1 Pro (High)"}, live_mock)
-        self.assertIsNotNone(rec31)
-        self.assertEqual(rec31["overall"], 77.99)
+        self.assertIsNone(bc.find_livebench({"lm_slug": "gemini-3.1-pro", "display": "Gemini 3.1 Pro (High)"}, live_mock))  # -preview surplus = variant
+        self.assertIsNone(bc.find_livebench({"lm_slug": "gemini-3.7-pro", "display": "Gemini 3.7 Pro"}, live_mock))  # version divergence
+        suffixed_only = {"claude-opus-5-max": {"model": "claude-opus-5-max", "overall": 80.5}}
+        self.assertIsNone(bc.find_livebench("claude-opus-5", suffixed_only))  # -max surplus = variant, static value kept
 
     def test_lmarena_parsing_and_matching(self):
         html_sample = """
@@ -110,6 +118,9 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
             <tr>
                 <td>9</td><td>icon</td><td title="gemini-3.7-flash-high">Gemini 3.7 Flash</td><td>1490.0±5</td><td>5,718</td><td>$0.38 / $1.88</td><td>1M</td>
             </tr>
+            <tr>
+                <td>10</td><td>icon</td><td title="gemini-3.7-flash">Gemini 3.7 Flash</td><td>1480.0±6</td><td>5,100</td><td>$0.38 / $1.88</td><td>1M</td>
+            </tr>
         </table>
         """
         lm_map = bc.parse_lmarena(html_sample)
@@ -117,9 +128,12 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertEqual(lm_map["gemini-3.7-flash-high"]["elo"], 1490.0)
         self.assertEqual(lm_map["gemini-3.7-flash-high"]["rank"], 9)
 
+        # P1 1.4 / S1-C2: bare query must link only to the identically-normalized
+        # row — never borrow an effort variant's ELO via substring containment.
         rec = bc.find_lmarena({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, lm_map)
         self.assertIsNotNone(rec)
-        self.assertEqual(rec["elo"], 1490.0)
+        self.assertEqual(rec["elo"], 1480.0)
+        self.assertIsNone(bc.find_lmarena({"lm_slug": "gemini-3.7-flash"}, {"gemini-3.7-flash-high": {"elo": 1490.0}}))
 
     def test_aa_parsing_and_matching(self):
         # Mirrors the real AA page shape: no static __NEXT_DATA__ blob, data ships
@@ -172,7 +186,7 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
         models = list(bc.MODELS_CATALOG.values())
         table = bc.render_cli_table(models, color=False)
-        self.assertIn("ROLE RECOMMENDATIONS", table)
+        self.assertIn("RECOMMENDATIONS", table)
         self.assertIn("Architecture", table)
         self.assertIn("Daily Driver", table)
 
@@ -227,6 +241,204 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertIn("+NEW", html_text)
         self.assertIn("removed-section", html_text)
         self.assertIn("Legacy Model 1", html_text)
+
+
+class TestBcheckArcAndCache(unittest.TestCase):
+    ARC_SNAP = {
+        "models": [
+            {"id": "anthropic-opus-5-max", "displayName": "Claude Opus 5 (Max)", "providerId": "Anthropic", "modelGroup": "anthropic-opus-5", "modelReleaseDate": "2026-07-24T00:00:00.000Z"},
+            {"id": "anthropic-opus-5-high", "displayName": "Claude Opus 5 (High)", "providerId": "Anthropic", "modelGroup": "anthropic-opus-5-high", "modelReleaseDate": "2026-07-24T00:00:00.000Z"},
+            {"id": "2025_human_panel", "displayName": "Human Panel", "providerId": "Human", "modelGroup": "Human", "modelReleaseDate": None},
+        ],
+        "evaluations": [
+            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.904, "display": True},
+            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-high", "score": 0.883, "display": True},
+            {"datasetId": "v2_Semi_Private", "modelId": "2025_human_panel", "score": 1.0, "display": True},
+            {"datasetId": "v1_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.5, "display": True},
+            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.1, "display": False},
+        ],
+    }
+
+    def test_arc_base_name(self):
+        self.assertEqual(bc.arc_base_name("Claude Opus 5 (Max)"), "Claude Opus 5")
+        self.assertEqual(bc.arc_base_name("Gemini 3.1 Pro (High)"), "Gemini 3.1 Pro")
+        self.assertEqual(bc.arc_base_name("LongCat 2.0 (Meituan)"), "LongCat 2.0 (Meituan)")
+        self.assertEqual(bc.arc_base_name("GPT-OSS 120B (Medium)"), "GPT-OSS 120B")
+
+    def test_parse_arc_best_tier_and_filters(self):
+        m = bc.parse_arc(self.ARC_SNAP)
+        self.assertEqual(m["Claude Opus 5"]["score_pct"], 90.4)
+        self.assertNotIn("Human Panel", m)
+        self.assertNotIn(100.0, [v["score_pct"] for v in m.values()])
+        self.assertNotIn(50.0, [v["score_pct"] for v in m.values()])  # v1 dataset ignored
+        # tier-stripped base key holds the best (Max) record; group keys keep per-tier detail
+        self.assertEqual(m["Claude Opus 5"]["display"], "Claude Opus 5 (Max)")
+        self.assertEqual(m["anthropic-opus-5-high"]["score_pct"], 88.3)
+
+    def test_find_arc_matches_catalog_model(self):
+        m = bc.parse_arc(self.ARC_SNAP)
+        rec = bc.find_arc({"display": "Claude Opus 5 (Thinking)", "or_slug": "anthropic/claude-opus-5"}, m)
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["score_pct"], 90.4)
+        self.assertIsNone(bc.find_arc({"display": "GLM-5.3", "or_slug": "z-ai/glm-5.3"}, m))
+        self.assertIsNone(bc.find_arc({"display": "Nope 9", "or_slug": None}, m))
+
+    def test_newest_snapshot_age_and_staleness(self):
+        # S2-M2: age keys on the _YYYYMMDD date embedded in the filename — a
+        # fresh clone/checkout gives every snapshot today's mtime, and must not
+        # silence the only staleness defense in the offline design.
+        with tempfile.TemporaryDirectory() as td:
+            real_raw, real_data = bc.RAW, bc.DATA
+            try:
+                bc.RAW = bc.DATA = Path(td)
+                self.assertIsNone(bc.newest_snapshot_age_h("*lmarena*20*.html"))
+                snap = Path(td) / "lmarena_20260101.html"
+                snap.write_text("x")  # mtime == now, exactly like a fresh clone
+                self.assertGreater(bc.newest_snapshot_age_h("*lmarena*20*.html"), 30 * 24.0)
+                note = bc.cache_staleness_note()
+                self.assertIn("LMArena", note)
+                self.assertIn("ARC-AGI missing", note)
+                self.assertIn("--fetch", note)
+                # date-less filenames still fall back to mtime (checked by the
+                # bc.snapshot_age_hours unit test; here just ensure no crash)
+                (Path(td) / "livebench_20260101.csv").write_text("x")
+                (Path(td) / "artificial_analysis_20260101.html").write_text("x")
+                # newest matching snapshot wins: today-dated copies clear the note
+                today = datetime.now(timezone.utc).strftime("%Y%m%d")
+                for nm in (f"lmarena_{today}.html", f"arc_agi_{today}.json",
+                           f"livebench_{today}.csv", f"artificial_analysis_{today}.html"):
+                    (Path(td) / nm).write_text("x")
+                self.assertEqual(bc.cache_staleness_note(), "")
+            finally:
+                bc.RAW, bc.DATA = real_raw, real_data
+
+    def test_baseline_roundtrip_green_window(self):
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td) / "benchmarks.json"
+            t0 = datetime(2026, 8, 28, tzinfo=timezone.utc)
+            rows = [
+                {"display": "Old Model", "base_metrics": {}},
+                {"display": "New Model", "base_metrics": {}, "created_date": "2026-08-27T00:00:00Z"},
+            ]
+            diff = bc.diff_model_catalog(rows, None, id_key="display", now=t0)
+            self.assertIn("New Model", diff["added_ids"])
+            self.assertNotIn("Old Model", diff["added_ids"])
+            p = bc.save_baseline(rows, diff, path=base)
+            payload = json.loads(p.read_text(encoding="utf-8"))
+            self.assertIn("catalog_diff", payload)
+            self.assertIn("New Model", payload["catalog_diff"]["added"])
+            prev = bc.load_previous_snapshot(base)
+            rows2 = [{"display": "Old Model", "base_metrics": {}}, {"display": "New Model", "base_metrics": {}}]
+            d3 = bc.diff_model_catalog(rows2, prev, id_key="display", now=t0 + timedelta(days=3))
+            self.assertIn("New Model", d3["added_ids"])  # first_seen inherited -> still green
+            self.assertEqual(d3["removed_ids"], set())
+            d8 = bc.diff_model_catalog(rows2, prev, id_key="display", now=t0 + timedelta(days=8))
+            self.assertNotIn("New Model", d8["added_ids"])  # aged past 7d window
+
+    def test_aa_quality_influences_capability_q(self):
+        import copy
+        cat = copy.deepcopy(bc.MODELS_CATALOG)
+        bc.calculate_composite_scores(cat)
+        k = next(iter(cat))
+        base_q = cat[k]["capability_q"]
+        cat[k]["base_metrics"]["aa_quality"] = (cat[k]["base_metrics"].get("aa_quality") or 0.0) + 50.0
+        bc.calculate_composite_scores(cat)
+        self.assertGreater(cat[k]["capability_q"], base_q)
+
+    def test_stale_note_renders_cli_and_html(self):
+        bc.calculate_composite_scores(bc.MODELS_CATALOG)
+        models = list(bc.MODELS_CATALOG.values())
+        tui = bc.render_cli_table(models, color=False, stale_note="cached responses >24h — run with --fetch: ARC-AGI missing")
+        self.assertIn("cached responses >24h", tui)
+        self.assertIn("[!]", tui)
+        h = bc.render_html_report(models, stale_note="stale: ARC-AGI missing")
+        self.assertIn("stale: ARC-AGI missing", h)
+
+
+
+class TestFetchPath(unittest.TestCase):
+    """P1 1.5 (S2-C1): fetch=True must parse live payloads and write dated snapshots.
+
+    The uncommitted refactor left `if do_fetch:` NameErrors swallowed by bare
+    excepts; these tests route a monkeypatched fetch_url (precedent:
+    test_newest_snapshot_age_and_staleness) and fail if any source silently
+    discards its payload again.
+    """
+
+    CSV = "model,code_generation,math\nprobe-model-9,81.5,70.5\n"
+    CATS = json.dumps({"Coding": ["code_generation"], "Mathematics": ["math"]})
+    LM_HTML = (
+        "<table><tr><th>Rank</th><th>Model</th><th>Name</th><th>Score</th>"
+        "<th>Votes</th><th>Price</th><th>Context</th></tr>"
+        '<tr><td>1</td><td>i</td><td title="probe-model-9">Probe</td>'
+        "<td>1500.0±1</td><td>10</td><td>$1 / $2</td><td>1M</td></tr></table>"
+    )
+    AA_HTML = (
+        'preamble\nself.__next_f.push([1,"'
+        + '"models":'
+        + json.dumps([{"slug": "probe-model-9", "name": "P9", "intelligenceIndex": 55.0, "codingIndex": 50.0}])
+        + '"])'
+    )
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self._real_raw, self._real_root = bc.RAW, bc.ROOT
+        bc.RAW = bc.ROOT = Path(self._tmp.name)
+        self.stamp = datetime.now().strftime("%Y%m%d")
+
+    def tearDown(self):
+        bc.RAW, bc.ROOT = self._real_raw, self._real_root
+        self._tmp.cleanup()
+
+    def test_livebench_fetch_true_parses_and_saves(self):
+        with unittest.mock.patch.object(
+            bc, "fetch_url",
+            side_effect=lambda url, timeout=15: self.CSV if "livebench" in url and "categor" not in url else self.CATS,
+        ):
+            out = bc.load_livebench_data(fetch=True)
+        self.assertIn("probe-model-9", out)
+        self.assertEqual(out["probe-model-9"]["overall"], 76.0)
+        snap = Path(self._tmp.name) / f"livebench_{self.stamp}.csv"
+        self.assertTrue(snap.exists())
+        self.assertEqual(snap.read_text(encoding="utf-8"), self.CSV)
+        self.assertTrue((Path(self._tmp.name) / f"livebench_categories_{self.stamp}.json").exists())
+
+    def test_lmarena_fetch_true_parses_and_saves(self):
+        with unittest.mock.patch.object(bc, "fetch_url", return_value=self.LM_HTML):
+            out = bc.load_lmarena_data(fetch=True)
+        self.assertIn("probe-model-9", out)
+        self.assertEqual(out["probe-model-9"]["elo"], 1500.0)
+        snap = Path(self._tmp.name) / f"lmarena_{self.stamp}.html"
+        self.assertTrue(snap.exists())
+        self.assertEqual(snap.read_text(encoding="utf-8"), self.LM_HTML)
+
+    def test_aa_fetch_true_parses_and_saves(self):
+        with unittest.mock.patch.object(bc, "fetch_url", return_value=self.AA_HTML):
+            out = bc.load_aa_data(fetch=True)
+        self.assertIn("probe-model-9", out)
+        self.assertEqual(out["probe-model-9"]["intelligenceIndex"], 55.0)
+        snap = Path(self._tmp.name) / f"artificial_analysis_{self.stamp}.html"
+        self.assertTrue(snap.exists())
+
+    def test_arc_fetch_true_parses_and_saves(self):
+        models = json.dumps([{"id": "probe-9", "displayName": "Probe 9", "providerId": "P", "modelGroup": "probe-9", "modelReleaseDate": "2026-08-01T00:00:00.000Z"}])
+        evals = json.dumps([{"datasetId": "v2_Semi_Private", "modelId": "probe-9", "score": 0.42, "display": True}])
+        with unittest.mock.patch.object(
+            bc, "fetch_url",
+            side_effect=lambda url, timeout=15: models if "models" in url else evals,
+        ):
+            snap = bc.load_arc_data(fetch=True)
+        self.assertIsNotNone(snap)
+        self.assertEqual(len(snap["evaluations"]), 1)
+        self.assertTrue((Path(self._tmp.name) / f"arc_agi_{self.stamp}.json").exists())
+
+    def test_fetch_exception_is_logged_not_swallowed(self):
+        with unittest.mock.patch.object(bc, "fetch_url", side_effect=OSError("simulated outage")):
+            with unittest.mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+                out = bc.load_lmarena_data(fetch=True)
+        self.assertEqual(out, {})
+        self.assertIn("LMArena", err.getvalue())
+        self.assertIn("simulated outage", err.getvalue())
 
 
 if __name__ == "__main__":

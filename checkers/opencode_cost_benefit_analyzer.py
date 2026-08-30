@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-ocgo_check.py — OpenCode Go live checker
+ocgo_check.py — OpenCode Go catalog checker
 
-Checks the live OpenCode Go catalog (docs + API), pulls benchmarks from
+Checks the OpenCode Go catalog (docs + API) against benchmarks from
 Artificial Analysis / LMArena / OpenRouter, and produces a cost/benefit
 analysis against the Go usage limits ($12/5h, $30/wk, $60/mo pooled).
 
-No API keys, stdlib only, graceful degradation when offline.
+Offline by default (rule 7): reads dated snapshots from docs/data/raw/;
+--fetch is the only network path. No API keys, stdlib only.
 """
 import argparse
 import datetime as dt
@@ -38,25 +39,58 @@ OUT = ROOT / "docs" / "reports"
 
 import benchmark_common as bc
 from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM,
+    C_BOLD, C_DIM,
     BG_EVEN, BG_ODD, BG_HEADER,
     C_GOLD, C_SILVER, C_BRONZE,
     C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
-    _safe_float, _safe_int, _safe_int_round, parse_price,
-    norm_id,
+    parse_price,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
-    parse_livebench, parse_lmarena, parse_aa, parse_openrouter,
-    display_len, color_cell,
+    parse_lmarena,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_html,
     load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
 )
+# NOTE (memory.md rule 9, S1-m3): norm_id/parse_aa/parse_openrouter/parse_livebench/
+# _safe_float/_safe_int/_safe_int_round/display_len/color_cell/C_RESET are deliberately
+# NOT imported: this module redefines every one of them below with proven, intentional
+# divergences from the benchmark_common originals (e.g. ogc._safe_float REJECTS
+# "$"-prefixed values while bc's strips them). The locals are the contract for this
+# checker and for ogc.* callers (fcheck/scheck); do not "restore" the imports — editing
+# bc's versions does not change this file's behavior, and shadowed imports only invite
+# fixes landing in the wrong function.
 
 
 def pick_latest_raw(name_part):
     """Newest snapshot in data/raw/ whose name contains name_part, or None."""
     return bc.pick_latest_raw(RAW, name_part)
+
+
+def offline_data_note():
+    """S1-M3 banner parity with bcheck: name the raw-snapshot dates an offline
+    run reads; sources past CACHE_TTL_H are WARNed and then used (never fetched).
+    Returns (banner line, data label reused by the HTML report)."""
+    labels = (("docs", "opencode_go_docs"), ("api", "opencode_go_models"),
+              ("OpenRouter", "openrouter_models"), ("AA", "artificial_analysis"),
+              ("LMArena", "lmarena"), ("LiveBench", "livebench_2"))
+    dates, stale = [], []
+    for name, part in labels:
+        snap = bc.pick_latest_raw(RAW, part)
+        if snap is None:
+            stale.append(f"{name} missing")
+            continue
+        ds = bc.snapshot_date_str(snap)
+        if ds:
+            dates.append(ds)
+        if bc.snapshot_age_hours(snap) > bc.CACHE_TTL_H:
+            stale.append(f"{name} {bc.snapshot_age_hours(snap) / 24:.0f}d old")
+    span = f"{min(dates)}..{max(dates)}" if dates else "none"
+    label = f"OFFLINE (data: {span})"
+    line = "  " + label
+    if stale:
+        line += "\n  WARN cached responses >24h — run with --fetch: " + ", ".join(stale)
+    return line, label
+
 
 OCGO_DOCS = "https://opencode.ai/docs/go/"
 OCGO_API = "https://opencode.ai/zen/go/v1/models"
@@ -502,7 +536,12 @@ def parse_openrouter(data_json, verbose=False):
 
 
 def find_aa_for_ocgo(ocgo_id, aa_map):
-    """Find best AA record for an OC Go id."""
+    """Find best AA record for an OC Go id.
+
+    Variant fallback is the shared token-safe matcher (S1-C1): raw contains and
+    the 1-char digit prefix hack are gone — ambiguity returns None, and callers
+    keep their static/no-AA rendering instead of scoring another model's row.
+    """
     n = norm_id(ocgo_id)
     # Exact
     if n in aa_map:
@@ -511,20 +550,12 @@ def find_aa_for_ocgo(ocgo_id, aa_map):
     for slug, rec in aa_map.items():
         if norm_id(slug) == n:
             return rec
-    # Contains
+    # Variant match: token-prefix run with no variant/digit surplus
     for slug, rec in aa_map.items():
-        ns = norm_id(slug)
-        if n in ns or ns in n:
-            # Prefer longer match? Pick first with intelligence
-            if rec.get("intelligenceIndex") is not None:
-                return rec
-    # Fallback: prefix match on first token
-    prefix = n.split("-")[0]
-    for slug, rec in aa_map.items():
-        if norm_id(slug).startswith(prefix) and rec.get("intelligenceIndex") is not None:
-            # Check if ocgo id's second token also matches
-            if len(n.split("-")) > 1 and n.split("-")[1] in norm_id(slug):
-                return rec
+        if rec.get("intelligenceIndex") is None:
+            continue
+        if not bc.variant_conflict(n, norm_id(slug)):
+            return rec
     return None
 
 
@@ -535,11 +566,11 @@ def find_lm_for_ocgo(ocgo_id, lm_map):
     for slug, rec in lm_map.items():
         if norm_id(slug) == n:
             return rec
-    # Loose contains, but prioritize exact digit match
-    # For "kimi-k3" LMArena has "kimi-k3-quickstart" — should match loosely
+    # Variant fallback via shared matcher (S1-C2): the old unguarded
+    # first-substring hit attributed whole Arena entries to the wrong model
+    # (glm-5.3-flash -> glm-5); ambiguity now returns None -> static column.
     for slug, rec in lm_map.items():
-        ns = norm_id(slug)
-        if n in ns or ns in n:
+        if not bc.variant_conflict(n, norm_id(slug)):
             return rec
     return None
 
@@ -634,17 +665,15 @@ def find_livebench_for_ocgo(ocgo_id, live_map):
         if norm_id(slug) in (n, base_n):
             return rec
 
+    # Variant fallback via shared matcher (S1-C3): the old char-contains loop plus
+    # the digit-stripping token fallback matched qwen3.7-plus -> qwen3.6-plus and
+    # mimo-v2.5 -> mimo-v2-pro. Version digits stay load-bearing; None => no row.
     for slug, rec in live_map.items():
         ns = norm_id(slug)
-        if base_n in ns or ns in base_n:
-            if rec.get("overall") is not None:
-                return rec
-
-    tokens = [t for t in base_n.split("-") if t and not t.isdigit()]
-    if tokens:
-        for slug, rec in live_map.items():
-            if all(t in slug for t in tokens) and rec.get("overall") is not None:
-                return rec
+        if rec.get("overall") is None:
+            continue
+        if not bc.variant_conflict(base_n, ns) or (base_n != n and not bc.variant_conflict(n, ns)):
+            return rec
     return None
 
 
@@ -688,25 +717,24 @@ def _safe_int_round(v):
 
 
 # ---------- usage API ----------
-def _find_key_recursive(o):
-    if isinstance(o, dict):
-        for k, v in o.items():
-            if isinstance(v, str) and len(v) > 20 and any(s in k.lower() for s in ("key", "token", "secret")):
-                return v
-            r = _find_key_recursive(v)
-            if r:
-                return r
-    elif isinstance(o, list):
-        for v in o:
-            r = _find_key_recursive(v)
-            if r:
-                return r
+def _lookup_provider_key(d):
+    """Targeted opencode-go/opencode provider lookup in an auth.json dict (S1-C4).
+
+    Only the entry for the provider whose endpoint we call is read — a
+    multi-provider credential store must never leak another provider's key.
+    """
+    if not isinstance(d, dict):
+        return None
+    for name in ("opencode-go", "opencode"):
+        entry = d.get(name)
+        if isinstance(entry, dict):
+            k = entry.get("key") or entry.get("token")
+            if k:
+                return str(k).strip()
     return None
 
 
-def get_api_key(args=None):
-    if args and getattr(args, "key", None):
-        return args.key
+def get_api_key():
     for env_var in ("OPENCODE_GO_API_KEY", "OPENCODE_API_KEY", "OPENCODE_GO_KEY"):
         val = os.environ.get(env_var)
         if val:
@@ -715,22 +743,27 @@ def get_api_key(args=None):
     pi_auth = pathlib.Path.home() / ".pi" / "agent" / "auth.json"
     if pi_auth.exists():
         try:
-            d = json.loads(pi_auth.read_text(encoding="utf-8"))
-            if isinstance(d, dict):
-                k = (d.get("opencode-go") or {}).get("key") or (d.get("opencode") or {}).get("key")
-                if k:
-                    return str(k).strip()
-        except Exception:
-            pass
+            k = _lookup_provider_key(json.loads(pi_auth.read_text(encoding="utf-8")))
+            if k:
+                return k
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARN {pi_auth}: unreadable auth.json: {e}", file=sys.stderr)
+    # opencode's own auth store keeps one entry per provider; targeting only
+    # opencode-go/opencode replaces the first-secret-wins recursive harvest (S1-C4).
     for p in [
         pathlib.Path.home() / ".local" / "share" / "opencode" / "auth.json",
         pathlib.Path.home() / ".config" / "opencode" / "auth.json",
     ]:
-        if p.exists():
-            try:
-                return _find_key_recursive(json.loads(p.read_text(encoding="utf-8")))
-            except Exception:
-                continue
+        if not p.exists():
+            continue
+        try:
+            k = _lookup_provider_key(json.loads(p.read_text(encoding="utf-8")))
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARN {p}: unreadable auth.json: {e}", file=sys.stderr)
+            continue
+        if k:
+            return k
+        print(f"  WARN {p}: no opencode-go/opencode provider entry — usage fetch skipped (no other provider's key is sent)", file=sys.stderr)
     return None
 
 
@@ -1435,13 +1468,14 @@ def render_limits_table(
 
 
 def main():
-    ap = argparse.ArgumentParser(description="OpenCode Go live checker — benchmarks + cost/benefit")
-    ap.add_argument("--offline", action="store_true", help="do not fetch network, use fallback/cached")
-    ap.add_argument("--fetch", action="store_true", help="save raw snapshots to data/raw/")
-    ap.add_argument("--check", action="store_true", help="dry-run: fetch and print summary, do not write outputs")
+    ap = argparse.ArgumentParser(description="OpenCode Go catalog checker — benchmarks + cost/benefit (offline cache by default; live only with --fetch)")
+    ap.add_argument("--fetch", action="store_true",
+                    help="network path: live-fetch docs/API/OpenRouter/AA/LMArena (+ authenticated usage) and save dated "
+                         "snapshots to docs/data/raw/. The default run is fully offline on the snapshot cache: >24h-old "
+                         "sources are WARNed and used, never fetched.")
+    ap.add_argument("--check", action="store_true",
+                    help="print only: writes NOTHING (baseline, reports, raw snapshots) — even combined with --fetch")
     ap.add_argument("--verbose", action="store_true", help="verbose logging")
-    ap.add_argument("--out", type=str, default=None, help="override output dir")
-    ap.add_argument("--key", type=str, default=None, help="OpenCode Go API key (or $OPENCODE_API_KEY / auth.json)")
     ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     ap.add_argument("--slim", action="store_true", help="Force compact 102-column table layout (for split panes)")
     ap.add_argument("--wide", action="store_true", help="Force full 120-column table layout")
@@ -1463,19 +1497,14 @@ def main():
     verbose = args.verbose
     do_fetch = args.fetch
     do_write = not args.check
-    offline = args.offline
 
-    if offline:
-        do_fetch = False
-
-    out_dir = Path(args.out) if args.out else OUT
-    out_dir.mkdir(parents=True, exist_ok=True)
-    DATA.mkdir(parents=True, exist_ok=True)
-    RAW.mkdir(parents=True, exist_ok=True)
-
-    print("OpenCode Go — live check")
+    print("OpenCode Go — catalog check")
     print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
-    print(f"  mode: {'offline' if offline else 'live'}" + (" +fetch" if do_fetch else "") + (" check-only" if args.check else ""))
+    print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
+    data_label = "live fetch"
+    if not do_fetch:
+        note, data_label = offline_data_note()
+        print(note)
 
     # ---- 1. Fetch OC Go docs + API ----
     pricing_live = {}
@@ -1483,13 +1512,13 @@ def main():
     tokens_live = {}
     ocgo_api_ids = []
 
-    if not offline:
+    if do_fetch:
         body = fetch(OCGO_DOCS, verbose=verbose)
         if body:
             html = body.decode(errors="ignore")
-            if do_fetch:
+            if do_write:
                 snap = RAW / f"opencode_go_docs_{dt.date.today().isoformat().replace('-','')}.html"
-                snap.write_text(html)
+                bc.atomic_write_text(snap, html)
                 print(f"  saved docs snapshot -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
             pl, rl, tl = parse_ocgo_docs(html, verbose=verbose)
             if pl:
@@ -1508,9 +1537,9 @@ def main():
         if body:
             try:
                 j = json.loads(body)
-                if do_fetch:
+                if do_write:
                     snap = RAW / f"opencode_go_models_{dt.date.today().isoformat().replace('-','')}.json"
-                    snap.write_text(json.dumps(j, indent=2))
+                    bc.atomic_write_text(snap, json.dumps(j, indent=2))
                     print(f"  saved API snapshot -> {snap.relative_to(ROOT)}")
                 ids = [m["id"] for m in j.get("data", []) if m.get("id")]
                 ocgo_api_ids = ids
@@ -1581,14 +1610,14 @@ def main():
 
     # ---- 2. Fetch OpenRouter ----
     or_map = {}
-    if not offline:
+    if do_fetch:
         body = fetch(OPENROUTER_API, verbose=verbose)
         if body:
             try:
                 j = json.loads(body)
-                if do_fetch:
+                if do_write:
                     snap = RAW / f"openrouter_models_{dt.date.today().isoformat().replace('-','')}.json"
-                    snap.write_text(json.dumps(j, indent=2))
+                    bc.atomic_write_text(snap, json.dumps(j, indent=2))
                     print(f"  saved OpenRouter -> {snap.relative_to(ROOT)} ({len(body)} bytes)")
                 or_map = parse_openrouter(j, verbose=verbose)
             except Exception as e:
@@ -1605,13 +1634,13 @@ def main():
 
     # ---- 3. Fetch AA ----
     aa_map = {}
-    if not offline:
+    if do_fetch:
         body = fetch(AA_URL, verbose=verbose)
         if body:
             html = body.decode(errors="ignore")
-            if do_fetch:
+            if do_write:
                 snap = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-','')}.html"
-                snap.write_text(html)
+                bc.atomic_write_text(snap, html)
                 print(f"  saved AA -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
             aa_map = parse_aa(html, verbose=verbose)
         else:
@@ -1628,13 +1657,13 @@ def main():
 
     # ---- 4. Fetch LMArena ----
     lm_map = {}
-    if not offline:
+    if do_fetch:
         body = fetch(LMARENA_URL, verbose=verbose)
         if body:
             html = body.decode(errors="ignore")
-            if do_fetch:
+            if do_write:
                 snap = RAW / f"lmarena_{dt.date.today().isoformat().replace('-','')}.html"
-                snap.write_text(html)
+                bc.atomic_write_text(snap, html)
                 print(f"  saved LMArena -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
             lm_map = parse_lmarena(html, verbose=verbose)
         else:
@@ -1649,21 +1678,24 @@ def main():
             except Exception as e:
                 print(f"  WARN offline LMArena parse: {e}", file=sys.stderr)
 
-    # ---- 4b. Fetch LiveBench ----
+    # ---- 4b. LiveBench snapshots: newest CSV is primary; older files only fill
+    # keys missing from it (S1-C3) — a corrupt snapshot is a logged skip, not a pass.
     live_map = {}
-    csv_matches = sorted(glob.glob(str(RAW / "*livebench*20*.csv")))
-    for p_csv in csv_matches:
-        if "cost" in p_csv:
-            continue
+    csv_matches = [p for p in sorted(glob.glob(str(RAW / "*livebench*20*.csv"))) if "cost" not in p]
+    for p_csv in reversed(csv_matches):
         try:
             p = pathlib.Path(p_csv)
             date_part = "".join(filter(str.isdigit, p.stem))
             cat_p = RAW / f"livebench_categories_{date_part}.json"
             cat_json = cat_p.read_text(encoding="utf-8", errors="ignore") if cat_p.exists() else None
             data = parse_livebench(p.read_text(encoding="utf-8", errors="ignore"), categories_json=cat_json)
-            live_map.update(data)
-        except Exception:
-            pass
+            filled = sum(1 for k in data if k not in live_map)
+            for k, v in data.items():
+                live_map.setdefault(k, v)
+            if verbose:
+                print(f"  LiveBench {p.name}: {len(data)} rows, {filled} new keys")
+        except Exception as e:  # noqa: BLE001 — never swallow silently (S1-C3)
+            print(f"  WARN LiveBench snapshot skipped ({p_csv}): {e}", file=sys.stderr)
     if live_map:
         print(f"  offline LiveBench: {len(live_map)} models loaded")
 
@@ -1673,8 +1705,8 @@ def main():
     usage_percents = {}  # window -> percent used (0-100)
     usage_resets = {}
     usage_key_present = False
-    if not offline:
-        k = get_api_key(args)
+    if do_fetch:
+        k = get_api_key()
         usage_key_present = bool(k)
         if k:
             usage_raw, usage_err = fetch_usage(k, verbose=verbose)
@@ -1699,10 +1731,10 @@ def main():
                     if verbose:
                         print(f"    raw={str(usage_raw)[:600]}", file=sys.stderr)
             elif usage_err:
-                print(f"  usage: {usage_err} — remaining % will be N/A (use --key or $OPENCODE_API_KEY)", file=sys.stderr)
+                print(f"  usage: {usage_err} — remaining % will be N/A (use $OPENCODE_API_KEY)", file=sys.stderr)
         else:
             if verbose:
-                print("  usage: no key (--key / $OPENCODE_API_KEY / auth.json) — remaining % N/A")
+                print("  usage: no key ($OPENCODE_API_KEY / auth.json opencode entry) — remaining % N/A")
     else:
         if verbose:
             print("  usage: offline — remaining % N/A")
@@ -1971,6 +2003,15 @@ def main():
 
     # Sort by chosen sort mode (default: avi)
     sort_mode = getattr(args, "sort", "avi")
+    def _eff_cost(r):
+        # S2-M1 class guard (parity with bc.compute_pareto_frontier._row_cost):
+        # 0.0 is a REAL cost — free tiers dominate the frontier/sort; only
+        # None falls through, and 999 is for fully-unknown cost only.
+        v = r["value"].get("effective_cost_per_request")
+        if v is None:
+            v = r.get("cost_per_request_usd")
+        return 999.0 if v is None else float(v)
+
     if sort_mode == "fgi":
         sort_key_fn = lambda r: (-(r["value"]["fgi_score"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
     elif sort_mode == "bfi":
@@ -1980,7 +2021,7 @@ def main():
     elif sort_mode == "req5h":
         sort_key_fn = lambda r: (-(r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed") or 0), -(r["value"]["avi_score"] or -1), r["model_id"])
     elif sort_mode == "cost":
-        sort_key_fn = lambda r: ((r["cost_per_request_usd"] or 999), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
+        sort_key_fn = lambda r: (_eff_cost(r), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
     elif sort_mode == "intel":
         sort_key_fn = lambda r: (-(r["value"]["intelligence_per_dollar"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
     else:  # "avi"
@@ -1994,10 +2035,10 @@ def main():
     try:
         cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids]
         for a in cand:
-            a_cost = a["value"].get("effective_cost_per_request") or a.get("cost_per_request_usd") or 999
+            a_cost = _eff_cost(a)
             a_q = a["benchmarks"].get("capability_q", 0)
             candidates = [
-                (b["value"].get("effective_cost_per_request") or b.get("cost_per_request_usd") or 999, b["benchmarks"].get("capability_q", 0))
+                (_eff_cost(b), b["benchmarks"].get("capability_q", 0))
                 for b in cand
                 if b is not a
             ]
@@ -2071,35 +2112,37 @@ def main():
                 "added": sorted(list(added_ids)),
                 "removed": sorted(list(removed_ids)),
                 "total_current": len(docs_rows),
-                "total_previous": len(prev_snapshot.get("models", [])) if (prev_snapshot and "models" in prev_snapshot) else len(docs_rows),
+                # S1-M1: compare like with like — total_previous counted the FULL
+                # baseline (incl. non-docs rows) against the docs-only current set.
+                "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (prev_snapshot and "models" in prev_snapshot) else len(docs_rows)),
             },
             "role_recommendations": role_recs_export,
             "models": rows_sorted,
         }
         DATA.mkdir(parents=True, exist_ok=True)
         out_json = DATA / "ocgo_live.json"
-        out_json.write_text(json.dumps(live, indent=2))
+        bc.atomic_write_text(out_json, json.dumps(live, indent=2))
         if verbose:
             print(f"wrote {out_json.relative_to(ROOT)} ({len(json.dumps(live))} bytes)")
 
         # outputs json
         OUT.mkdir(parents=True, exist_ok=True)
         cb_json = OUT / "ocgo_cost_benefit.json"
-        cb_json.write_text(json.dumps(rows_sorted, indent=2))
+        bc.atomic_write_text(cb_json, json.dumps(rows_sorted, indent=2))
         if verbose:
             print(f"wrote {cb_json.relative_to(ROOT)}")
 
         # HTML — with one-sentence current work in footer next to path
         work = one_sentence_work(docs_rows, usage_percents)
         html_path = OUT / "ocgo_cost_benefit.html"
-        html_path.write_text(render_html(docs_rows, work_sentence=work, pareto_ids=pareto_ids, added_ids=added_ids, removed_models=removed_models))
+        bc.atomic_write_text(html_path, render_html(docs_rows, work_sentence=work, pareto_ids=pareto_ids, added_ids=added_ids, removed_models=removed_models, data_note=data_label))
         if verbose:
             print(f"wrote {html_path.relative_to(ROOT)} ({html_path.stat().st_size} bytes)")
     else:
         print("\n(check-only, no files written)")
 
 
-def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, added_ids=None, removed_models=None):
+def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, added_ids=None, removed_models=None, data_note=None):
     if work_sentence is None:
         try:
             work_sentence = one_sentence_work(rows, usage_percents)
@@ -2111,6 +2154,8 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
         added_ids = set()
     if removed_models is None:
         removed_models = []
+    if data_note is None:
+        data_note = "Live check"
 
     title = f"OpenCode Go — Cost/Benefit ({dt.date.today().isoformat()})"
     role_recs = compute_role_recommendations(rows, context="ocheck")
@@ -2237,7 +2282,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 """
     body = f"""
 <h1>{html_lib.escape(title)}</h1>
-<p class="sub">Live check — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
+<p class="sub">{html_lib.escape(data_note)} — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
 
 <div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
 

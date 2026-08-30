@@ -82,6 +82,51 @@ def norm_model_slug(s: str) -> str:
     return s
 
 
+VARIANT_TOKENS = frozenset({
+    "pro", "max", "ultra", "mini", "lite", "next", "omni", "exp", "experimental",
+    "thinking", "high", "xhigh", "preview", "contributor", "coder", "codex",
+    "instruct", "turbo", "flash", "nitro", "speed", "smart", "free", "fast", "r1", "r2",
+})
+
+def _id_tokens(norm: str) -> list[str]:
+    """Tokenize a normalized model id; separators are [-_ ./ ], stray punctuation
+    (e.g. the parens in 'model-1.2 (xhigh)') also splits, so variant tokens are
+    detected regardless of the caller's normalizer."""
+    return [t for t in re.split(r"[^a-z0-9]+", (norm or "").lower()) if t]
+
+
+def variant_conflict(a_norm: str, b_norm: str) -> bool:
+    """True when two normalized ids must NOT be treated as the same model.
+
+    S1-C1/C2/C3 + S2-C2: a fuzzy fallback may only link ids when the shorter
+    token list is a prefix run of the longer one and every surplus token on the
+    longer side is neither a variant/tier token (pro, max, xhigh, codex, ...)
+    nor a digit token (versions are load-bearing: qwen3-5 != qwen3-7).
+    Any mid-list token divergence is a conflict.
+    """
+    ta, tb = _id_tokens(a_norm), _id_tokens(b_norm)
+    if not ta or not tb:
+        return True
+    if ta == tb:
+        return False
+    short, long = (ta, tb) if len(ta) <= len(tb) else (tb, ta)
+    if long[: len(short)] == short:
+        return any(t in VARIANT_TOKENS or t.isdigit() for t in long[len(short):])
+    return True
+
+
+def atomic_write_text(path, text: str) -> None:
+    """Write text to path atomically (tmp sibling + fsync + os.replace) — no torn tracked outputs (S1-M2/S2-C3)."""
+    p = pathlib.Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, p)
+
+
 def _safe_float(val, default=None):
     """Safely convert value to float or return default."""
     if val is None or val == "" or val == "—" or val == "-":
@@ -129,10 +174,60 @@ def parse_price(s: str) -> float | None:
         return None
 
 
+CACHE_TTL_H = 24  # response-cache freshness window for default offline runs (rule 7)
+
+_SNAP_DATE_RE = re.compile(r"_(\d{8})(?:\.[A-Za-z0-9]+)?$")
+
+
+def snapshot_date_str(path) -> str | None:
+    """YYYYMMDD embedded at the end of a raw-snapshot filename, or None.
+    The filename date is the authoritative cache age — a git checkout/clone
+    rewrites mtimes to "now" and would mask weeks-old data (S2-M2)."""
+    m = _SNAP_DATE_RE.search(pathlib.Path(path).name)
+    if not m:
+        return None
+    try:
+        dt.datetime.strptime(m.group(1), "%Y%m%d")
+    except ValueError:
+        return None
+    return m.group(1)
+
+
+def snapshot_age_hours(path, now: dt.datetime | None = None) -> float:
+    """Age of a raw snapshot in hours from its filename date when present,
+    falling back to mtime for date-less files (S2-M2)."""
+    p = pathlib.Path(path)
+    now = now or dt.datetime.now(dt.timezone.utc)
+    ds = snapshot_date_str(p)
+    if ds:
+        d = dt.datetime.strptime(ds, "%Y%m%d").replace(tzinfo=dt.timezone.utc)
+        return max(0.0, (now - d).total_seconds() / 3600.0)
+    return max(0.0, (now.timestamp() - p.stat().st_mtime) / 3600.0)
+
+
+def staleness_tag(path) -> str:
+    """Banner fragment for cache-only loaders: ' (Nd old — run with --fetch)'
+    once past CACHE_TTL_H; stale data is still used, never re-fetched (rule 7)."""
+    age = snapshot_age_hours(path)
+    if age > CACHE_TTL_H:
+        return f" ({age / 24:.0f}d old — run with --fetch)"
+    return ""
+
+
 def pick_latest_raw(raw_dir: pathlib.Path, name_part: str) -> pathlib.Path | None:
-    """Find newest snapshot in raw_dir whose filename matches name_part."""
-    matches = sorted(glob.glob(str(raw_dir / f"*{name_part}*")))
-    return pathlib.Path(matches[-1]) if matches else None
+    """Newest snapshot in raw_dir whose filename matches name_part — ordered by
+    the filename-embedded date when present, else mtime (S2-M2)."""
+    matches = glob.glob(str(raw_dir / f"*{name_part}*"))
+    if not matches:
+        return None
+
+    def _rank(p):
+        ds = snapshot_date_str(p)
+        if ds:
+            return dt.datetime.strptime(ds, "%Y%m%d").timestamp()
+        return pathlib.Path(p).stat().st_mtime
+
+    return pathlib.Path(max(matches, key=_rank))
 
 
 # ==============================================================================
@@ -228,18 +323,22 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
     """Compute Pareto-optimal frontier models on Effective Cost vs Composite Capability,
     including close-call / near-frontier models with generous headroom tolerances.
     """
+    def _row_cost(a):
+        # S2-M1: effective_cost 0.0 is a REAL cost (free tiers dominate the
+        # frontier); only None falls through to the price sum, and only a
+        # fully-unknown cost gets the 999 sentinel. Missing/None price parts
+        # are skipped instead of TypeError-ing on None + float.
+        c = a.get("effective_cost")
+        if c is not None:
+            return c
+        parts = [p for p in (a.get("price_in"), a.get("price_out")) if p is not None]
+        return sum(parts) if parts else 999
+
     pareto_set = set()
     for a in models_list:
-        a_cost = a.get("effective_cost") or (a.get("price_in", 999) + a.get("price_out", 999)) or 999
+        a_cost = _row_cost(a)
         a_q = a.get("capability_q", 0)
-        candidates = [
-            (
-                b.get("effective_cost") or (b.get("price_in", 999) + b.get("price_out", 999)) or 999,
-                b.get("capability_q", 0),
-            )
-            for b in models_list
-            if b is not a
-        ]
+        candidates = [(_row_cost(b), b.get("capability_q", 0)) for b in models_list if b is not a]
         if not pareto_dominated(a_cost, a_q, candidates, q_tolerance, cost_tolerance):
             pareto_set.add(a.get("display"))
             if a.get("aa_slug"):
@@ -1275,14 +1374,18 @@ def render_role_recommendations_html(role_recs: dict[str, dict]) -> str:
 # ==============================================================================
 # 8. CATALOG DIFFING & BASELINE SNAPSHOT MANAGEMENT (GREEN ADD / RED REMOVAL)
 # ==============================================================================
-
 def load_previous_snapshot(json_path: pathlib.Path | str) -> list[dict] | dict | None:
-    """Load previously saved live snapshot JSON file if it exists."""
+    """Load previously saved live snapshot JSON file if it exists.
+
+    A present-but-corrupt baseline is a loud WARN (S1-M2): the caller silently
+    cold-starts either way, but operators must be able to tell the difference.
+    """
     target = pathlib.Path(json_path)
     if target.is_file():
         try:
             return json.loads(target.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as e:
+            print(f"  WARN baseline snapshot CORRUPT (not cold start): {target}: {e}", file=sys.stderr)
             return None
     return None
 
@@ -1327,12 +1430,24 @@ def diff_model_catalog(
     prev_snapshot: list[dict] | dict | None,
     id_key: str = "model_id",
     window_days: float = 7.0,
-    now: dt.datetime | None = None
+    now: dt.datetime | None = None,
+    require_docs_tag: bool = True,
 ) -> dict:
     """Compute added (green) and removed (red) models comparing current rows to previous baseline snapshot.
 
     Persists and propagates 'first_seen' timestamps across runs so that newly added models
     remain highlighted in green for up to `window_days` (default 7 days).
+
+    require_docs_tag: the ocheck snapshots tag docs-backed models with
+    `is_docs_model` and must diff against that subset only; callers whose payload
+    shape has no such tag (fcheck, bcheck) pass False so their own previous rows
+    populate the baseline map (S3-F3-2).
+
+    Two-set diff (S1-M1): the docs filter applies ONLY to the added/removed
+    display map (prev_models_map) so subset rows can never fake a removal.
+    first_seen carry-over and the brand-new check use a catalog-wide map
+    (prev_seen_map) — otherwise every non-docs row misses its own baseline
+    entry and gets re-stamped "brand new" on every single run.
     """
     now_dt = now or dt.datetime.now(dt.timezone.utc)
     if now_dt.tzinfo is None:
@@ -1343,7 +1458,8 @@ def diff_model_catalog(
             return None
         return r.get(id_key) or r.get("model_id") or r.get("display") or r.get("or_slug") or r.get("id")
 
-    prev_models_map = {}
+    prev_models_map = {}  # docs-filtered display set: added/removed pass
+    prev_seen_map = {}    # catalog-wide: first_seen carry-over + brand-new check (S1-M1)
     has_prev_snapshot = False
 
     if isinstance(prev_snapshot, dict):
@@ -1362,8 +1478,11 @@ def diff_model_catalog(
         if isinstance(m, dict):
             mid = _extract_id(m)
             if mid:
-                # In ocheck snapshots, filter to docs-backed models when is_docs_model tag is used
-                if id_key == "model_id" and has_catalog_diff and not m.get("is_docs_model"):
+                prev_seen_map[mid] = m
+                # ocheck snapshots: the added/removed display pass diffs against the
+                # docs-backed subset only when the caller requires the is_docs_model
+                # tag; fcheck/bcheck payloads pass require_docs_tag=False
+                if require_docs_tag and id_key == "model_id" and has_catalog_diff and not m.get("is_docs_model"):
                     continue
                 prev_models_map[mid] = m
 
@@ -1380,7 +1499,7 @@ def diff_model_catalog(
 
         # 1. Resolve first_seen timestamp
         first_seen_str = r.get("first_seen")
-        prev_m = prev_models_map.get(mid)
+        prev_m = prev_seen_map.get(mid)
 
         if not first_seen_str and prev_m:
             first_seen_str = prev_m.get("first_seen")
@@ -1393,7 +1512,7 @@ def diff_model_catalog(
                 first_seen_str = created_dt.isoformat()
 
         # If brand new model unseen in previous snapshot
-        is_brand_new = has_prev_snapshot and (mid not in prev_models_map)
+        is_brand_new = has_prev_snapshot and (mid not in prev_seen_map)
         if not first_seen_str:
             if is_brand_new:
                 first_seen_str = now_dt.isoformat()

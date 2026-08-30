@@ -42,14 +42,17 @@ class TestOcgoCheck(unittest.TestCase):
         lm_map = ogc.parse_lmarena(snap_lm.read_text(errors="ignore"))
         self.assertGreater(len(lm_map), 300)
 
-        # Cross-matching
+        # Cross-matching (P1 1.4): exact-family match must survive the matcher migration.
         glm_aa = ogc.find_aa_for_ocgo("glm-5.3", aa_map)
         self.assertIsNotNone(glm_aa)
         self.assertIn("intelligenceIndex", glm_aa)
+        self.assertEqual(glm_aa["slug"], "glm-5-3")
 
+        # LMArena publishes no plain glm-5.3 row in this snapshot (only glm-5.3-max /
+        # glm-5): the old unguarded contains loop borrowed the -max entry's ELO
+        # (S1-C2). The migrated finder must refuse and leave the column static.
         glm_lm = ogc.find_lm_for_ocgo("glm-5.3", lm_map)
-        self.assertIsNotNone(glm_lm)
-        self.assertIn("elo", glm_lm)
+        self.assertIsNone(glm_lm)
 
     def test_livebench_snapshot(self):
         snap_csv = ogc.RAW / "livebench_20260625.csv"
@@ -84,7 +87,7 @@ class TestOcgoCheck(unittest.TestCase):
             },
         ]
         table = ogc.render_cli_table(sample_rows, color=False)
-        self.assertIn("ROLE RECOMMENDATIONS", table)
+        self.assertIn("RECOMMENDATIONS", table)
         self.assertIn("Architecture", table)
     def test_catalog_diff_logic(self):
         prev_snapshot = {

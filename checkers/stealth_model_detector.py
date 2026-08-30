@@ -2,8 +2,9 @@
 """
 stealth_models_check.py — OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence
 
-Fetches the live OpenRouter model catalog and keeps only models in the
-`stealth/` namespace (OpenRouter's home for anonymous/undisclosed models,
+Reads the OpenRouter model catalog from the raw cache by default (rule 7;
+--fetch is the only network path) and keeps only models in the `stealth/`
+namespace (OpenRouter's home for anonymous/undisclosed models,
 e.g. stealth/ox-alpha). Attaches intelligence signals from Artificial
 Analysis (Intelligence Index) and LMArena (ELO), builds a normalized
 composite score (z-scored per source, averaged — same scoring as fcheck),
@@ -292,9 +293,10 @@ def main():  # noqa: PLR0915
     ap = argparse.ArgumentParser(
         description="OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
     )
-    ap.add_argument("--offline", action="store_true", help="use cached data/raw/ snapshots, no network")
-    ap.add_argument("--fetch", action="store_true", help="save raw snapshots to data/raw/")
-    ap.add_argument("--check", action="store_true", help="dry-run: fetch + print, no file writes")
+    ap.add_argument("--fetch", action="store_true",
+                    help="network path: live-fetch OpenRouter/AA/LMArena and save dated snapshots to data/raw/. "
+                         "The default run is fully offline on the raw cache: >24h-old sources are tagged and used, never fetched.")
+    ap.add_argument("--check", action="store_true", help="print only: writes NOTHING (data/html outputs, raw snapshots) — even combined with --fetch")
     ap.add_argument("--json", action="store_true", help="write data/stealth_models.json")
     ap.add_argument("--html", action="store_true", help="write outputs/stealth_models.html")
     ap.add_argument("--verbose", action="store_true", help="verbose fetch logging")
@@ -303,8 +305,7 @@ def main():  # noqa: PLR0915
     ap.add_argument("--wide", action="store_true", help="Force wide table layout")
     args = ap.parse_args()
     verbose = bool(args.verbose)
-    offline = bool(args.offline)
-    do_fetch = bool(args.fetch and not offline)
+    do_fetch = bool(args.fetch)
     do_write = not bool(args.check)
     color = not bool(args.plain or os.getenv("NO_COLOR"))
     term_cols = shutil.get_terminal_size((120, 24)).columns
@@ -315,36 +316,50 @@ def main():  # noqa: PLR0915
 
     print("Stealth models (OpenRouter stealth/ namespace) \u2014 composite intelligence")
     print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
-    print(f"  mode: {'offline' if offline else 'live'}" + (" +fetch" if do_fetch else "") + (" check-only" if args.check else ""))
+    print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
 
     # ---- 1. OpenRouter catalog → stealth filter ----
     or_map = {}
-    if offline:
+    if not do_fetch:
         snap = pick_latest_raw("openrouter_models")
         if not snap:
-            print("  ERROR: --offline but no data/raw/openrouter_models*.json found; run without --offline first.", file=sys.stderr)
+            print("  ERROR: no data/raw/openrouter_models*.json snapshot — run with --fetch once to populate.", file=sys.stderr)
             sys.exit(2)
         try:
             j = json.loads(snap.read_text(errors="replace"))
         except Exception as e:  # noqa: BLE001
             print(f"  WARN offline OR snapshot bad: {e}", file=sys.stderr)
             j = None
-        print(f"  offline OR snapshot: {snap.name}")
+        print(f"  cached OR snapshot: {snap.name}{bc.staleness_tag(snap)}")
         or_map = ogc.parse_openrouter(j, verbose=verbose) if j is not None else {}
     else:
+        source_failed = False
         body = ogc.fetch(OPENROUTER_API, verbose=verbose)
         if body:
             try:
                 j = json.loads(body)
-                if do_fetch:
+                if do_write:
                     s = RAW / f"openrouter_models_{dt.date.today().isoformat().replace('-', '')}.json"
-                    s.write_text(json.dumps(j, indent=2))
+                    bc.atomic_write_text(s, json.dumps(j, indent=2))
                     print(f"  saved OR -> {s.relative_to(ROOT)} ({len(body)} bytes)")
                 or_map = ogc.parse_openrouter(j, verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN OR json: {e}", file=sys.stderr)
+                source_failed = True
         else:
             print("  WARN OR fetch failed", file=sys.stderr)
+            source_failed = True
+        if source_failed or not or_map:
+            # fcheck's cached-snapshot fallback (S3-F3-6): a blip must not leave
+            # an empty catalog ready to be written over the last-good output.
+            snap = pick_latest_raw("openrouter_models")
+            if snap:
+                try:
+                    j = json.loads(snap.read_text(errors="replace"))
+                    or_map = ogc.parse_openrouter(j, verbose=verbose)
+                    print(f"  WARN live OR failed; using cached snapshot: {snap.name}")
+                except Exception as e:  # noqa: BLE001
+                    print(f"  WARN cached OR snapshot bad ({snap}): {e}", file=sys.stderr)
 
     stealth_recs = [rec for rec in or_map.values() if is_stealth_model(rec)]
     stealth_recs.sort(key=lambda r: r.get("id", ""))
@@ -353,23 +368,23 @@ def main():  # noqa: PLR0915
     # ---- 2. AA ----
     aa_map = {}
     if stealth_recs:
-        if offline:
+        if not do_fetch:
             snap = pick_latest_raw("artificial_analysis")
             if snap:
                 try:
                     aa_map = ogc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
                 except Exception as e:  # noqa: BLE001
                     print(f"  WARN AA offline parse: {e}", file=sys.stderr)
-                print(f"  AA: {len(aa_map)} entries ({snap.name})")
+                print(f"  AA: {len(aa_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
             else:
-                print("  AA: no offline snapshot available")
+                print("  AA: no cached snapshot available — run with --fetch once to populate")
         else:
             body = ogc.fetch(AA_URL, verbose=verbose)
             if body:
                 html_txt = body.decode(errors="ignore")
-                if do_fetch:
+                if do_write:
                     s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
-                    s.write_text(html_txt)
+                    bc.atomic_write_text(s, html_txt)
                     print(f"  saved AA -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
                 aa_map = ogc.parse_aa(html_txt, verbose=verbose)
                 print(f"  AA: {len(aa_map)} models")
@@ -379,23 +394,23 @@ def main():  # noqa: PLR0915
     # ---- 3. LMArena ----
     lm_map = {}
     if stealth_recs:
-        if offline:
+        if not do_fetch:
             snap = pick_latest_raw("lmarena")
             if snap:
                 try:
                     lm_map = ogc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
                 except Exception as e:  # noqa: BLE001
                     print(f"  WARN LMArena offline parse: {e}", file=sys.stderr)
-                print(f"  LMArena: {len(lm_map)} entries ({snap.name})")
+                print(f"  LMArena: {len(lm_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
             else:
-                print("  LMArena: no offline snapshot available")
+                print("  LMArena: no cached snapshot available — run with --fetch once to populate")
         else:
             body = ogc.fetch(LMARENA_URL, verbose=verbose)
             if body:
                 html_txt = body.decode(errors="ignore")
-                if do_fetch:
+                if do_write:
                     s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
-                    s.write_text(html_txt)
+                    bc.atomic_write_text(s, html_txt)
                     print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
                 lm_map = ogc.parse_lmarena(html_txt, verbose=verbose)
                 print(f"  LMArena: {len(lm_map)} entries")
@@ -469,6 +484,10 @@ def main():  # noqa: PLR0915
     if not do_write:
         print("\n(check-only, no files written)")
         return
+    if (args.json or args.html) and not or_map:
+        # S3-F3-6: never overwrite last-good outputs with an empty catalog.
+        print("  ERROR: OpenRouter catalog yielded 0 records (live fetch failed and no usable cached snapshot) — refusing --json/--html write", file=sys.stderr)
+        sys.exit(1)
     if args.json:
         payload = {
             "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -484,12 +503,12 @@ def main():  # noqa: PLR0915
             "models": rows_sorted,
         }
         p = DATA / "stealth_models.json"
-        p.write_text(json.dumps(payload, indent=2))
+        bc.atomic_write_text(p, json.dumps(payload, indent=2))
         print(f"\nwrote {p.relative_to(ROOT)}")
     if args.html:
         OUT.mkdir(parents=True, exist_ok=True)
         p = OUT / "stealth_models.html"
-        p.write_text(render_html(rows_sorted, n_aa, n_lm))
+        bc.atomic_write_text(p, render_html(rows_sorted, n_aa, n_lm))
         print(f"wrote {p.relative_to(ROOT)}")
 
 

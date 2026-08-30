@@ -278,5 +278,201 @@ class TestBenchmarkCommon(unittest.TestCase):
         self.assertEqual(len(diff3["added_ids"]), 0)
 
 
+
+class TestVariantConflictMatcher(unittest.TestCase):
+    """P1 1.4 shared matcher: token-prefix runs only, variant/digit surplus rejects."""
+
+    def test_equal_and_dot_hyphen_equivalence(self):
+        self.assertFalse(bc.variant_conflict("glm-5-3", "glm-5-3"))
+        self.assertFalse(bc.variant_conflict("qwen3.5-plus", "qwen3-5-plus"))  # dots split as separators
+
+    def test_variant_surplus_rejected(self):
+        self.assertTrue(bc.variant_conflict("mimo-v2-5", "mimo-v2-5-pro"))
+        self.assertTrue(bc.variant_conflict("gpt-5-2", "gpt-5-2-codex"))
+        self.assertTrue(bc.variant_conflict("qwen3-7-max", "qwen3-7-max-preview"))
+        self.assertTrue(bc.variant_conflict("muse-spark-1-2", "muse-spark-1-2 (xhigh)"))  # punctuation still splits
+
+    def test_digit_surplus_and_divergence_rejected(self):
+        self.assertTrue(bc.variant_conflict("glm-5-3-flash", "glm-5"))  # digit + variant surplus
+        self.assertTrue(bc.variant_conflict("qwen3-5", "qwen3-7"))  # versions are load-bearing
+        self.assertTrue(bc.variant_conflict("deepseek-r1", "deepseek-r2"))
+        self.assertTrue(bc.variant_conflict("qwen3-5-plus", "qwen3-5-omni-plus"))  # mid-list variant divergence
+
+    def test_non_variant_surplus_allowed(self):
+        self.assertFalse(bc.variant_conflict("kimi-k3", "kimi-k3-quickstart"))
+
+    def test_empty_inputs_conflict(self):
+        self.assertTrue(bc.variant_conflict("", "glm-5"))
+        self.assertTrue(bc.variant_conflict("", ""))
+
+
+class TestAtomicWriteAndBaseline(unittest.TestCase):
+    def test_atomic_write_text(self):
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "nested" / "out.json"
+            bc.atomic_write_text(target, '{"ok": true}')
+            self.assertEqual(target.read_text(encoding="utf-8"), '{"ok": true}')
+            self.assertFalse((Path(td) / "nested" / "out.json.tmp").exists())
+            # overwrite is also atomic and complete
+            bc.atomic_write_text(target, "second")
+            self.assertEqual(target.read_text(encoding="utf-8"), "second")
+            self.assertEqual(sorted(p.name for p in Path(td).glob("nested/*")), ["out.json"])
+
+    def test_load_previous_snapshot_absent_is_silent(self):
+        import contextlib
+        import io
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertIsNone(bc.load_previous_snapshot(Path(td) / "missing.json"))
+            self.assertEqual(err.getvalue(), "")
+
+    def test_load_previous_snapshot_corrupt_is_loud(self):
+        import contextlib
+        import io
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            bad = Path(td) / "benchmarks.json"
+            bad.write_text('{"models": [tru', encoding="utf-8")  # torn write
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertIsNone(bc.load_previous_snapshot(bad))
+            msg = err.getvalue()
+            self.assertIn("CORRUPT", msg)
+            self.assertIn("benchmarks.json", msg)
+
+
+class TestRequireDocsTag(unittest.TestCase):
+    def test_fcheck_shape_payload_needs_docs_tag_opt_out(self):
+        # S3-F3-2: payload carries catalog_diff but no is_docs_model tags.
+        prev = {
+            "catalog_diff": {"added": [], "removed": []},
+            "models": [
+                {"model_id": "a:free"},
+                {"model_id": "gone-model:free"},
+            ],
+        }
+        rows = [{"model_id": "a:free"}, {"model_id": "newcomer:free"}]
+        strict = bc.diff_model_catalog(rows, prev, id_key="model_id")
+        self.assertEqual(strict["removed_ids"], set())  # no fake removal from subset diff
+        # S1-M1 two-set diff: "a:free" is found in the catalog-wide prev map, so it is
+        # no longer churned to brand-new every run despite the docs filter.
+        self.assertEqual(strict["added_ids"], {"newcomer:free"})
+        rows2 = [{"model_id": "a:free"}, {"model_id": "newcomer:free"}]
+        loose = bc.diff_model_catalog(rows2, prev, id_key="model_id", require_docs_tag=False)
+        self.assertEqual(loose["removed_ids"], {"gone-model:free"})
+        self.assertEqual(loose["added_ids"], {"newcomer:free"})
+
+
+class TestParetoCostHandling(unittest.TestCase):
+    """P2 2.4 / S2-M1: cost 0.0 is real; only None falls through; 999 only when unknown."""
+
+    def test_zero_cost_free_model_holds_frontier(self):
+        rows = [
+            {"display": "FreeX", "effective_cost": 0.0, "capability_q": 80.0},
+            {"display": "CheapY", "effective_cost": 0.05, "capability_q": 80.0},
+        ]
+        gold = bc.compute_pareto_frontier(rows)
+        self.assertIn("FreeX", gold)
+        self.assertNotIn("CheapY", gold)
+
+    def test_none_fields_no_typeerror_and_price_sum_is_used(self):
+        rows = [
+            {"display": "SumZ", "price_in": 0.5, "price_out": 0.25, "capability_q": 80.0},
+            {"display": "Low", "effective_cost": 0.3, "capability_q": 80.0},
+            {"display": "NoCost", "effective_cost": None, "price_in": None, "capability_q": 99.9},
+        ]
+        gold = bc.compute_pareto_frontier(rows)  # None + float used to TypeError here
+        self.assertNotIn("SumZ", gold)  # known sum 0.75 dominated by 0.30 at equal Q
+        self.assertIn("Low", gold)
+        self.assertIn("NoCost", gold)  # 999 sentinel but top Q — still on the frontier
+
+
+class TestZScoreZeroStd(unittest.TestCase):
+    """S2-M3 gap 2: std=0 contract pinned (behavior was only correct by accident)."""
+
+    def test_identical_values_zerod(self):
+        self.assertEqual(bc.get_z_scores([5.0, 5.0, 5.0]), [0.0, 0.0, 0.0])
+        self.assertEqual(bc.get_z_scores([7, 7, None, "x"]), [0.0, 0.0, 0.0, 0.0])
+
+
+class TestNonDocsFirstSeenPreserved(unittest.TestCase):
+    """S1-M1 / P2 2.10-C3: the docs filter must not cost non-docs rows their
+    baseline first_seen (removed-detection ordering stays docs-filtered)."""
+
+    PREV = {
+        "catalog_diff": {"added": [], "removed": []},
+        "models": [
+            {"model_id": "glm-5", "first_seen": "2026-08-01T00:00:00+00:00"},
+            {"model_id": "docs-model", "first_seen": "2026-08-01T00:00:00+00:00", "is_docs_model": True},
+        ],
+    }
+
+    def test_legacy_row_stable_across_runs(self):
+        now = dt.datetime(2026, 8, 30, tzinfo=dt.timezone.utc)
+        legacy = {"model_id": "glm-5"}
+        docs_row = {"model_id": "docs-model"}
+        newcomer = {"model_id": "brand-new"}
+        d = bc.diff_model_catalog([legacy, docs_row, newcomer], dict(TestNonDocsFirstSeenPreserved.PREV), now=now)
+        self.assertEqual(legacy["first_seen"], "2026-08-01T00:00:00+00:00")  # carried, not re-stamped
+        self.assertFalse(legacy["is_new"])  # 29d old → badge self-expires (was permanent True)
+        self.assertEqual(docs_row["first_seen"], "2026-08-01T00:00:00+00:00")
+        self.assertTrue(newcomer["is_new"])  # genuinely new still badges
+        self.assertEqual(d["added_ids"], {"brand-new"})
+
+    def test_dropped_non_docs_row_is_not_a_fake_removal(self):
+        now = dt.datetime(2026, 8, 30, tzinfo=dt.timezone.utc)
+        d2 = bc.diff_model_catalog([{"model_id": "docs-model"}], dict(TestNonDocsFirstSeenPreserved.PREV), now=now)
+        self.assertEqual(d2["removed_ids"], set())
+
+
+class TestSnapshotAgeFromFilename(unittest.TestCase):
+    """S2-M2: filename-embedded date is authoritative; mtime only a fallback."""
+
+    def test_filename_date_wins_over_fresh_mtime(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "openrouter_models_20260101.json"
+            p.write_text("{}", encoding="utf-8")  # mtime == now, exactly like a fresh clone
+            self.assertEqual(bc.snapshot_date_str(p), "20260101")
+            age = bc.snapshot_age_hours(p, now=dt.datetime(2026, 1, 31, tzinfo=dt.timezone.utc))
+            self.assertEqual(age, 30 * 24.0)
+            self.assertIn("run with --fetch", bc.staleness_tag(p))  # real now: 241d, not 30d
+
+    def test_mtime_fallback_without_date(self):
+        import os
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "mystery_snapshot.json"
+            p.write_text("{}", encoding="utf-8")
+            old = time.time() - 30 * 3600
+            os.utime(p, (old, old))
+            self.assertIsNone(bc.snapshot_date_str(p))
+            age = bc.snapshot_age_hours(p)
+            self.assertGreater(age, 29.0)
+            self.assertLess(age, 31.0)
+
+    def test_invalid_date_and_picker_ordering(self):
+        import os
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as td:
+            bogus = Path(td) / "x_20261399.json"  # month 13 is not a date
+            bogus.write_text("{}", encoding="utf-8")
+            self.assertIsNone(bc.snapshot_date_str(bogus))
+            new = Path(td) / "x_20260830.json"
+            new.write_text("{}", encoding="utf-8")
+            old = Path(td) / "x_20260101.json"
+            old.write_text("{}", encoding="utf-8")  # stale by name, fresh mtime
+            ancient = time.time() - 400 * 24 * 3600
+            os.utime(new, (ancient, ancient))  # mtime says new is the OLDEST — name wins
+            os.utime(bogus, (ancient, ancient))  # date-less + old mtime → stays behind
+            self.assertEqual(bc.pick_latest_raw(Path(td), "x_2"), new)
+
+
 if __name__ == "__main__":
     unittest.main()

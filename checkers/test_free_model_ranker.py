@@ -197,19 +197,25 @@ class TestFreeModelRanker(unittest.TestCase):
         self.assertIn("badge-or", html_out)
         self.assertIn("Free Models (OpenRouter + OpenCode + Cline)", html_out)
 
-    def test_cached_json_loader(self):
-        # Test loading cached json for cline_models or opencode_zen_models
+    def test_cached_json_loader_is_offline_by_default(self):
+        # rule 7 / S3-F3-5: plain call must read the cache, never touch network
         data = fmr.fetch_or_load_cached_json(
             fmr.CLINE_RECOMMENDED_MODELS_API,
             "cline_models",
-            offline=True,
-            do_fetch=False,
             verbose=False,
         )
         self.assertIsNotNone(data)
         self.assertTrue("free" in data or "data" in data)
         free_list = data.get("free", data.get("data", []))
         self.assertGreaterEqual(len(free_list), 1)
+
+    def test_free_key_dedups_provider_prefix(self):
+        # S3-F3-3: the same free model on two platforms must collapse to one key
+        self.assertEqual(fmr._free_key("nemotron-3.5-lightning-free"), fmr._free_key("nvidia/nemotron-3.5-lightning:free"))
+        self.assertEqual(fmr._free_key("deepseek-v4-flash-free"), fmr._free_key("deepseek/deepseek-v4-flash"))
+        self.assertEqual(fmr._free_key("laguna-s-2.1-free"), fmr._free_key("poolside/laguna-s-2.1:free"))
+        # distinct models must NOT collapse
+        self.assertNotEqual(fmr._free_key("nemotron-3.5-lightning-free"), fmr._free_key("deepseek-v4-flash-free"))
 
 
 if __name__ == "__main__":

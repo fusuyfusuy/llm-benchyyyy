@@ -2,13 +2,14 @@
 """
 free_models_check.py — Free models (OpenRouter + OpenCode) ranked by composite intelligence
 
-Fetches the live OpenRouter model catalog (price $0) and the live OpenCode Go
-model catalog (free = usage None, e.g. ox-alpha-free), keeps the FREE models,
+Reads the OpenRouter model catalog (price $0) and the OpenCode Go
+model catalog (free = usage None, e.g. ox-alpha-free) from the raw cache, keeps the FREE models,
 attaches intelligence signals from Artificial Analysis (Intelligence Index)
 and LMArena (ELO), builds a normalized composite score (z-scored per source,
 averaged), and prints a table sorted by intelligence.
 
 Stdlib only. Reuses parsers + cross-source matchers from ocgo_check.py.
+Offline by default (rule 7): --fetch is the only network path.
 No API keys. Console table by default; --json / --html flag the files.
 """
 import argparse
@@ -77,6 +78,11 @@ def is_free_model(rec):
     return prompt == 0.0 and completion == 0.0
 
 
+def _free_key(oid: str) -> str:
+    """S3-F3-3 dedup key: base_id + norm_id with the provider segment stripped.
+    OpenCode lists bare 'x-free' while OpenRouter/Cline list 'prov/x[:free]' —
+    the old raw-norm compare missed every cross-platform duplicate."""
+    return ogc.norm_id(base_id(oid)).rsplit("/", 1)[-1]
 
 
 def pick_latest_raw(name_part: str) -> pathlib.Path | None:
@@ -87,23 +93,23 @@ def pick_latest_raw(name_part: str) -> pathlib.Path | None:
 def fetch_or_load_cached_json(
     api_url: str,
     snapshot_prefix: str,
-    offline: bool = False,
-    do_fetch: bool = False,
+    fetch: bool = False,
+    write: bool = True,
     verbose: bool = False,
 ) -> dict | list | None:
+    """Offline-by-default (rule 7 / S3-F3-5): the plain path reads the newest dated
+    snapshot in RAW; fetch=True is the only network path. Snapshots are saved only
+    when write=True (--check wins on writes). >24h-old cache is tagged and used,
+    never fetched. Does not use hardcoded fallback lists. Returns parsed JSON or None.
     """
-    Fetch live JSON from api_url and update disk cache snapshot in RAW.
-    If API is down or offline=True, load the latest cached response from RAW.
-    Does not use hardcoded fallback lists. Returns parsed JSON or None.
-    """
-    if not offline:
+    if fetch:
         body = ogc.fetch(api_url, verbose=verbose)
         if body:
             try:
                 data = json.loads(body.decode("utf-8", errors="ignore"))
-                target = RAW / f"{snapshot_prefix}_{dt.date.today().isoformat().replace('-', '')}.json"
-                target.write_text(json.dumps(data, indent=2))
-                if verbose or do_fetch:
+                if write:
+                    target = RAW / f"{snapshot_prefix}_{dt.date.today().isoformat().replace('-', '')}.json"
+                    bc.atomic_write_text(target, json.dumps(data, indent=2))
                     print(f"  saved {snapshot_prefix} -> {target.relative_to(ROOT)} ({len(body)} bytes)")
                 return data
             except Exception as e:
@@ -115,12 +121,12 @@ def fetch_or_load_cached_json(
     if snap:
         try:
             data = json.loads(snap.read_text(errors="replace"))
-            print(f"  offline {snapshot_prefix} snapshot: {snap.name}")
+            print(f"  cached {snapshot_prefix}: {snap.name}{bc.staleness_tag(snap)}")
             return data
         except Exception as e:
             print(f"  WARN {snapshot_prefix} cached snapshot bad: {e}", file=sys.stderr)
             return None
-    print(f"  WARN no cached snapshot found for {snapshot_prefix}", file=sys.stderr)
+    print(f"  WARN no cached snapshot found for {snapshot_prefix} — run with --fetch once to populate", file=sys.stderr)
     return None
 
 
@@ -468,9 +474,10 @@ def main():  # noqa: PLR0915
     ap = argparse.ArgumentParser(
         description="OpenRouter free models ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
     )
-    ap.add_argument("--offline", action="store_true", help="use cached data/raw/ snapshots, no network")
-    ap.add_argument("--fetch", action="store_true", help="save raw snapshots to data/raw/")
-    ap.add_argument("--check", action="store_true", help="dry-run: fetch + print, no file writes")
+    ap.add_argument("--fetch", action="store_true",
+                    help="network path: live-fetch OpenRouter/Zen/Go/Cline/AA/LMArena and save dated snapshots to "
+                         "data/raw/. The default run is fully offline on the raw cache: >24h-old sources are tagged and used, never fetched.")
+    ap.add_argument("--check", action="store_true", help="print only: writes NOTHING (data/html outputs, raw snapshots) — even combined with --fetch")
     ap.add_argument("--json", action="store_true", help="write data/free_models.json")
     ap.add_argument("--html", action="store_true", help="write outputs/free_models.html")
     ap.add_argument("--verbose", action="store_true", help="verbose fetch logging")
@@ -479,8 +486,7 @@ def main():  # noqa: PLR0915
     ap.add_argument("--wide", action="store_true", help="Force wide table layout")
     args = ap.parse_args()
     verbose = bool(args.verbose)
-    offline = bool(args.offline)
-    do_fetch = bool(args.fetch and not offline)
+    do_fetch = bool(args.fetch)
     do_write = not bool(args.check)
     color = not bool(args.plain or os.getenv("NO_COLOR"))
     term_cols = shutil.get_terminal_size((120, 24)).columns
@@ -492,10 +498,10 @@ def main():  # noqa: PLR0915
 
     print("Free models (OpenRouter + OpenCode + Cline) \u2014 composite intelligence")
     print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
-    print(f"  mode: {'offline' if offline else 'live'}" + (" +fetch" if do_fetch else "") + (" check-only" if args.check else ""))
+    print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
 
     # ---- 1. OpenRouter ----
-    or_json = fetch_or_load_cached_json(OPENROUTER_API, "openrouter_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
+    or_json = fetch_or_load_cached_json(OPENROUTER_API, "openrouter_models", fetch=do_fetch, write=do_write, verbose=verbose)
     or_map = ogc.parse_openrouter(or_json, verbose=verbose) if or_json is not None else {}
     free_recs = [rec for rec in or_map.values() if is_free_model(rec)]
     for r in free_recs:
@@ -505,15 +511,18 @@ def main():  # noqa: PLR0915
     print(f"  catalog: {len(or_map)} models in OR; free: {len(free_recs)}")
 
     # ---- 1b. OpenCode free models (Zen + Go catalogs) ----
-    oc_zen_json = fetch_or_load_cached_json(OPENCODE_ZEN_API, "opencode_zen_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
-    oc_go_json = fetch_or_load_cached_json(OPENCODE_GO_API, "opencode_go_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
+    oc_zen_json = fetch_or_load_cached_json(OPENCODE_ZEN_API, "opencode_zen_models", fetch=do_fetch, write=do_write, verbose=verbose)
+    oc_go_json = fetch_or_load_cached_json(OPENCODE_GO_API, "opencode_go_models", fetch=do_fetch, write=do_write, verbose=verbose)
 
     oc_free_ids: list[str] = []
     if isinstance(oc_zen_json, dict) and "data" in oc_zen_json:
         for m in oc_zen_json["data"]:
             mid = m.get("id", "")
-            p = m.get("pricing", {}) or {}
-            is_free = mid.lower().endswith("-free") or "-free" in mid.lower() or (p.get("input") == 0 and p.get("output") == 0) or mid.lower() in ("big-pickle", "ox-alpha-free")
+            # ponytail: naming convention only — Zen /v1/models entries carry no `pricing`
+            # field (0/64 in the 20260828+20260830 snapshots), so the former
+            # price==0 clause could never fire and is deleted (S3-F3-4). If upstream
+            # ever ships pricing, reinstate a real price check instead of trusting names.
+            is_free = "-free" in mid.lower() or mid.lower() in ("big-pickle", "ox-alpha-free")
             if is_free and mid and mid not in oc_free_ids:
                 oc_free_ids.append(mid)
 
@@ -523,53 +532,69 @@ def main():  # noqa: PLR0915
             if mid and (mid.lower().endswith("-free") or "-free" in mid.lower() or mid.lower() in ("big-pickle", "ox-alpha-free")) and mid not in oc_free_ids:
                 oc_free_ids.append(mid)
 
-    or_norms = {ogc.norm_id(base_id(r["id"])) for r in free_recs}
-    oc_added = 0
+    # S3-F3-3: dedup on the provider-tolerant free key; duplicates merge into the
+    # existing (earlier-source, real-pricing) row with an _also provenance marker.
+    listed = {_free_key(r["id"]): r for r in free_recs}
+    oc_added = oc_merged = 0
     for oid in oc_free_ids:
-        norm = ogc.norm_id(base_id(oid))
-        if norm in or_norms:
+        k = _free_key(oid)
+        if k in listed:
+            listed[k].setdefault("_also", []).append("oc")
+            oc_merged += 1
             continue
         rec = {"id": oid, "context_length": None, "pricing": {"prompt": "0", "completion": "0"}, "_source": "OC"}
         free_recs.append(rec)
-        or_norms.add(norm)
+        listed[k] = rec
         oc_added += 1
     if oc_free_ids:
-        print(f"  OpenCode free: {len(oc_free_ids)} found ({', '.join(oc_free_ids)}), {oc_added} added new (others already in OR)")
+        print(f"  OpenCode free: {len(oc_free_ids)} found ({', '.join(oc_free_ids)}), {oc_added} added new, {oc_merged} merged into existing rows")
     else:
         print("  OpenCode free: none found")
 
     # ---- 1c. Cline provided models (Recommended Models API / Free tier) ----
-    cline_json = fetch_or_load_cached_json(CLINE_RECOMMENDED_MODELS_API, "cline_models", offline=offline, do_fetch=do_fetch, verbose=verbose)
-    cline_ids: list[str] = []
+    cline_json = fetch_or_load_cached_json(CLINE_RECOMMENDED_MODELS_API, "cline_models", fetch=do_fetch, write=do_write, verbose=verbose)
+    cline_ids: list[tuple[str, dict | None]] = []
     if isinstance(cline_json, dict):
         raw_cline_models = cline_json.get("free", []) if "free" in cline_json else cline_json.get("data", [])
         if isinstance(raw_cline_models, list):
             for m in raw_cline_models:
                 mid = m.get("id", "") if isinstance(m, dict) else str(m)
-                if mid and mid not in cline_ids:
-                    cline_ids.append(mid)
+                if mid and mid not in [c[0] for c in cline_ids]:
+                    cline_ids.append((mid, m if isinstance(m, dict) else None))
     elif isinstance(cline_json, list):
         for m in cline_json:
             mid = m.get("id", "") if isinstance(m, dict) else str(m)
-            if mid and mid not in cline_ids:
-                cline_ids.append(mid)
+            if mid and mid not in [c[0] for c in cline_ids]:
+                cline_ids.append((mid, m if isinstance(m, dict) else None))
 
-    cln_added = 0
-    for cid in cline_ids:
-        norm = ogc.norm_id(base_id(cid))
-        if norm in or_norms:
+    cln_added = cln_merged = 0
+    cln_skipped: list[str] = []
+    for cid, crec in cline_ids:
+        k = _free_key(cid)
+        if k in listed:
+            listed[k].setdefault("_also", []).append("cln")
+            cln_merged += 1
             continue
-        ctx = None
-        if cid in or_map:
-            ctx = or_map[cid].get("context_length")
-        elif base_id(cid) in or_map:
-            ctx = or_map[base_id(cid)].get("context_length")
-        rec = {"id": cid, "context_length": ctx, "pricing": {"prompt": "0", "completion": "0"}, "_source": "CLN"}
+        or_rec = or_map.get(cid) or or_map.get(base_id(cid))
+        # S3-F3-1: validate the loaded record with this script's own free check
+        # before appending — paid OpenRouter models listed under Cline's "free"
+        # tier must not enter the headline list with fabricated $0 pricing.
+        check_rec = or_rec if or_rec is not None else (crec if crec is not None else {"id": cid})
+        if not is_free_model(check_rec):
+            cln_skipped.append(cid)
+            continue
+        if or_rec is not None:
+            rec = dict(or_rec)
+            rec["_source"] = "CLN"
+        else:
+            ctx = crec.get("context_length") if isinstance(crec, dict) else None
+            rec = {"id": cid, "context_length": ctx, "pricing": {"prompt": "0", "completion": "0"}, "_source": "CLN"}
         free_recs.append(rec)
-        or_norms.add(norm)
+        listed[k] = rec
         cln_added += 1
     if cline_ids:
-        print(f"  Cline free: {len(cline_ids)} found ({', '.join(cline_ids)}), {cln_added} added new (others already in OR/OC)")
+        skip_note = f" ({len(cln_skipped)} dropped as not-free per validation: {', '.join(cln_skipped)})" if cln_skipped else ""
+        print(f"  Cline free: {len(cline_ids)} found, {cln_added} added new ({cln_merged} merged into existing rows){skip_note}")
     else:
         print("  Cline free: none found")
 
@@ -578,23 +603,23 @@ def main():  # noqa: PLR0915
 
     # ---- 2. AA ----
     aa_map = {}
-    if offline:
+    if not do_fetch:
         snap = pick_latest_raw("artificial_analysis")
         if snap:
             try:
                 aa_map = ogc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN AA offline parse: {e}", file=sys.stderr)
-            print(f"  AA: {len(aa_map)} entries ({snap.name})")
+            print(f"  AA: {len(aa_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
         else:
-            print("  AA: no offline snapshot available")
+            print("  AA: no cached snapshot available — run with --fetch once to populate")
     else:
         body = ogc.fetch(AA_URL, verbose=verbose)
         if body:
             html_txt = body.decode(errors="ignore")
-            if do_fetch:
+            if do_write:
                 s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
-                s.write_text(html_txt)
+                bc.atomic_write_text(s, html_txt)
                 print(f"  saved AA -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
             aa_map = ogc.parse_aa(html_txt, verbose=verbose)
             print(f"  AA: {len(aa_map)} models")
@@ -603,23 +628,23 @@ def main():  # noqa: PLR0915
 
     # ---- 3. LMArena ----
     lm_map = {}
-    if offline:
+    if not do_fetch:
         snap = pick_latest_raw("lmarena")
         if snap:
             try:
                 lm_map = ogc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN LMArena offline parse: {e}", file=sys.stderr)
-            print(f"  LMArena: {len(lm_map)} entries ({snap.name})")
+            print(f"  LMArena: {len(lm_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
         else:
-            print("  LMArena: no offline snapshot available")
+            print("  LMArena: no cached snapshot available — run with --fetch once to populate")
     else:
         body = ogc.fetch(LMARENA_URL, verbose=verbose)
         if body:
             html_txt = body.decode(errors="ignore")
-            if do_fetch:
+            if do_write:
                 s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
-                s.write_text(html_txt)
+                bc.atomic_write_text(s, html_txt)
                 print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
             lm_map = ogc.parse_lmarena(html_txt, verbose=verbose)
             print(f"  LMArena: {len(lm_map)} entries")
@@ -673,6 +698,7 @@ def main():  # noqa: PLR0915
                 "provider": provider,
                 "source": src.lower(),  # "or" / "oc" for the new src column
                 "stealth": is_stealth_model(rec),
+                "also_listed": sorted(set(rec.get("_also", []))),  # S3-F3-3 provenance merge marker
 
                 "benchmarks": {
                     "aa_slug": aa_slug,
@@ -721,8 +747,10 @@ def main():  # noqa: PLR0915
     n_lm = sum(1 for r in rows if r["benchmarks"]["lmarena_elo"] is not None)
 
     # Load previous baseline snapshot for catalog diffing (additions in green, removals in red)
+    # fcheck's own payload has no is_docs_model tag; require_docs_tag=False so the
+    # previous free-models rows actually populate the baseline map (S3-F3-2).
     prev_snapshot = load_previous_snapshot(DATA / "free_models.json")
-    catalog_diff = diff_model_catalog(rows_sorted, prev_snapshot, id_key="model_id")
+    catalog_diff = diff_model_catalog(rows_sorted, prev_snapshot, id_key="model_id", require_docs_tag=False)
     added_ids = catalog_diff["added_ids"]
     removed_ids = catalog_diff["removed_ids"]
     removed_models = catalog_diff["removed_models"]
@@ -762,12 +790,12 @@ def main():  # noqa: PLR0915
             "models": rows_sorted,
         }
         p = DATA / "free_models.json"
-        p.write_text(json.dumps(payload, indent=2))
+        bc.atomic_write_text(p, json.dumps(payload, indent=2))
         print(f"\nwrote {p.relative_to(ROOT)}")
     if args.html:
         OUT.mkdir(parents=True, exist_ok=True)
         p = OUT / "free_models.html"
-        p.write_text(render_html(rows_sorted, n_aa, n_lm, added_ids=added_ids, removed_models=removed_models))
+        bc.atomic_write_text(p, render_html(rows_sorted, n_aa, n_lm, added_ids=added_ids, removed_models=removed_models))
         print(f"wrote {p.relative_to(ROOT)}")
 
 
