@@ -23,8 +23,8 @@ class TestFreeModelRanker(unittest.TestCase):
             {
                 "model_id": "test-model-1",
                 "display": "test-model-1",
-                "provider": "google",
-                "source": "or",
+                "provider": "cline",
+                "source": "cln",
                 "stealth": False,
                 "benchmarks": {
                     "capability_q": 85.5,
@@ -52,8 +52,8 @@ class TestFreeModelRanker(unittest.TestCase):
             {
                 "model_id": "test-model-1",
                 "display": "test-model-1",
-                "provider": "google",
-                "source": "or",
+                "provider": "cline",
+                "source": "cln",
                 "stealth": False,
                 "benchmarks": {
                     "capability_q": 85.5,
@@ -81,10 +81,10 @@ class TestFreeModelRanker(unittest.TestCase):
     def test_catalog_diff(self):
         dummy_rows = [
             {
-                "model_id": "google/gemma-3:free",
+                "model_id": "cline-free/gemma-3",
                 "display": "gemma-3",
-                "provider": "google",
-                "source": "or",
+                "provider": "cline",
+                "source": "cln",
                 "stealth": False,
                 "benchmarks": {
                     "capability_q": 85.5,
@@ -110,12 +110,12 @@ class TestFreeModelRanker(unittest.TestCase):
         tui_colored = fmr.render_cli_table(
             dummy_rows,
             color=True,
-            added_ids={"google/gemma-3:free"},
+            added_ids={"cline-free/gemma-3"},
             removed_models=removed_models,
         )
         self.assertIn("\033[38;5;48m", tui_colored)
         self.assertIn("+gemma-3", tui_colored)
-        self.assertIn("New (+1): google/gemma-3:free", tui_colored)
+        self.assertIn("New (+1): cline-free/gemma-3", tui_colored)
         self.assertIn("\033[38;5;196m", tui_colored)
         self.assertIn("REMOVED / DEPRECATED MODELS", tui_colored)
         self.assertIn("legacy-model", tui_colored)
@@ -124,11 +124,11 @@ class TestFreeModelRanker(unittest.TestCase):
         tui_plain = fmr.render_cli_table(
             dummy_rows,
             color=False,
-            added_ids={"google/gemma-3:free"},
+            added_ids={"cline-free/gemma-3"},
             removed_models=removed_models,
         )
         self.assertIn("+gemma-3", tui_plain)
-        self.assertIn("[+NEW (+1): google/gemma-3:free]", tui_plain)
+        self.assertIn("[+NEW (+1): cline-free/gemma-3]", tui_plain)
         self.assertIn("[-] legacy-model", tui_plain)
 
         # HTML
@@ -136,7 +136,7 @@ class TestFreeModelRanker(unittest.TestCase):
             dummy_rows,
             1,
             1,
-            added_ids={"google/gemma-3:free"},
+            added_ids={"cline-free/gemma-3"},
             removed_models=removed_models,
         )
         self.assertIn("badge-new", html_text)
@@ -173,11 +173,11 @@ class TestFreeModelRanker(unittest.TestCase):
                 "coverage": ["AA", "LM"],
             },
             {
-                "model_id": "google/gemma-4:free",
-                "display": "gemma-4",
-                "provider": "google",
-                "source": "or",
-                "stealth": False,
+                "model_id": "opencode/big-pickle",
+                "display": "big-pickle",
+                "provider": "opencode",
+                "source": "oc",
+                "stealth": True,
                 "benchmarks": {"capability_q": 80.0, "p_success": 75.0, "fgi_score": 55.0, "aa_intelligence": 40.0, "lmarena_elo": 1420.0, "openrouter_context": 128000},
                 "composite": 0.5,
                 "coverage": ["AA", "LM"],
@@ -187,15 +187,29 @@ class TestFreeModelRanker(unittest.TestCase):
         cli_plain = fmr.render_cli_table(multi_rows, color=False, is_slim=False, n_aa=3, n_lm=3)
         self.assertIn("[CLN]", cli_plain)
         self.assertIn("[OC]", cli_plain)
-        self.assertIn("[OR]", cli_plain)
-        self.assertIn("FREE MODEL RADAR (OpenRouter + OpenCode + Cline)", cli_plain)
+        self.assertIn("[STL]", cli_plain)
+        self.assertIn("FREE MODEL RADAR (OpenCode Zen/Go + Cline)", cli_plain)
+        self.assertNotIn("[OR]", cli_plain)
 
         # HTML
         html_out = fmr.render_html(multi_rows, 3, 3)
         self.assertIn("badge-cln", html_out)
         self.assertIn("badge-ocg", html_out)
-        self.assertIn("badge-or", html_out)
-        self.assertIn("Free Models (OpenRouter + OpenCode + Cline)", html_out)
+        self.assertIn("Free Models (OpenCode Zen/Go + Cline)", html_out)
+        self.assertNotIn('class="badge badge-or"', html_out)
+
+    def test_openrouter_models_not_listed(self):
+        # Scope cut 2026-08-30: listed rows are OpenCode Zen/Go + Cline only.
+        # A plain offline end-to-end run must not emit a single [OR] badge.
+        import subprocess
+        r = subprocess.run(
+            [sys.executable, str(HERE / "free_model_ranker.py"), "--check", "--plain"],
+            capture_output=True, text=True, timeout=120,
+        )
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        self.assertIn("not listed", r.stdout)
+        self.assertNotIn("[OR]", r.stdout)
+        self.assertTrue("[OC]" in r.stdout or "[CLN]" in r.stdout)
 
     def test_cached_json_loader_is_offline_by_default(self):
         # rule 7 / S3-F3-5: plain call must read the cache, never touch network

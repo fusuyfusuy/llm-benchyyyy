@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-free_models_check.py — Free models (OpenRouter + OpenCode) ranked by composite intelligence
+free_models_check.py — Free models (OpenCode Zen/Go + Cline) ranked by composite intelligence
 
-Reads the OpenRouter model catalog (price $0) and the OpenCode Go
-model catalog (free = usage None, e.g. ox-alpha-free) from the raw cache, keeps the FREE models,
-attaches intelligence signals from Artificial Analysis (Intelligence Index)
-and LMArena (ELO), builds a normalized composite score (z-scored per source,
-averaged), and prints a table sorted by intelligence.
+Reads the OpenCode Zen/Go free-tier ids (`-free` naming) and the Cline
+Recommended-Models free tier from the raw cache and lists exactly those. The
+OpenRouter catalog is fetched ONLY to validate Cline free claims and supply
+price/context enrichment — OpenRouter-only free models are never listed.
+Each listed model gets intelligence signals from Artificial Analysis
+(Intelligence Index) and LMArena (ELO); a normalized composite score
+(z-scored per source, averaged) sorts the printed table.
 
 Stdlib only. Reuses parsers + cross-source matchers from ocgo_check.py.
 Offline by default (rule 7): --fetch is the only network path.
@@ -130,7 +132,7 @@ def render_html(rows, n_aa, n_lm, added_ids=None, removed_models=None):
     if removed_models is None:
         removed_models = []
 
-    title = f"Free Models (OpenRouter + OpenCode + Cline) — Composite Intelligence ({dt.date.today().isoformat()})"
+    title = f"Free Models (OpenCode Zen/Go + Cline) — Composite Intelligence ({dt.date.today().isoformat()})"
     trs = []
     top_id = rows[0]["model_id"] if rows and rows[0].get("composite") is not None else None
     for r in rows:
@@ -157,15 +159,8 @@ def render_html(rows, n_aa, n_lm, added_ids=None, removed_models=None):
         cov = "\u00b7".join(r.get("coverage", ["\u2014"]))
         ctx_val = b.get("openrouter_context")
         ctx = f"{ctx_val // 1000}k" if isinstance(ctx_val, (int, float)) else "\u2014"
-        src_raw = r.get("source", "or")
-        if src_raw == "oc":
-            src_cls = "badge-ocg"
-        elif src_raw == "cln":
-            src_cls = "badge-cln"
-        elif src_raw == "stl":
-            src_cls = "badge-stl"
-        else:
-            src_cls = "badge-or"
+        src_raw = r.get("source", "oc")
+        src_cls = {"oc": "badge-ocg", "cln": "badge-cln", "stl": "badge-stl"}.get(src_raw, "badge-ocg")
         src = f'<span class="badge {src_cls}">{html.escape(src_raw.upper())}</span>'
         stl = ' <span class="badge badge-stl">STEALTH</span>' if r.get("stealth") else ""
         cls_parts = []
@@ -199,7 +194,7 @@ def render_html(rows, n_aa, n_lm, added_ids=None, removed_models=None):
         removed_html = f"""
         <div class="removed-section">
           <div class="removed-title">🔻 Removed / Deprecated Free Models ({len(removed_models)})</div>
-          <div class="sub" style="margin-bottom:8px;">These models were present in the previous free model catalog snapshot but are no longer active in the current OpenRouter or OpenCode free tier:</div>
+          <div class="sub" style="margin-bottom:8px;">These models were present in the previous free model catalog snapshot but are no longer active in the current OpenCode or Cline free tier:</div>
           <div>{''.join(rem_tags)}</div>
         </div>
         """
@@ -207,7 +202,7 @@ def render_html(rows, n_aa, n_lm, added_ids=None, removed_models=None):
     body = f"""
 <div class="wrap">
 <h1>{html.escape(title)}</h1>
-<p class="sub">Free models (<b>OpenRouter</b> prompt+completion <code>$0</code> + <b>OpenCode</b> <code>ox-alpha-free</code> etc.) ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text">Arena.ai</a> ELO. <b>{len(rows)}</b> free models · <b>{n_aa}</b> on AA · <b>{n_lm}</b> on Arena · Generated {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+<p class="sub">Free models (<b>OpenCode Zen/Go</b> <code>-free</code> tiers + <b>Cline</b> Free tier — OpenRouter-only free models are not listed) ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text">Arena.ai</a> ELO. <b>{len(rows)}</b> free models · <b>{n_aa}</b> on AA · <b>{n_lm}</b> on Arena · Generated {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
 <div class="card"><b>How to read:</b> <span class="badge badge-gold">TOP LEADER</span> = highest composite intelligence · <b>Q(Cap)</b> = Composite Capability (40–99.9) · <b>P(Succ)</b> = 1-turn pass rate · <b>FGI (Gate)</b> = Frontier Gate Index. AA Intelligence/Coding/Agentic from artificialanalysis.ai; Arena rank/ELO from arena.ai text leaderboard; context from OpenRouter. Cross-source scales are z-scored per source and averaged.</div>
 <div class="card">
 <table id="tbl">
@@ -286,7 +281,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
     )
 
     out = []
-    title_str = "⚡ FREE MODEL RADAR (OpenRouter + OpenCode + Cline Free Tiers)"
+    title_str = "⚡ FREE MODEL RADAR (OpenCode Zen/Go + Cline Free Tiers)"
     top_info = f"Top: {top_model['display'][:14]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model else ""
     if is_slim:
         summary_str = f" Tracked: {total_models} free models │ {top_info}"
@@ -309,7 +304,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" FREE MODEL RADAR (OpenRouter + OpenCode + Cline) — Tracked: {total_models} free models",
+        plain_title_line=f" FREE MODEL RADAR (OpenCode Zen/Go + Cline) — Tracked: {total_models} free models",
         plain_diff_parts=diff_parts,
     ))
 
@@ -358,7 +353,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         ctx_s = f"{ctx_val // 1000}k" if isinstance(ctx_val, (int, float)) else "—"
 
         is_stealth = bool(r.get("stealth"))
-        src_raw = "stl" if is_stealth else r.get("source", "or")
+        src_raw = "stl" if is_stealth else r.get("source", "oc")
         src_badge_str = pool_badge(src_raw, color=color)
 
         if is_wide:
@@ -466,7 +461,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
 
 def main():  # noqa: PLR0915
     ap = argparse.ArgumentParser(
-        description="OpenRouter free models ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
+        description="OpenCode Zen/Go + Cline free models ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
     )
     ap.add_argument("--fetch", action="store_true",
                     help="network path: live-fetch OpenRouter/Zen/Go/Cline/AA/LMArena and save dated snapshots to "
@@ -490,19 +485,22 @@ def main():  # noqa: PLR0915
     DATA.mkdir(parents=True, exist_ok=True)
     RAW.mkdir(parents=True, exist_ok=True)
 
-    print("Free models (OpenRouter + OpenCode + Cline) \u2014 composite intelligence")
+    print("Free models (OpenCode Zen/Go + Cline) \u2014 composite intelligence")
     print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
     print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
 
-    # ---- 1. OpenRouter ----
+    # ---- 1. OpenRouter (validation + enrichment only; never listed) ----
     or_json = fetch_or_load_cached_json(OPENROUTER_API, "openrouter_models", fetch=do_fetch, write=do_write, verbose=verbose)
     or_map = bc.parse_openrouter(or_json, verbose=verbose) if or_json is not None else {}
-    free_recs = [rec for rec in or_map.values() if is_free_model(rec)]
-    for r in free_recs:
-        r["_source"] = "OR"
-    # Stable id order before composite sort — alphabetical within provider
-    free_recs.sort(key=lambda r: (r.get("id", "")))
-    print(f"  catalog: {len(or_map)} models in OR; free: {len(free_recs)}")
+    # Rows come exclusively from the OpenCode Zen/Go + Cline sections below; the
+    # OR catalog joins on the provider-tolerant _free_key (platform ids lack OR's
+    # provider prefix / `:free` suffix, so exact-id gets would never hit).
+    free_recs: list[dict] = []
+    or_free_by_key: dict[str, dict] = {}
+    for orid, orrec in or_map.items():
+        if is_free_model(orrec):
+            or_free_by_key.setdefault(_free_key(orid), orrec)
+    print(f"  OR catalog: {len(or_map)} models loaded, {len(or_free_by_key)} free keys (validation + price/context only — not listed)")
 
     # ---- 1b. OpenCode free models (Zen + Go catalogs) ----
     oc_zen_json = fetch_or_load_cached_json(OPENCODE_ZEN_API, "opencode_zen_models", fetch=do_fetch, write=do_write, verbose=verbose)
@@ -527,21 +525,29 @@ def main():  # noqa: PLR0915
                 oc_free_ids.append(mid)
 
     # S3-F3-3: dedup on the provider-tolerant free key; duplicates merge into the
-    # existing (earlier-source, real-pricing) row with an _also provenance marker.
+    # earlier-listed row with an _also provenance marker.
     listed = {_free_key(r["id"]): r for r in free_recs}
-    oc_added = oc_merged = 0
+    oc_added = oc_merged = oc_enriched = 0
     for oid in oc_free_ids:
         k = _free_key(oid)
         if k in listed:
             listed[k].setdefault("_also", []).append("oc")
             oc_merged += 1
             continue
-        rec = {"id": oid, "context_length": None, "pricing": {"prompt": "0", "completion": "0"}, "_source": "OC"}
+        # OpenCode's own list is authoritative for membership; the OR catalog is
+        # consulted only to carry real context_length/pricing onto the row when it
+        # confirms the free claim. The platform's own id stays.
+        or_rec = or_free_by_key.get(k)
+        if or_rec is not None:
+            rec = {"id": oid, "context_length": or_rec.get("context_length"), "pricing": or_rec.get("pricing") or {"prompt": "0", "completion": "0"}, "_source": "OC"}
+            oc_enriched += 1
+        else:
+            rec = {"id": oid, "context_length": None, "pricing": {"prompt": "0", "completion": "0"}, "_source": "OC"}
         free_recs.append(rec)
         listed[k] = rec
         oc_added += 1
     if oc_free_ids:
-        print(f"  OpenCode free: {len(oc_free_ids)} found ({', '.join(oc_free_ids)}), {oc_added} added new, {oc_merged} merged into existing rows")
+        print(f"  OpenCode free: {len(oc_free_ids)} found ({', '.join(oc_free_ids)}), {oc_added} added new ({oc_enriched} price/ctx via OR), {oc_merged} merged into existing rows")
     else:
         print("  OpenCode free: none found")
 
@@ -569,7 +575,7 @@ def main():  # noqa: PLR0915
             listed[k].setdefault("_also", []).append("cln")
             cln_merged += 1
             continue
-        or_rec = or_map.get(cid) or or_map.get(base_id(cid))
+        or_rec = or_free_by_key.get(k)
         # S3-F3-1: validate the loaded record with this script's own free check
         # before appending — paid OpenRouter models listed under Cline's "free"
         # tier must not enter the headline list with fabricated $0 pricing.
@@ -578,8 +584,7 @@ def main():  # noqa: PLR0915
             cln_skipped.append(cid)
             continue
         if or_rec is not None:
-            rec = dict(or_rec)
-            rec["_source"] = "CLN"
+            rec = {"id": cid, "context_length": or_rec.get("context_length"), "pricing": or_rec.get("pricing") or {"prompt": "0", "completion": "0"}, "_source": "CLN"}
         else:
             ctx = crec.get("context_length") if isinstance(crec, dict) else None
             rec = {"id": cid, "context_length": ctx, "pricing": {"prompt": "0", "completion": "0"}, "_source": "CLN"}
@@ -593,7 +598,7 @@ def main():  # noqa: PLR0915
         print("  Cline free: none found")
 
     free_recs.sort(key=lambda r: (r.get("id", "")))
-    print(f"  free total: {len(free_recs)} (OR {len(free_recs)-oc_added-cln_added} + OC {oc_added} + CLN {cln_added})")
+    print(f"  free total: {len(free_recs)} (OC {oc_added} + CLN {cln_added})")
 
     # ---- 2. AA ----
     aa_map = {}
@@ -666,13 +671,11 @@ def main():  # noqa: PLR0915
         lm_votes = _safe_int(lm_rec.get("votes")) if lm_rec else None
 
         or_ctx = rec.get("context_length")
-        src = rec.get("_source", "OR")
-        if src == "OC":
-            provider = "opencode"
-        elif src == "CLN":
+        src = rec.get("_source", "OC")
+        if src == "CLN":
             provider = "cline"
         else:
-            provider = oid.split("/")[0] if "/" in oid else (oid.split("-")[0] if "-" in oid else "\u2014")
+            provider = "opencode"
 
         coverage = []
         if aa_int is not None:
@@ -690,7 +693,7 @@ def main():  # noqa: PLR0915
                 "display": display_short,
                 "display_full": b_id,
                 "provider": provider,
-                "source": src.lower(),  # "or" / "oc" for the new src column
+                "source": src.lower(),  # "oc" / "cln" provenance for the src column
                 "stealth": is_stealth_model(rec),
                 "also_listed": sorted(set(rec.get("_also", []))),  # S3-F3-3 provenance merge marker
 
@@ -770,7 +773,7 @@ def main():  # noqa: PLR0915
                 "cline_freemodel_api": CLINE_FREEMODEL_API,
                 "artificial_analysis": AA_URL,
                 "lmarena": LMARENA_URL,
-                "note": "free = OpenRouter prompt+completion $0 + OpenCode Zen/Go free tiers + Cline Free tier; composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable; OpenRouter/OpenCode/Cline contribute list + context (no public bulk intelligence metric)",
+                "note": "free = OpenCode Zen/Go -free tiers + Cline Free tier (OpenRouter list NOT shown; OR catalog fetched only to validate Cline free claims + price/context); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable",
             },
             "catalog_diff": {
                 "added": sorted(list(added_ids)),

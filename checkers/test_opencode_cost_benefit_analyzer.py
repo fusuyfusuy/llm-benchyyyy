@@ -241,6 +241,46 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertIsNotNone(c)
         self.assertNotEqual(c, "—")
 
+    def test_parse_ocgo_docs_header_matched_tables(self):
+        # Table selection is by header-cell text, not positional index: this
+        # fixture puts pricing FIRST, an endpoints table second, requests last —
+        # the old tables[0]/[1] logic would have parsed the endpoints table.
+        html = """
+        <table><thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cached Read</th><th>Cached Write</th><th>Usage</th></tr></thead>
+        <tbody><tr><td>Grok 4.6</td><td>$2.00</td><td>$6.00</td><td>$0.50</td><td>-</td><td>$15</td></tr></tbody></table>
+        <table><thead><tr><th>Model</th><th>Model ID</th><th>Endpoint</th><th>AI SDK Package</th></tr></thead>
+        <tbody><tr><td>Grok 4.6</td><td>grok-4.6</td><td>https://opencode.ai/zen/go/v1/responses</td><td>@ai-sdk/openai</td></tr></tbody></table>
+        <table><thead><tr><th>Model</th><th>requests per 5 hour</th><th>requests per week</th><th>requests per month</th></tr></thead>
+        <tbody><tr><td>Grok 4.6</td><td>169</td><td>423</td><td>845</td></tr></tbody></table>
+        """
+        pricing, requests, _tokens = ogc.parse_ocgo_docs(html)
+        self.assertIn("grok-4.6", pricing)
+        self.assertEqual(pricing["grok-4.6"]["input"], 2.0)
+        self.assertEqual(pricing["grok-4.6"]["usage"], 15)
+        self.assertIn("grok-4.6", requests)
+        self.assertEqual(requests["grok-4.6"], {"per_5h": 169, "per_week": 423, "per_month": 845})
+
+    def test_extract_usage_windows_live_and_cached_shapes(self):
+        live = {"rolling": {"percent": 12.5, "resetsAt": "2026-08-30T18:00:00Z"},
+                "weekly": {"usedPercent": 40},
+                "monthly": {"used": 61, "resetAt": "2026-09-19T17:43:00Z"}}
+        percents, resets = ogc.extract_usage_windows(live)
+        self.assertEqual(percents, {"rolling": 12.5, "weekly": 40.0, "monthly": 61.0})
+        self.assertEqual(resets["rolling"], "2026-08-30T18:00:00Z")
+        self.assertEqual(resets["monthly"], "2026-09-19T17:43:00Z")
+        for junk in (None, [], "x", {"unexpected": 1}):
+            self.assertEqual(ogc.extract_usage_windows(junk), ({}, {}))
+
+    def test_render_limits_table_usage_source_note(self):
+        note = "cached ocgo_usage_20260830.json (0d old)"
+        out_colored = ogc.render_limits_table([], usage_percents={"rolling": 10.0}, color=True, usage_note=note)
+        self.assertIn("Usage data source: cached ocgo_usage_20260830.json", out_colored)
+        out_plain = ogc.render_limits_table([], usage_percents={"rolling": 10.0}, color=False, usage_note=note)
+        self.assertIn("│ usage: cached ocgo_usage_20260830.json", out_plain)
+        out_none = ogc.render_limits_table([], color=False)
+        self.assertNotIn("Usage data source", out_none)
+        self.assertNotIn("│ usage:", out_none)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -211,15 +211,29 @@ def parse_ocgo_docs(html, verbose=False):
     pricing = {}
     requests = {}
     tokens = {}
-    # Tables: first = requests per window, second = pricing
+    # The docs page hosts several tables (requests, pricing, endpoints, privacy);
+    # select by header-cell text, not positional index — page composition moved
+    # once already and an index guess would silently parse the wrong table.
     tables = re.findall(r"<table.*?</table>", html, flags=re.S)
     if verbose:
         print(f"  docs: found {len(tables)} tables")
-    # --- pricing table (second) ---
-    if len(tables) >= 2:
-        # Use second table (index 1)
-        # Extract rows
-        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tables[1], flags=re.S)
+
+    def _table_with(header_phrase: str):
+        for t in tables:
+            m = re.search(r"<tr[^>]*>(.*?)</tr>", t, flags=re.S)
+            if not m:
+                continue
+            hdr = re.sub(r"<[^>]+>", " ", m.group(1)).lower()
+            if header_phrase in hdr:
+                return t
+        return None
+
+    req_tbl = _table_with("requests per 5 hour")
+    price_tbl = _table_with("cached write")
+
+    # --- pricing table ---
+    if price_tbl is not None:
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", price_tbl, flags=re.S)
         for tr in rows[1:]:  # skip header
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 6:
@@ -256,9 +270,9 @@ def parse_ocgo_docs(html, verbose=False):
             if verbose and mid in ("grok-4.5", "glm-5.3", "hy3"):
                 print(f"    pricing {mid}: {pricing[mid]} from '{model_raw}'")
 
-    # --- requests table (first) ---
-    if len(tables) >= 1:
-        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tables[0], flags=re.S)
+    # --- requests table ---
+    if req_tbl is not None:
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", req_tbl, flags=re.S)
         for tr in rows[1:]:
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 4:
@@ -535,6 +549,28 @@ def fetch_usage(key, verbose=False):
     except Exception as e:
         return None, str(e)
 
+def extract_usage_windows(usage_raw):
+    """Pull per-window percent-used + reset timestamps from a /zen/go/v1/usage
+    payload (live response body or cached snapshot's "usage" object).
+    Returns (percents, resets); both empty when the shape is unknown."""
+    percents, resets = {}, {}
+    if not isinstance(usage_raw, dict):
+        return percents, resets
+    for w in ("rolling", "weekly", "monthly"):
+        ww = usage_raw.get(w)
+        if isinstance(ww, dict):
+            try:
+                pct = float(ww.get("percent", ww.get("usedPercent", ww.get("used", 0))))
+            except Exception:
+                pct = None
+            if pct is not None:
+                percents[w] = pct
+            if "resetsAt" in ww:
+                resets[w] = ww["resetsAt"]
+            elif "resetAt" in ww:
+                resets[w] = ww["resetAt"]
+    return percents, resets
+
 
 def _pct_color(pct, for_html=False):
     # pct = remaining percent 0-100
@@ -605,7 +641,7 @@ def format_compact_num(v):
     return str(v)
 
 
-def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key_present=False, pareto_ids=None, added_ids=None, removed_models=None, color=True, slim=None, wide=False):
+def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key_present=False, pareto_ids=None, added_ids=None, removed_models=None, color=True, slim=None, wide=False, usage_note=""):
     """Render structured TUI table with adaptive terminal width, usage limits, and alternating row zebra striping."""
     if pareto_ids is None:
         pareto_ids = set()
@@ -672,10 +708,11 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
     v_info = f"Top ROI: {top_avi['model_id'][:14]} (AVI {top_avi['value'].get('avi_score', 0):.1f})" if top_avi else ""
     top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
     s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
+    usage_part = f" │ Usage: {usage_note}" if usage_note else ""
     if is_slim:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info}"
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info}" + usage_part
     else:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info} │ {s_info}"
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info} │ {s_info}" + usage_part
 
     diff_notices = []
     diff_parts = []
@@ -693,7 +730,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Account Caps: $12/5h · $30/wk · $60/mo",
+        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Account Caps: $12/5h · $30/wk · $60/mo" + (f" │ usage: {usage_note}" if usage_note else ""),
         plain_diff_parts=diff_parts,
     ))
 
@@ -912,6 +949,7 @@ def render_limits_table(
     usage_resets: dict | None = None,
     usage_err: str | None = None,
     usage_key_present: bool = False,
+    usage_note: str = "",
     color: bool = True,
     slim: bool | None = None,
     wide: bool = False,
@@ -940,12 +978,13 @@ def render_limits_table(
 
     top_banner = "⚡ OPENCODE GO SUBSCRIPTION POOLED WINDOWS & LIVE BALANCE"
     sub_banner = "Official limits: $12.00 / 5h rolling · $30.00 / weekly · $60.00 / monthly"
+    limits_summary = [sub_banner] + ([f"Usage data source: {usage_note}"] if usage_note else [])
     out.extend(bc.render_banner_box(
         top_banner,
-        summary_lines=[sub_banner],
+        summary_lines=limits_summary,
         inner_w=win_inner_w,
         color=color,
-        plain_title_line=f" {top_banner}",
+        plain_title_line=f" {top_banner}" + (f" │ usage: {usage_note}" if usage_note else ""),
     ))
 
     window_defs = [
@@ -1208,7 +1247,7 @@ def render_limits_table(
     out.append(f"  • {C_YELLOW}$15/mo Tier{C_RESET} {C_DIM}($3.00/5h window ceiling): High reasoning models (GLM-5.3, Kimi K3, Grok-4.5/4.6). Best for spec lock and deep audits.{C_RESET}" if color else "  • $15/mo Tier ($3.00/5h window ceiling): High reasoning models (GLM-5.3, Kimi K3, Grok-4.5/4.6). Best for spec lock and deep audits.")
     out.append(f"  • {C_CYAN}$30/mo Tier{C_RESET} {C_DIM}($6.00/5h window ceiling): Daily drivers (DeepSeek V4 Flash). High-frequency iteration without quota starvation.{C_RESET}" if color else "  • $30/mo Tier ($6.00/5h window ceiling): Daily drivers (DeepSeek V4 Flash). High-frequency iteration without quota starvation.")
     out.append(f"  • {C_GREEN}$60/mo Tier{C_RESET} {C_DIM}($12.00/5h window ceiling): Bulk generation (MiMo-V2.5, Muse Spark, Minimax M3, Hy3). Massive throughput for boilerplate.{C_RESET}" if color else "  • $60/mo Tier ($12.00/5h window ceiling): Bulk generation (MiMo-V2.5, Muse Spark, Minimax M3, Hy3). Massive throughput for boilerplate.")
-    out.append(f"  • {C_BOLD}Live Remaining{C_RESET} {C_DIM}Shows dynamic request headroom computed in real-time against your live /zen/go/v1/usage subscription state.{C_RESET}" if color else "  • Live Remaining: Shows dynamic request headroom computed in real-time against your live /zen/go/v1/usage subscription state.")
+    out.append(f"  • {C_BOLD}Live Remaining{C_RESET} {C_DIM}Request headroom vs your live /zen/go/v1/usage state — offline runs reuse the newest cached ocgo_usage_* snapshot (see 'Usage' source in the header).{C_RESET}" if color else "  • Live Remaining: Request headroom vs your live /zen/go/v1/usage state — offline runs reuse the newest cached ocgo_usage_* snapshot (see 'Usage' source in the header).")
 
     return "\n".join(out)
 
@@ -1451,45 +1490,52 @@ def main():
     if live_map:
         print(f"  offline LiveBench: {len(live_map)} models loaded")
 
-    # ---- 4c. Fetch current usage (authenticated) ----
+    # ---- 4c. Usage windows: live (authenticated) else newest cached snapshot ----
     usage_raw = None
     usage_err = None
     usage_percents = {}  # window -> percent used (0-100)
     usage_resets = {}
     usage_key_present = False
+    usage_note = ""
     if do_fetch:
         k = get_api_key()
         usage_key_present = bool(k)
         if k:
             usage_raw, usage_err = fetch_usage(k, verbose=verbose)
-            if usage_raw and isinstance(usage_raw, dict):
-                for w in ("rolling", "weekly", "monthly"):
-                    ww = usage_raw.get(w)
-                    if isinstance(ww, dict):
-                        try:
-                            pct = float(ww.get("percent", ww.get("usedPercent", ww.get("used", 0))))
-                        except Exception:
-                            pct = None
-                        if pct is not None:
-                            usage_percents[w] = pct
-                        if "resetsAt" in ww:
-                            usage_resets[w] = ww["resetsAt"]
-                        elif "resetAt" in ww:
-                            usage_resets[w] = ww["resetAt"]
-                if usage_percents:
-                    print(f"  usage: {', '.join(f'{w} {usage_percents[w]:.0f}% used' for w in usage_percents)}")
-                elif usage_raw:
-                    print(f"  usage: got data but no rolling/weekly/monthly percent — keys={list(usage_raw.keys())[:8]}", file=sys.stderr)
-                    if verbose:
-                        print(f"    raw={str(usage_raw)[:600]}", file=sys.stderr)
+            usage_percents, usage_resets = extract_usage_windows(usage_raw)
+            if usage_percents:
+                usage_note = "live (fetched now)"
+                print(f"  usage: {', '.join(f'{w} {usage_percents[w]:.0f}% used' for w in usage_percents)} [live]")
+                if do_write:
+                    snap_u = RAW / f"ocgo_usage_{dt.date.today().isoformat().replace('-','')}.json"
+                    bc.atomic_write_text(snap_u, json.dumps({"fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(), "usage": usage_raw}, indent=2))
+                    print(f"  saved usage snapshot -> {snap_u.relative_to(ROOT)}")
+            elif usage_raw:
+                print(f"  usage: got data but no rolling/weekly/monthly percent — keys={list(usage_raw.keys())[:8]}", file=sys.stderr)
+                if verbose:
+                    print(f"    raw={str(usage_raw)[:600]}", file=sys.stderr)
             elif usage_err:
-                print(f"  usage: {usage_err} — remaining % will be N/A (use $OPENCODE_API_KEY)", file=sys.stderr)
+                print(f"  usage: {usage_err} — falling back to cached snapshot (use $OPENCODE_API_KEY)", file=sys.stderr)
         else:
             if verbose:
-                print("  usage: no key ($OPENCODE_API_KEY / auth.json opencode entry) — remaining % N/A")
-    else:
-        if verbose:
-            print("  usage: offline — remaining % N/A")
+                print("  usage: no key ($OPENCODE_API_KEY / auth.json opencode entry)")
+    if not usage_percents:
+        # Offline parity with every other source: judge the newest cached
+        # /zen/go/v1/usage snapshot, staleness tagged by filename date.
+        snap_u = pick_latest_raw("ocgo_usage")
+        if snap_u:
+            try:
+                j = json.loads(snap_u.read_text(errors="ignore"))
+                usage_raw = j.get("usage", j)
+                usage_percents, usage_resets = extract_usage_windows(usage_raw)
+            except Exception as e:  # noqa: BLE001
+                print(f"  WARN usage snapshot parse: {e}", file=sys.stderr)
+            if usage_percents:
+                usage_key_present = True
+                usage_note = f"cached {snap_u.name}{bc.staleness_tag(snap_u)}"
+                print(f"  usage: {', '.join(f'{w} {usage_percents[w]:.0f}% used' for w in usage_percents)} [{usage_note}]")
+    if not usage_percents and verbose:
+        print("  usage: no live data and no cached snapshot — remaining % N/A")
 
     # most restrictive = max percent used
     usage_max_pct = max(usage_percents.values()) if usage_percents else None
@@ -1826,6 +1872,7 @@ def main():
             usage_resets=usage_resets,
             usage_err=usage_err,
             usage_key_present=usage_key_present,
+            usage_note=usage_note,
             color=use_color,
             slim=slim_opt,
             wide=getattr(args, "wide", False),
@@ -1836,6 +1883,7 @@ def main():
             usage_percents=usage_percents,
             usage_err=usage_err,
             usage_key_present=usage_key_present,
+            usage_note=usage_note,
             pareto_ids=pareto_ids,
             added_ids=added_ids,
             removed_models=removed_models,
@@ -1858,6 +1906,7 @@ def main():
                 "lmarena": LMARENA_URL,
                 "usage_limits": "https://opencode.ai/docs/go/#usage-limits",
                 "account_caps": {"cap_5h": ACC_5H, "cap_week": ACC_WK, "cap_month": ACC_MO},
+                "usage_source": usage_note or "unavailable",
                 "note": "per-model caps = account_cap * usage/60; per-model Usage from docs pricing table"
             },
             "catalog_diff": {
@@ -1887,14 +1936,14 @@ def main():
         # HTML — with one-sentence current work in footer next to path
         work = one_sentence_work(docs_rows, usage_percents)
         html_path = OUT / "ocgo_cost_benefit.html"
-        bc.atomic_write_text(html_path, render_html(docs_rows, work_sentence=work, pareto_ids=pareto_ids, added_ids=added_ids, removed_models=removed_models, data_note=data_label))
+        bc.atomic_write_text(html_path, render_html(docs_rows, work_sentence=work, pareto_ids=pareto_ids, added_ids=added_ids, removed_models=removed_models, data_note=data_label, usage_note=usage_note))
         if verbose:
             print(f"wrote {html_path.relative_to(ROOT)} ({html_path.stat().st_size} bytes)")
     else:
         print("\n(check-only, no files written)")
 
 
-def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, added_ids=None, removed_models=None, data_note=None):
+def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, added_ids=None, removed_models=None, data_note=None, usage_note=None):
     if work_sentence is None:
         try:
             work_sentence = one_sentence_work(rows, usage_percents)
@@ -2034,7 +2083,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 """
     body = f"""
 <h1>{html_lib.escape(title)}</h1>
-<p class="sub">{html_lib.escape(data_note)} — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
+<p class="sub">{html_lib.escape(data_note)} — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · usage source: <b>{html_lib.escape(usage_note or 'unavailable')}</b> · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
 
 <div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
 
