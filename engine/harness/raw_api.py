@@ -15,6 +15,13 @@ from .. import sandbox as sandbox_mod
 
 MAX_TURNS = 20
 MAX_TOKENS = 4096
+# Per-request HTTP bound for every messages.create call. The Anthropic SDK
+# is not installed on this host so its constructor signature could not be
+# probed; timeout= and max_retries= are the documented public Anthropic()
+# client kwargs (request timeout + 429/5xx retry count). 600 s matches the
+# per-run budget every CLI harness gets (configs.timeout_seconds).
+REQUEST_TIMEOUT_S = 600.0
+MAX_RETRIES = 2
 
 TOOLS = [
     {
@@ -55,6 +62,7 @@ class RawApiResult:
     response_text: str
     input_tokens: int
     output_tokens: int
+    cached_tokens: int
     tool_call_count: int
     wall_clock_seconds: float
 
@@ -90,23 +98,39 @@ def _execute_tool(sb: sandbox_mod.Sandbox, name: str, tool_input: dict) -> str:
 def run(sb: sandbox_mod.Sandbox, instruction: str, model: str) -> RawApiResult:
     import anthropic  # lazy import: not required for tasks graded without raw-api
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=REQUEST_TIMEOUT_S, max_retries=MAX_RETRIES)
     messages: list = [{"role": "user", "content": instruction}]
     input_tokens = 0
     output_tokens = 0
+    cached_tokens = 0
     tool_call_count = 0
     final_text = ""
     start = time.monotonic()
 
     for _ in range(MAX_TURNS):
-        resp = client.messages.create(
-            model=model,
-            max_tokens=MAX_TOKENS,
-            tools=TOOLS,
-            messages=messages,
-        )
+        try:
+            resp = client.messages.create(
+                model=model,
+                max_tokens=MAX_TOKENS,
+                tools=TOOLS,
+                messages=messages,
+            )
+        except Exception as e:  # noqa: BLE001 - re-raised, never swallowed
+            # APIError propagates into the errored-trial bucket (no record,
+            # cmd_run exit != 0); annotate with spend billed so far so a
+            # mid-suite outage is not silently paid for twice.
+            raise RuntimeError(
+                f"raw-api: {type(e).__name__}: {e}; tokens billed so far: "
+                f"in={input_tokens} out={output_tokens}"
+            ) from e
         input_tokens += resp.usage.input_tokens
         output_tokens += resp.usage.output_tokens
+        # Prompt-cache usage must not be hidden (metrics.md); older or
+        # non-caching responses omit the fields entirely -> count 0.
+        cached_tokens += (
+            (getattr(resp.usage, "cache_read_input_tokens", None) or 0)
+            + (getattr(resp.usage, "cache_creation_input_tokens", None) or 0)
+        )
 
         text_parts = [b.text for b in resp.content if b.type == "text"]
         if text_parts:
@@ -129,6 +153,7 @@ def run(sb: sandbox_mod.Sandbox, instruction: str, model: str) -> RawApiResult:
         response_text=final_text,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        cached_tokens=cached_tokens,
         tool_call_count=tool_call_count,
         wall_clock_seconds=elapsed,
     )

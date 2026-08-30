@@ -15,7 +15,6 @@ from . import selfsolve as selfsolve_mod
 from . import task as task_mod
 from .grading import exact_match as exact_grade
 from .grading import executable as exec_grade
-from .grading import judge as judge_grade
 from .grading import spec as spec_mod
 from .harness import cli_adapter
 from .harness import configs as harness_configs
@@ -29,7 +28,6 @@ GRADERS = {
     "unit-test": lambda spec, sb, text: exec_grade.grade(spec, sb).passed,
     "state-check": lambda spec, sb, text: exec_grade.grade(spec, sb).passed,
     "exact-match": lambda spec, sb, text: exact_grade.grade(spec, text).passed,
-    "judge-ensemble": lambda spec, sb, text: judge_grade.grade(spec, text).passed,
 }
 
 
@@ -53,6 +51,7 @@ def run_one(task_path: Path, harness: str, model: str, trial_number: int) -> res
             output_tokens = hr.output_tokens
             tool_call_count = hr.tool_call_count
             wall_clock = hr.wall_clock_seconds
+            cached_tokens = hr.cached_tokens
             cost = pricing.cost_usd(model, input_tokens, output_tokens)
             harness_version = "raw-api"
         else:
@@ -63,11 +62,19 @@ def run_one(task_path: Path, harness: str, model: str, trial_number: int) -> res
             output_tokens = hr.output_tokens
             tool_call_count = hr.tool_call_count
             wall_clock = hr.wall_clock_seconds
+            # CLI harnesses: no config exposes a cache field-map today, so
+            # their cached_tokens stays None (= not reported, metrics.md).
+            cached_tokens = None
             cost = hr.cost_usd
-            if cost is None and model in pricing.PRICING_PER_MTOK:
+            if cost is None and pricing.known(model):
                 cost = pricing.cost_usd(model, input_tokens, output_tokens)
-            harness_version = cli_adapter.harness_version(config)
+            harness_version = cli_adapter.harness_version(config, sb)
 
+        if spec.method == "human":
+            raise ValueError(
+                "human grading: no automatic grader — score manually or "
+                "write a state-check"
+            )
         if spec.method not in GRADERS:
             raise ValueError(f"unknown grading method {spec.method}")
         passed = GRADERS[spec.method](spec, sb, response_text)
@@ -88,7 +95,7 @@ def run_one(task_path: Path, harness: str, model: str, trial_number: int) -> res
         wall_clock_seconds=wall_clock,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        cached_tokens=None,
+        cached_tokens=cached_tokens,
         cost_usd=cost,
         tool_call_count=tool_call_count,
     )
@@ -108,11 +115,7 @@ def _collect_task_paths(args) -> list[Path]:
     return paths
 
 
-def cmd_run(args) -> None:
-    if args.judge_harness:
-        judge_grade.JUDGE_HARNESS = args.judge_harness
-    if args.judge_model:
-        judge_grade.JUDGE_MODEL = args.judge_model
+def cmd_run(args) -> int:
     # Each (task, trial) pair owns an isolated tempdir + container, so trials
     # run in threads; results_mod.append is a single-line file append per call.
     pairs = [
@@ -120,6 +123,7 @@ def cmd_run(args) -> None:
         for task_path in _collect_task_paths(args)
         for trial in range(1, args.trials + 1)
     ]
+    errors = 0
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {
             pool.submit(run_one, task_path, args.harness, args.model, trial): (task_path, trial)
@@ -130,6 +134,11 @@ def cmd_run(args) -> None:
             try:
                 record = fut.result()
             except Exception as e:  # noqa: BLE001 - one bad run must not kill the batch
+                # Infrastructure failures (missing SDK, docker rc 125/126 at
+                # grading, UsageExtractionError, rejected seed paths) error
+                # the trial: NO RunRecord is written, so a dead batch can
+                # never masquerade as model "fail" rows in the aggregates.
+                errors += 1
                 print(
                     f"{task_path} trial={trial} harness={args.harness} model={args.model}"
                     f" -> ERROR: {type(e).__name__}: {e}"
@@ -139,6 +148,11 @@ def cmd_run(args) -> None:
                 f"{task_path} trial={trial} harness={args.harness} model={args.model}"
                 f" -> {record.result}"
             )
+    print(
+        f"bench: {len(pairs) - errors}/{len(pairs)} trials graded,"
+        f" {errors} errored (no records written)"
+    )
+    return 1 if errors else 0
 
 
 def cmd_report(_args) -> None:
@@ -176,20 +190,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.add_argument("--task-glob", help="glob of task .md files, e.g. 'tasks/**/*.md'")
     run_p.add_argument("--harness", required=True, choices=["raw-api", *harness_configs.REGISTRY.keys()])
     run_p.add_argument("--model", default=DEFAULT_MODEL)
-    run_p.add_argument("--trials", type=int, default=1)
+    run_p.add_argument(
+        "--trials", type=int, default=3,
+        help="repeated trials per task (default: 3; N>=3 required, memory.md rule 3)",
+    )
     run_p.add_argument("--jobs", type=int, default=4, help="parallel task-trial runs")
-    run_p.add_argument(
-        "--judge-harness",
-        default=judge_grade.JUDGE_HARNESS,
-        choices=[*harness_configs.REGISTRY.keys()],
-        help="CLI harness that casts judge-ensemble votes (uses its existing login, no API key)",
-    )
-    run_p.add_argument(
-        "--judge-model",
-        default=judge_grade.JUDGE_MODEL or "",
-        help="provider-scoped model for judge votes (e.g. anthropic/claude-opus-5); "
-        "default: the judge harness's own default model",
-    )
     run_p.set_defaults(func=cmd_run)
 
     report_p = sub.add_parser("report", help="aggregate results/runs.jsonl into a report")
@@ -213,10 +218,22 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.cmd == "run" and not args.task and not args.task_glob:
-        parser.error("run requires --task or --task-glob")
-    args.func(args)
-    return 0
+    if args.cmd == "run":
+        if not args.task and not args.task_glob:
+            parser.error("run requires --task or --task-glob")
+        # Default is 3, so any value <3 was given explicitly: refuse it —
+        # N>=3 is a measurement invariant, not a convenience setting.
+        if args.trials < 3:
+            parser.error(
+                f"N>=3 trials required (memory.md rule 3: non-determinism —"
+                f" pass_rate from {args.trials} trial(s) is not valid data)"
+            )
+        # Glob path already filters TEMPLATE.md; an explicit template must
+        # fail once, cleanly, instead of per-trial "expected ... missing"
+        # ERROR noise from the graded pipeline.
+        if args.task and Path(args.task).name == "TEMPLATE.md":
+            parser.error(f"{args.task} is the task template, not a runnable task")
+    return args.func(args) or 0
 
 
 if __name__ == "__main__":

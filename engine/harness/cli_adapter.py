@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import shlex
-import subprocess
 import threading
 import time
 from dataclasses import dataclass
@@ -19,21 +18,63 @@ _VERSION_CACHE: dict[str, str] = {}
 _VERSION_LOCK = threading.Lock()
 
 
-def harness_version(config: HarnessConfig) -> str:
-    """Real CLI version via config.version_argv, cached; name on any failure."""
+class UsageExtractionError(RuntimeError):
+    """A harness run produced no trustworthy metrics: either a *configured*
+    usage/cost path extracted nothing from an otherwise successful run
+    (field-map drift, not a free run — recording None lets cost aggregates
+    read as $0.00), or the run timed out (exit 124) and its truncated
+    output must not be scored at all. cmd_run counts the trial errored
+    instead."""
+
+
+def _require_extracted(
+    config: HarnessConfig, proc, extracted: list[tuple[str, list[str] | None, object]]
+) -> None:
+    """Fail loud on configured-but-missing metrics, mirroring the
+    response-path rule in _extract_fields."""
+    if proc.returncode != 0:
+        return  # crashed/truncated run: partial metrics are a separate issue
+    missing = [f"{name} path {path}" for name, path, value in extracted
+               if path is not None and value is None]
+    if missing:
+        raise UsageExtractionError(
+            f"{config.name}: harness succeeded but no value at configured "
+            + "; ".join(missing)
+        )
+
+
+def harness_version(config: HarnessConfig, sb: sandbox_mod.Sandbox) -> str:
+    """Version of the CLI as it runs INSIDE the sandbox image, cached once
+    per harness per session.
+
+    Capture must be in-container: the record has to attribute the version
+    that actually ran (metrics.md), and the host may carry a different CLI
+    — or none at all (codex resolved to the bare name host-side while the
+    image had it). The bare-name fallback is a loud WARN: an unpinned
+    version invalidates comparison over time."""
     with _VERSION_LOCK:
         if config.name in _VERSION_CACHE:
             return _VERSION_CACHE[config.name]
-        version = config.name
-        if config.version_argv:
+        version = None
+        cmd = shlex.join(config.version_argv) if config.version_argv else None
+        if cmd:
             try:
-                proc = subprocess.run(
-                    list(config.version_argv), capture_output=True, text=True, timeout=15
-                )
+                # --version is pure-local: no egress, short bound; a CLI
+                # that hangs or misses degrades to the WARN below.
+                proc = sandbox_mod.exec_in(sb, cmd, timeout=60, network=False)
                 if proc.returncode == 0 and proc.stdout.strip():
                     version = proc.stdout.strip().splitlines()[0]
-            except OSError:
-                pass
+            except OSError as e:
+                # docker client missing/daemon dead
+                print(f"bench: WARN harness_version({config.name}): {type(e).__name__}: {e}")
+        if version is None:
+            print(
+                f"bench: WARN harness_version({config.name}): could not capture "
+                f"{cmd!r} in-container; recording the bare harness name — this "
+                "run has an UNPINNED version and is not comparable over time "
+                "(metrics.md layer attribution)"
+            )
+            version = config.name
         _VERSION_CACHE[config.name] = version
         return version
 
@@ -153,13 +194,19 @@ def _extract_fields(config: HarnessConfig, proc) -> tuple[str, int | None, int |
             raise RuntimeError(
                 f"{config.name}: response path {config.response_path} missing from JSON output"
             )
-        return (
-            str(response_text),
+        extracted = (
             _as_int(_dig(obj, config.input_tokens_path)),
             _as_int(_dig(obj, config.output_tokens_path)),
             _as_float(_dig(obj, config.cost_path)),
             _as_int(_dig(obj, config.tool_call_count_path)),
         )
+        _require_extracted(config, proc, [
+            ("input_tokens", config.input_tokens_path, extracted[0]),
+            ("output_tokens", config.output_tokens_path, extracted[1]),
+            ("cost", config.cost_path, extracted[2]),
+            ("tool_call_count", config.tool_call_count_path, extracted[3]),
+        ])
+        return (str(response_text), *extracted)
     events = _parse_jsonl(proc.stdout)
     if not events and proc.returncode != 0:
         raise RuntimeError(
@@ -188,13 +235,15 @@ def _extract_fields(config: HarnessConfig, proc) -> tuple[str, int | None, int |
         input_tokens = _as_int(_find_last(events, config.input_tokens_path))
         output_tokens = _as_int(_find_last(events, config.output_tokens_path))
         cost_usd = _as_float(_find_last(events, config.cost_path))
-    return (
-        str(response_text),
-        input_tokens,
-        output_tokens,
-        cost_usd,
-        tool_call_count,
-    )
+    _require_extracted(config, proc, [
+        ("input_tokens", config.input_tokens_path, input_tokens),
+        ("output_tokens", config.output_tokens_path, output_tokens),
+        ("cost", config.cost_path, cost_usd),
+        # tool_call_count here comes from event-type counting, not a json
+        # path: a legitimate zero-tool-call run must not look like drift.
+        ("tool_call_count", None, tool_call_count),
+    ])
+    return (str(response_text), input_tokens, output_tokens, cost_usd, tool_call_count)
 
 
 def run(config: HarnessConfig, sb: sandbox_mod.Sandbox, prompt: str, model: str | None = None) -> HarnessRunResult:
@@ -204,6 +253,15 @@ def run(config: HarnessConfig, sb: sandbox_mod.Sandbox, prompt: str, model: str 
     start = time.monotonic()
     proc = sandbox_mod.run(sb, command_str, timeout=config.timeout_seconds)
     elapsed = time.monotonic() - start
+
+    if proc.returncode == 124:
+        # sandbox.run's timeout convention carries PARTIAL stdout: parsing
+        # truncated JSONL would mint a clean-looking trial with
+        # undercounted tokens/cost. Honor the exit code instead — error it.
+        raise UsageExtractionError(
+            f"{config.name}: harness timed out after {config.timeout_seconds}s "
+            f"(exit 124); truncated output is not scorable"
+        )
 
     response_text, input_tokens, output_tokens, cost_usd, tool_call_count = _extract_fields(config, proc)
 
@@ -217,22 +275,4 @@ def run(config: HarnessConfig, sb: sandbox_mod.Sandbox, prompt: str, model: str 
         raw_exit_code=proc.returncode,
     )
 
-
-def run_host_text(config: HarnessConfig, prompt: str, model: str | None = None) -> str:
-    """Run a harness CLI once on the host (no sandbox, no metrics) and return
-    its response text. Used by the judge ensemble -- grading needs one CLI call,
-    not a benchmarked agent run."""
-    argv = _build_argv(config, prompt, model)
-    command_str = " ".join(shlex.quote(a) for a in argv)
-    try:
-        proc = subprocess.run(
-            ["bash", "-lc", command_str], capture_output=True, text=True,
-            timeout=config.timeout_seconds,
-        )
-    except subprocess.TimeoutExpired as e:
-        raise RuntimeError(f"{config.name}: judge call timed out after {config.timeout_seconds}s") from e
-    response_text, _, _, _, _ = _extract_fields(config, proc)
-    return response_text if isinstance(response_text, str) else str(response_text)
-
-
-__all__ = ["HarnessRunResult", "harness_version", "run", "run_host_text"]
+__all__ = ["HarnessRunResult", "UsageExtractionError", "harness_version", "run"]

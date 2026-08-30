@@ -39,8 +39,14 @@ def extract_bold_field(text: str, label: str) -> str | None:
 
 
 def extract_fenced_blocks(text: str) -> list[tuple[str, str]]:
-    """Return [(language, body)] for every fenced code block in text."""
-    return list(_FENCE_RE.findall(text))
+    """Return [(language, body)] for every fenced code block in text.
+
+    CRLF is normalized to LF exactly here — the single entry every fence
+    consumer (seeds, setup, check scripts) flows through. _FENCE_RE requires
+    a bare newline right after the info string, so a carriage return made
+    whole blocks vanish silently (seeds lost with no error, setup failing
+    loudly)."""
+    return list(_FENCE_RE.findall(text.replace("\r\n", "\n")))
 
 
 def extract_seed_files(text: str) -> list[tuple[str, str]]:

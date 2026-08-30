@@ -111,9 +111,11 @@ def check_run_record_schema_version() -> None:
 
 def check_report_aggregation() -> None:
     rows = [
-        {"task_id": "t1", "model": "m1", "harness": "h1", "tool_access": "a",
+        {"task_id": "t1", "model": "m1", "harness": "h1", "harness_version": "v1",
+         "tool_access": "a", "trial_number": 1,
          "result": "pass", "cost_usd": 1.0, "wall_clock_seconds": 10.0},
-        {"task_id": "t1", "model": "m1", "harness": "h1", "tool_access": "a",
+        {"task_id": "t1", "model": "m1", "harness": "h1", "harness_version": "v1",
+         "tool_access": "a", "trial_number": 2,
          "result": "fail", "cost_usd": 1.0, "wall_clock_seconds": 10.0},
     ]
     agg = report_mod.aggregate(rows)
@@ -125,6 +127,55 @@ def check_report_aggregation() -> None:
     table = report_mod.format_table(agg)
     assert "t1" in table and "pass_rate" in table
     assert row["cost_per_trial_usd"] == 1.0 and row["time_per_trial_seconds"] == 10.0
+
+
+def check_score_grouping() -> None:
+    """The comparability contract: score groups on the 5 GROUP_KEYS, dedupes
+    repeated trial_number (keep last), and flags <3-trial groups."""
+    from . import score as score_mod
+
+    assert score_mod.GROUP_KEYS is report_mod.GROUP_KEYS  # one shared constant
+    base = {"task_id": "fix-off-by-one-pagination", "model": "m", "harness": "h",
+            "harness_version": "1.0", "tool_access": "a", "trial_number": 1,
+            "result": "pass"}
+    rows = [{**base, "trial_number": 1}, {**base, "trial_number": 2},
+            {**base, "trial_number": 3},
+            # re-run of trial 1 (a correction): keep last, group stays 3 trials
+            {**base, "trial_number": 1, "result": "fail"},
+            # version bump: NOT pooled with the 1.0 trials (F-07)
+            {**base, "harness_version": "2.0", "result": "fail"},
+            # different tool_access: separate group too, single trial -> flagged
+            {**base, "trial_number": 1, "tool_access": "read-only"}]
+    groups = {(g["harness"], g["harness_version"], g["tool_access"]): g
+              for g in score_mod.score_groups(rows)}
+    assert len(groups) == 3, groups
+    g1 = groups[("h", "1.0", "a")]
+    assert g1["trials"] == 3 and g1["passes"] == 2, g1
+    assert abs(g1["points"] - (2 / 3) * 5.0) < 1e-9 and not g1["under_trialed"]
+    g2 = groups[("h", "2.0", "a")]
+    assert g2["trials"] == 1 and g2["under_trialed"] and g2["pass_rate"] == 0.0
+    g3 = groups[("h", "1.0", "read-only")]
+    assert g3["trials"] == 1 and g3["under_trialed"]
+
+
+def check_pricing_canonical_and_warn() -> None:
+    """Canonical undated keys resolve; dated legacy ids alias; unknown ids
+    warn exactly once and never claim to be priced silently."""
+    import contextlib
+    import io
+
+    from . import pricing
+
+    assert pricing.cost_usd("claude-haiku-4-5", 1_000_000, 0) == 0.8
+    assert pricing.cost_usd("claude-haiku-4-5-20251001", 1_000_000, 0) == 0.8
+    assert pricing.known("claude-haiku-4-5-20251001")
+    assert not pricing.known("gemini-3.7-flash")
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        v1 = pricing.cost_usd("claude-opus-9", 1_000_000, 0)  # unknown -> default tier + WARN
+        v2 = pricing.cost_usd("claude-opus-9", 1_000_000, 0)
+    assert v1 == v2 == 3.0  # default Sonnet-rate input (best-effort, now loud)
+    assert err.getvalue().count("no entry for claude-opus-9") == 1, err.getvalue()
 
 
 def check_all_task_expected_pairs_parse() -> None:
@@ -172,6 +223,8 @@ def main() -> None:
     check_raw_api_path_containment()
     check_run_record_schema_version()
     check_report_aggregation()
+    check_score_grouping()
+    check_pricing_canonical_and_warn()
     check_all_task_expected_pairs_parse()
     check_selfsolve_path_mapping()
     check_engine_cli_and_package_contract()
