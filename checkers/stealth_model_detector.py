@@ -49,13 +49,9 @@ from benchmark_common import (
     color_cell, medal_badge,
     score_color_q,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
+    AA_URL, LMARENA_URL, OPENROUTER_API,
+    find_aa_for_model, find_lm_for_model,
 )
-
-import opencode_cost_benefit_analyzer as ogc
-
-OPENROUTER_API = ogc.OPENROUTER_API
-AA_URL = ogc.AA_URL
-LMARENA_URL = ogc.LMARENA_URL
 
 STEALTH_PREFIX = "stealth/"
 
@@ -331,10 +327,10 @@ def main():  # noqa: PLR0915
             print(f"  WARN offline OR snapshot bad: {e}", file=sys.stderr)
             j = None
         print(f"  cached OR snapshot: {snap.name}{bc.staleness_tag(snap)}")
-        or_map = ogc.parse_openrouter(j, verbose=verbose) if j is not None else {}
+        or_map = bc.parse_openrouter(j, verbose=verbose) if j is not None else {}
     else:
         source_failed = False
-        body = ogc.fetch(OPENROUTER_API, verbose=verbose)
+        body = bc.fetch_url(OPENROUTER_API, timeout=20)
         if body:
             try:
                 j = json.loads(body)
@@ -342,7 +338,7 @@ def main():  # noqa: PLR0915
                     s = RAW / f"openrouter_models_{dt.date.today().isoformat().replace('-', '')}.json"
                     bc.atomic_write_text(s, json.dumps(j, indent=2))
                     print(f"  saved OR -> {s.relative_to(ROOT)} ({len(body)} bytes)")
-                or_map = ogc.parse_openrouter(j, verbose=verbose)
+                or_map = bc.parse_openrouter(j, verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN OR json: {e}", file=sys.stderr)
                 source_failed = True
@@ -356,7 +352,7 @@ def main():  # noqa: PLR0915
             if snap:
                 try:
                     j = json.loads(snap.read_text(errors="replace"))
-                    or_map = ogc.parse_openrouter(j, verbose=verbose)
+                    or_map = bc.parse_openrouter(j, verbose=verbose)
                     print(f"  WARN live OR failed; using cached snapshot: {snap.name}")
                 except Exception as e:  # noqa: BLE001
                     print(f"  WARN cached OR snapshot bad ({snap}): {e}", file=sys.stderr)
@@ -372,21 +368,21 @@ def main():  # noqa: PLR0915
             snap = pick_latest_raw("artificial_analysis")
             if snap:
                 try:
-                    aa_map = ogc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
+                    aa_map = bc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
                 except Exception as e:  # noqa: BLE001
                     print(f"  WARN AA offline parse: {e}", file=sys.stderr)
                 print(f"  AA: {len(aa_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
             else:
                 print("  AA: no cached snapshot available — run with --fetch once to populate")
         else:
-            body = ogc.fetch(AA_URL, verbose=verbose)
+            body = bc.fetch_url(AA_URL, timeout=20)
             if body:
                 html_txt = body.decode(errors="ignore")
                 if do_write:
                     s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
                     bc.atomic_write_text(s, html_txt)
                     print(f"  saved AA -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-                aa_map = ogc.parse_aa(html_txt, verbose=verbose)
+                aa_map = bc.parse_aa(html_txt, verbose=verbose)
                 print(f"  AA: {len(aa_map)} models")
             else:
                 print("  WARN AA fetch failed", file=sys.stderr)
@@ -398,21 +394,21 @@ def main():  # noqa: PLR0915
             snap = pick_latest_raw("lmarena")
             if snap:
                 try:
-                    lm_map = ogc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
+                    lm_map = bc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
                 except Exception as e:  # noqa: BLE001
                     print(f"  WARN LMArena offline parse: {e}", file=sys.stderr)
                 print(f"  LMArena: {len(lm_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
             else:
                 print("  LMArena: no cached snapshot available — run with --fetch once to populate")
         else:
-            body = ogc.fetch(LMARENA_URL, verbose=verbose)
+            body = bc.fetch_url(LMARENA_URL, timeout=20)
             if body:
                 html_txt = body.decode(errors="ignore")
                 if do_write:
                     s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
                     bc.atomic_write_text(s, html_txt)
                     print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-                lm_map = ogc.parse_lmarena(html_txt, verbose=verbose)
+                lm_map = bc.parse_lmarena(html_txt, verbose=verbose)
                 print(f"  LMArena: {len(lm_map)} entries")
             else:
                 print("  WARN LMArena fetch failed", file=sys.stderr)
@@ -422,13 +418,13 @@ def main():  # noqa: PLR0915
     for rec in stealth_recs:
         oid = rec.get("id", "") or ""
         b_id = base_id(oid)
-        aa_rec = ogc.find_aa_for_ocgo(b_id, aa_map) or ogc.find_aa_for_ocgo(oid, aa_map) if aa_map else None
-        lm_rec = ogc.find_lm_for_ocgo(b_id, lm_map) or ogc.find_lm_for_ocgo(oid, lm_map) if lm_map else None
+        aa_rec = bc.find_aa_for_model(b_id, aa_map) or bc.find_aa_for_model(oid, aa_map) if aa_map else None
+        lm_rec = bc.find_lm_for_model(b_id, lm_map) or bc.find_lm_for_model(oid, lm_map) if lm_map else None
 
-        aa_int = ogc._safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
+        aa_int = _safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
         aa_slug = str(aa_rec.get("slug") or "") if aa_rec and not str(aa_rec.get("slug", "")).startswith("$") else None
-        lm_elo = ogc._safe_float(lm_rec.get("elo")) if lm_rec else None
-        lm_rank = ogc._safe_int(lm_rec.get("rank")) if lm_rec else None
+        lm_elo = _safe_float(lm_rec.get("elo")) if lm_rec else None
+        lm_rank = _safe_int(lm_rec.get("rank")) if lm_rec else None
 
         p = rec.get("pricing", {}) or {}
         try:

@@ -474,5 +474,38 @@ class TestSnapshotAgeFromFilename(unittest.TestCase):
             self.assertEqual(bc.pick_latest_raw(Path(td), "x_2"), new)
 
 
+class TestCrossSourceFinders(unittest.TestCase):
+    def test_find_or_exact_and_variant_isolation(self):
+        or_map = {
+            "z-ai/glm-5.3-max": {"id": "z-ai/glm-5.3-max", "name": "GLM-5.3 Max"},
+            "z-ai/glm-5": {"id": "z-ai/glm-5", "name": "GLM-5 Base"},
+            "anthropic/claude-3.7-sonnet": {"id": "anthropic/claude-3.7-sonnet", "name": "Sonnet 3.7"},
+        }
+        # Exact suffix match
+        oid, rec = bc.find_or_for_model("glm-5", or_map)
+        self.assertEqual(oid, "z-ai/glm-5")
+
+        # Variant isolation: glm-5.3 must NOT match glm-5 or glm-5.3-max
+        oid_53, rec_53 = bc.find_or_for_model("glm-5.3", or_map)
+        self.assertIsNone(oid_53)
+
+        # Exact match with slash
+        oid_sonnet, rec_sonnet = bc.find_or_for_model("claude-3.7-sonnet", or_map)
+        self.assertEqual(oid_sonnet, "anthropic/claude-3.7-sonnet")
+
+    def test_find_aa_and_lm_finders(self):
+        aa_map = {
+            "claude-3-7-sonnet": {"slug": "claude-3-7-sonnet", "intelligenceIndex": 85.0},
+            "deepseek-v4-flash": {"slug": "deepseek-v4-flash", "intelligenceIndex": 80.0},
+        }
+        rec = bc.find_aa_for_model("claude-3.7-sonnet", aa_map)
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["slug"], "claude-3-7-sonnet")
+
+        # Missing variant returns None
+        rec_bad = bc.find_aa_for_model("claude-3.5-sonnet", aa_map)
+        self.assertIsNone(rec_bad)
+
+
 if __name__ == "__main__":
     unittest.main()

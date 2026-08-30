@@ -412,277 +412,23 @@ def model_to_id(raw):
     return None
 
 
-def norm_id(s):
-    return s.lower().replace(".", "-").replace("_", "-")
+norm_id = bc.norm_id
+parse_aa = bc.parse_aa
+parse_openrouter = bc.parse_openrouter
+find_aa_for_ocgo = bc.find_aa_for_model
+find_lm_for_ocgo = bc.find_lm_for_model
+find_or_for_ocgo = bc.find_or_for_model
+parse_livebench = bc.parse_livebench
+find_livebench_for_ocgo = bc.find_livebench_for_model
 
 
-def parse_aa(html, verbose=False):
-    """Parse AA leaderboard from RSC payload. Returns dict slug->record."""
-    unescaped = html.replace('\\"', '"').replace("\\/", "/")
-    # Find all '"models":[' occurrences
-    idxs = []
-    pos = 0
-    while True:
-        idx = unescaped.find('"models":[', pos)
-        if idx == -1:
-            break
-        idxs.append(idx)
-        pos = idx + 1
-    if verbose:
-        print(f"  AA: found {len(idxs)} models arrays")
-    if not idxs:
-        return {}
-    # Pick the array that contains intelligenceIndex (second one is the full dataset)
-    # Find the largest that contains intelligenceIndex
-    best = None
-    best_len = -1
-    best_idx = -1
-    for idx in idxs:
-        snippet = unescaped[idx: idx + 3000]
-        has_int = "intelligenceIndex" in snippet
-        if not has_int:
-            continue
-        # Bracket-count to find end
-        start = idx + len('"models":[')
-        depth = 1
-        p = start
-        in_str = False
-        esc = False
-        while p < len(unescaped) and depth > 0:
-            c = unescaped[p]
-            if in_str:
-                if esc:
-                    esc = False
-                elif c == "\\":
-                    esc = True
-                elif c == '"':
-                    in_str = False
-            else:
-                if c == '"':
-                    in_str = True
-                elif c == '[':
-                    depth += 1
-                elif c == ']':
-                    depth -= 1
-            p += 1
-            if p - idx > 4_000_000:
-                break
-        seg_len = p - idx
-        if seg_len > best_len:
-            best_len = seg_len
-            best_idx = idx
-            best = p
-    if best_idx == -1:
-        if verbose:
-            print("  AA: no intelligenceIndex array found, falling back to last")
-        best_idx = idxs[-1]
-        # recompute best
-        start = best_idx + len('"models":[')
-        depth = 1
-        p = start
-        in_str = False
-        esc = False
-        while p < len(unescaped) and depth > 0:
-            c = unescaped[p]
-            if in_str:
-                if esc:
-                    esc = False
-                elif c == "\\":
-                    esc = True
-                elif c == '"':
-                    in_str = False
-            else:
-                if c == '"':
-                    in_str = True
-                elif c == '[':
-                    depth += 1
-                elif c == ']':
-                    depth -= 1
-            p += 1
-        best = p
-
-    seg = unescaped[best_idx:best]
-    try:
-        obj = json.loads("{" + seg + "}")
-        models = obj["models"]
-        out = {}
-        for m in models:
-            slug = m.get("slug")
-            if slug:
-                out[slug] = m
-        if verbose:
-            print(f"  AA: parsed {len(out)} models")
-        return out
-    except Exception as e:
-        print(f"  WARN AA parse failed: {e}", file=sys.stderr)
-        return {}
-
-
-def parse_openrouter(data_json, verbose=False):
-    """Parse OpenRouter models API. Returns dict id->record."""
-    try:
-        items = data_json["data"] if isinstance(data_json, dict) and "data" in data_json else data_json
-        out = {}
-        for m in items:
-            mid = m.get("id")
-            if mid:
-                out[mid] = m
-        if verbose:
-            print(f"  OpenRouter: {len(out)} models")
-        return out
-    except Exception as e:
-        print(f"  WARN OpenRouter parse: {e}", file=sys.stderr)
-        return {}
-
-
-def find_aa_for_ocgo(ocgo_id, aa_map):
-    """Find best AA record for an OC Go id.
-
-    Variant fallback is the shared token-safe matcher (S1-C1): raw contains and
-    the 1-char digit prefix hack are gone — ambiguity returns None, and callers
-    keep their static/no-AA rendering instead of scoring another model's row.
-    """
-    n = norm_id(ocgo_id)
-    # Exact
-    if n in aa_map:
-        return aa_map[n]
-    # Try normalized slug match
-    for slug, rec in aa_map.items():
-        if norm_id(slug) == n:
-            return rec
-    # Variant match: token-prefix run with no variant/digit surplus
-    for slug, rec in aa_map.items():
-        if rec.get("intelligenceIndex") is None:
-            continue
-        if not bc.variant_conflict(n, norm_id(slug)):
-            return rec
-    return None
-
-
-def find_lm_for_ocgo(ocgo_id, lm_map):
-    n = norm_id(ocgo_id)
-    if n in lm_map:
-        return lm_map[n]
-    for slug, rec in lm_map.items():
-        if norm_id(slug) == n:
-            return rec
-    # Variant fallback via shared matcher (S1-C2): the old unguarded
-    # first-substring hit attributed whole Arena entries to the wrong model
-    # (glm-5.3-flash -> glm-5); ambiguity now returns None -> static column.
-    for slug, rec in lm_map.items():
-        if not bc.variant_conflict(n, norm_id(slug)):
-            return rec
-    return None
-
-
-def find_or_for_ocgo(ocgo_id, or_map):
-    n = norm_id(ocgo_id)
-    # Try direct contains
-    candidates = []
-    for oid, rec in or_map.items():
-        if n in norm_id(oid) or norm_id(oid) in n:
-            candidates.append((oid, rec))
-    if not candidates:
-        return None, None
-    # Prefer exact suffix match (after slash)
-    for oid, rec in candidates:
-        suffix = oid.split("/")[-1]
-        if norm_id(suffix) == n:
-            return oid, rec
-    return candidates[0]
-
-
-def parse_livebench(csv_text, categories_json=None, verbose=False):
-    """
-    Parse LiveBench leaderboard CSV (https://livebench.ai).
-    Extracts decontaminated scores across Reasoning, Coding, Agentic Coding, Math, Data Analysis, and IF.
-    """
-    import csv, io
-    reader = csv.DictReader(io.StringIO(csv_text))
-    out = {}
-    cats = {}
-    if categories_json:
-        if isinstance(categories_json, str):
-            try:
-                cats = json.loads(categories_json)
-            except Exception:
-                pass
-        elif isinstance(categories_json, dict):
-            cats = categories_json
-
-    for row in reader:
-        model = row.get("model")
-        if not model:
-            continue
-
-        cat_scores = {}
-        all_task_scores = []
-        for col, val in row.items():
-            if col == "model" or col.startswith("nq_") or col.startswith("out_"):
-                continue
-            fv = _safe_float(val)
-            if fv is not None:
-                all_task_scores.append(fv)
-
-        overall = sum(all_task_scores) / len(all_task_scores) if all_task_scores else None
-
-        if cats:
-            for cat_name, tasks in cats.items():
-                t_scores = [_safe_float(row.get(t)) for t in tasks if _safe_float(row.get(t)) is not None]
-                if t_scores:
-                    cat_scores[cat_name] = round(sum(t_scores) / len(t_scores), 2)
-
-        slug = norm_id(model)
-        out[slug] = {
-            "model": model,
-            "overall": round(overall, 2) if overall is not None else None,
-            "coding": cat_scores.get("Coding"),
-            "agentic_coding": cat_scores.get("Agentic Coding"),
-            "reasoning": cat_scores.get("Reasoning"),
-            "math": cat_scores.get("Mathematics"),
-            "data_analysis": cat_scores.get("Data Analysis"),
-            "language": cat_scores.get("Language"),
-            "instruction_following": cat_scores.get("IF"),
-            "categories": cat_scores,
-        }
-    if verbose:
-        print(f"  LiveBench: parsed {len(out)} entries")
-    return out
-
-
-def find_livebench_for_ocgo(ocgo_id, live_map):
-    if not live_map:
-        return None
-    n = norm_id(ocgo_id)
-    base_n = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot)-", "", n)
-
-    if n in live_map:
-        return live_map[n]
-    if base_n in live_map:
-        return live_map[base_n]
-
-    for slug, rec in live_map.items():
-        if norm_id(slug) in (n, base_n):
-            return rec
-
-    # Variant fallback via shared matcher (S1-C3): the old char-contains loop plus
-    # the digit-stripping token fallback matched qwen3.7-plus -> qwen3.6-plus and
-    # mimo-v2.5 -> mimo-v2-pro. Version digits stay load-bearing; None => no row.
-    for slug, rec in live_map.items():
-        ns = norm_id(slug)
-        if rec.get("overall") is None:
-            continue
-        if not bc.variant_conflict(base_n, ns) or (base_n != n and not bc.variant_conflict(n, ns)):
-            return rec
-    return None
-
-
-def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output):
+def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output, cached_write_per_1m=0.0, est_cached_write=0):
     if None in (input_per_1m, output_per_1m, cached_per_1m) or None in (est_input, est_cached, est_output):
         return None
-    if est_input == 0 and est_cached == 0 and est_output == 0:
+    c_write = (cached_write_per_1m or 0.0) * (est_cached_write or 0) / 1_000_000
+    if est_input == 0 and est_cached == 0 and est_output == 0 and (est_cached_write or 0) == 0:
         return 0.0
-    return (input_per_1m * est_input / 1_000_000) + (cached_per_1m * est_cached / 1_000_000) + (output_per_1m * est_output / 1_000_000)
+    return (input_per_1m * est_input / 1_000_000) + (cached_per_1m * est_cached / 1_000_000) + (output_per_1m * est_output / 1_000_000) + c_write
 
 
 def _safe_float(val, default=None):
@@ -1469,12 +1215,18 @@ def render_limits_table(
 
 def main():
     ap = argparse.ArgumentParser(description="OpenCode Go catalog checker — benchmarks + cost/benefit (offline cache by default; live only with --fetch)")
-    ap.add_argument("--fetch", action="store_true",
+    ap.add_argument("--fetch", "--refresh", action="store_true",
                     help="network path: live-fetch docs/API/OpenRouter/AA/LMArena (+ authenticated usage) and save dated "
                          "snapshots to docs/data/raw/. The default run is fully offline on the snapshot cache: >24h-old "
                          "sources are WARNed and used, never fetched.")
     ap.add_argument("--check", action="store_true",
                     help="print only: writes NOTHING (baseline, reports, raw snapshots) — even combined with --fetch")
+    ap.add_argument("--podium", "--winners", action="store_true",
+                    help="Display top 3 winners podium table across every metric/column")
+    ap.add_argument("--json", action="store_true",
+                    help="Output machine-readable JSON to docs/data/ocgo_live.json and docs/reports/ocgo_cost_benefit.json")
+    ap.add_argument("--html", action="store_true",
+                    help="Generate HTML dashboard in docs/reports/ocgo_cost_benefit.html")
     ap.add_argument("--verbose", action="store_true", help="verbose logging")
     ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     ap.add_argument("--slim", action="store_true", help="Force compact 102-column table layout (for split panes)")
@@ -1495,7 +1247,7 @@ def main():
     args = ap.parse_args()
 
     verbose = args.verbose
-    do_fetch = args.fetch
+    do_fetch = bool(args.fetch)
     do_write = not args.check
 
     print("OpenCode Go — catalog check")

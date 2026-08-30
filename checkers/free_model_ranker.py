@@ -51,17 +51,11 @@ from benchmark_common import (
     score_color_q, score_color_p, score_color_fgi,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
     load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
+    AA_URL, LMARENA_URL, OPENROUTER_API, OPENCODE_ZEN_API, OPENCODE_GO_API, CLINE_RECOMMENDED_MODELS_API,
+    find_aa_for_model, find_lm_for_model,
 )
 
-import opencode_cost_benefit_analyzer as ogc
-
-OPENROUTER_API = "https://openrouter.ai/api/v1/models"
-OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
-OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
-CLINE_RECOMMENDED_MODELS_API = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
 CLINE_FREEMODEL_API = CLINE_RECOMMENDED_MODELS_API
-AA_URL = ogc.AA_URL
-LMARENA_URL = ogc.LMARENA_URL
 
 
 def is_free_model(rec):
@@ -82,7 +76,7 @@ def _free_key(oid: str) -> str:
     """S3-F3-3 dedup key: base_id + norm_id with the provider segment stripped.
     OpenCode lists bare 'x-free' while OpenRouter/Cline list 'prov/x[:free]' —
     the old raw-norm compare missed every cross-platform duplicate."""
-    return ogc.norm_id(base_id(oid)).rsplit("/", 1)[-1]
+    return norm_id(base_id(oid).rsplit("/", 1)[-1])
 
 
 def pick_latest_raw(name_part: str) -> pathlib.Path | None:
@@ -103,7 +97,7 @@ def fetch_or_load_cached_json(
     never fetched. Does not use hardcoded fallback lists. Returns parsed JSON or None.
     """
     if fetch:
-        body = ogc.fetch(api_url, verbose=verbose)
+        body = bc.fetch_url(api_url, timeout=20)
         if body:
             try:
                 data = json.loads(body.decode("utf-8", errors="ignore"))
@@ -502,7 +496,7 @@ def main():  # noqa: PLR0915
 
     # ---- 1. OpenRouter ----
     or_json = fetch_or_load_cached_json(OPENROUTER_API, "openrouter_models", fetch=do_fetch, write=do_write, verbose=verbose)
-    or_map = ogc.parse_openrouter(or_json, verbose=verbose) if or_json is not None else {}
+    or_map = bc.parse_openrouter(or_json, verbose=verbose) if or_json is not None else {}
     free_recs = [rec for rec in or_map.values() if is_free_model(rec)]
     for r in free_recs:
         r["_source"] = "OR"
@@ -607,21 +601,21 @@ def main():  # noqa: PLR0915
         snap = pick_latest_raw("artificial_analysis")
         if snap:
             try:
-                aa_map = ogc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
+                aa_map = bc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN AA offline parse: {e}", file=sys.stderr)
             print(f"  AA: {len(aa_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
         else:
             print("  AA: no cached snapshot available — run with --fetch once to populate")
     else:
-        body = ogc.fetch(AA_URL, verbose=verbose)
+        body = bc.fetch_url(AA_URL, timeout=20)
         if body:
             html_txt = body.decode(errors="ignore")
             if do_write:
                 s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
                 bc.atomic_write_text(s, html_txt)
                 print(f"  saved AA -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-            aa_map = ogc.parse_aa(html_txt, verbose=verbose)
+            aa_map = bc.parse_aa(html_txt, verbose=verbose)
             print(f"  AA: {len(aa_map)} models")
         else:
             print("  WARN AA fetch failed", file=sys.stderr)
@@ -632,21 +626,21 @@ def main():  # noqa: PLR0915
         snap = pick_latest_raw("lmarena")
         if snap:
             try:
-                lm_map = ogc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
+                lm_map = bc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
             except Exception as e:  # noqa: BLE001
                 print(f"  WARN LMArena offline parse: {e}", file=sys.stderr)
             print(f"  LMArena: {len(lm_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
         else:
             print("  LMArena: no cached snapshot available — run with --fetch once to populate")
     else:
-        body = ogc.fetch(LMARENA_URL, verbose=verbose)
+        body = bc.fetch_url(LMARENA_URL, timeout=20)
         if body:
             html_txt = body.decode(errors="ignore")
             if do_write:
                 s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
                 bc.atomic_write_text(s, html_txt)
                 print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-            lm_map = ogc.parse_lmarena(html_txt, verbose=verbose)
+            lm_map = bc.parse_lmarena(html_txt, verbose=verbose)
             print(f"  LMArena: {len(lm_map)} entries")
         else:
             print("  WARN LMArena fetch failed", file=sys.stderr)
@@ -657,19 +651,19 @@ def main():  # noqa: PLR0915
         oid = rec.get("id", "") or ""
         b_id = base_id(oid)
         # AA lookup — provider-stripped base is the canonical slug; try it first
-        aa_rec = ogc.find_aa_for_ocgo(b_id, aa_map) or ogc.find_aa_for_ocgo(oid, aa_map) if aa_map else None
-        lm_rec = ogc.find_lm_for_ocgo(b_id, lm_map) or ogc.find_lm_for_ocgo(oid, lm_map) if lm_map else None
+        aa_rec = bc.find_aa_for_model(b_id, aa_map) or bc.find_aa_for_model(oid, aa_map) if aa_map else None
+        lm_rec = bc.find_lm_for_model(b_id, lm_map) or bc.find_lm_for_model(oid, lm_map) if lm_map else None
 
-        aa_int = ogc._safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
-        aa_cod = ogc._safe_float(aa_rec.get("codingIndex")) if aa_rec else None
-        aa_age = ogc._safe_float(aa_rec.get("agenticIndex")) if aa_rec else None
-        aa_tps = ogc._safe_float(aa_rec.get("medianOutputTokensPerSecond")) if aa_rec else None
-        aa_ctx = ogc._safe_int(aa_rec.get("contextWindowTokens")) if aa_rec else None
+        aa_int = _safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
+        aa_cod = _safe_float(aa_rec.get("codingIndex")) if aa_rec else None
+        aa_age = _safe_float(aa_rec.get("agenticIndex")) if aa_rec else None
+        aa_tps = _safe_float(aa_rec.get("medianOutputTokensPerSecond")) if aa_rec else None
+        aa_ctx = _safe_int(aa_rec.get("contextWindowTokens")) if aa_rec else None
         aa_slug = str(aa_rec.get("slug") or "") if aa_rec and not str(aa_rec.get("slug", "")).startswith("$") else None
 
-        lm_elo = ogc._safe_float(lm_rec.get("elo")) if lm_rec else None
-        lm_rank = ogc._safe_int(lm_rec.get("rank")) if lm_rec else None
-        lm_votes = ogc._safe_int(lm_rec.get("votes")) if lm_rec else None
+        lm_elo = _safe_float(lm_rec.get("elo")) if lm_rec else None
+        lm_rank = _safe_int(lm_rec.get("rank")) if lm_rec else None
+        lm_votes = _safe_int(lm_rec.get("votes")) if lm_rec else None
 
         or_ctx = rec.get("context_length")
         src = rec.get("_source", "OR")

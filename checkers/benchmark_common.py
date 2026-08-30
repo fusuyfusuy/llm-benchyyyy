@@ -654,6 +654,99 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
     return out
 
 
+# Canonical API / Scrape Endpoints
+AA_URL = "https://artificialanalysis.ai/leaderboards/models"
+LMARENA_URL = "https://lmarena.ai/?leaderboard"
+OPENROUTER_API = "https://openrouter.ai/api/v1/models"
+OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
+OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
+CLINE_RECOMMENDED_MODELS_API = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
+CLINE_FREEMODEL_API = CLINE_RECOMMENDED_MODELS_API
+OCGO_DOCS = "https://opencode.ai/docs/go/"
+
+
+def find_aa_for_model(model_id: str, aa_map: dict) -> dict | None:
+    """Find best Artificial Analysis record for a model ID with variant conflict safety."""
+    if not aa_map or not model_id:
+        return None
+    n = norm_id(model_id)
+    if n in aa_map:
+        return aa_map[n]
+    for slug, rec in aa_map.items():
+        if norm_id(slug) == n:
+            return rec
+    for slug, rec in aa_map.items():
+        if rec.get("intelligenceIndex") is None:
+            continue
+        if not variant_conflict(n, norm_id(slug)):
+            return rec
+    return None
+
+
+def find_lm_for_model(model_id: str, lm_map: dict) -> dict | None:
+    """Find best LMArena record for a model ID with variant conflict safety."""
+    if not lm_map or not model_id:
+        return None
+    n = norm_id(model_id)
+    if n in lm_map:
+        return lm_map[n]
+    for slug, rec in lm_map.items():
+        if norm_id(slug) == n:
+            return rec
+    for slug, rec in lm_map.items():
+        if not variant_conflict(n, norm_id(slug)):
+            return rec
+    return None
+
+
+def find_or_for_model(model_id: str, or_map: dict) -> tuple[str | None, dict | None]:
+    """Find best OpenRouter record for a model ID with variant conflict safety."""
+    if not or_map or not model_id:
+        return None, None
+    n = norm_id(model_id)
+    for oid, rec in or_map.items():
+        suffix = oid.split("/")[-1]
+        if norm_id(suffix) == n or norm_id(oid) == n:
+            return oid, rec
+    for oid, rec in or_map.items():
+        suffix = oid.split("/")[-1]
+        if not variant_conflict(n, norm_id(suffix)) or not variant_conflict(n, norm_id(oid)):
+            return oid, rec
+    return None, None
+
+
+def find_livebench_for_model(model_id: str, live_map: dict) -> dict | None:
+    """Find best LiveBench record for a model ID with variant conflict safety."""
+    if not live_map or not model_id:
+        return None
+    n = norm_id(model_id)
+    base_n = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot)-", "", n)
+
+    if n in live_map:
+        return live_map[n]
+    if base_n in live_map:
+        return live_map[base_n]
+
+    for slug, rec in live_map.items():
+        if norm_id(slug) in (n, base_n):
+            return rec
+
+    for slug, rec in live_map.items():
+        ns = norm_id(slug)
+        if rec.get("overall") is None:
+            continue
+        if not variant_conflict(base_n, ns) or (base_n != n and not variant_conflict(n, ns)):
+            return rec
+    return None
+
+
+# Backward-compatible aliases for checker migration
+find_aa_for_ocgo = find_aa_for_model
+find_lm_for_ocgo = find_lm_for_model
+find_or_for_ocgo = find_or_for_model
+find_livebench_for_ocgo = find_livebench_for_model
+
+
 # ==============================================================================
 # 5. CLI & ANSI DISPLAY FORMATTING UTILITIES
 # ==============================================================================
