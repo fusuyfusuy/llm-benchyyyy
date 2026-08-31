@@ -1,13 +1,7 @@
 {
-  "generated_at": "2026-08-30T23:27:47.971133+00:00",
+  "generated_at": "2026-08-31T21:35:17.602364+00:00",
   "catalog_diff": {
-    "added": [
-      "Hunyuan 3",
-      "Kimi K2.7 Code",
-      "LongCat 2.0 (Meituan)",
-      "MiMo V2.5 Pro",
-      "Qwen3.7 Plus"
-    ],
+    "added": [],
     "removed": [],
     "total_current": 30
   },
@@ -23,7 +17,6 @@
       "aa_slug": "claude-opus-5",
       "lm_slug": "claude-opus-5",
       "or_slug": "anthropic/claude-opus-5",
-      "arc_agi": 90.4,
       "base_metrics": {
         "lm_elo": 1435,
         "lm_coding": 1520,
@@ -31,7 +24,7 @@
         "aa_quality": 63.0532452071291,
         "aa_coding": 77.9828166181162,
         "aa_reasoning": 97.5,
-        "speed_tps": 53.6871679448644
+        "speed_tps": 52.3909241279713
       },
       "livebench": {
         "model": "claude-opus-5-max-effort",
@@ -55,18 +48,15 @@
       },
       "aa_live_quality": 63.0532452071291,
       "aa_live_coding": 77.9828166181162,
-      "arc_display": "Claude Opus 5 (Max)",
-      "created_date": "2026-07-24T00:00:00.000Z",
-      "composite_score": 87.5,
-      "capability_q": 87.5,
-      "p_success": 86.5,
-      "token_multiplier": 1.34,
+      "composite_score": 86.6,
+      "capability_q": 86.6,
+      "p_success": 85.2,
+      "token_multiplier": 1.38,
       "blended_price": 9.0,
-      "effective_cost": 12.06,
-      "avi_score": 165.4,
-      "fgi_score": 70.4,
-      "bfi_score": 8.0,
-      "first_seen": "2026-07-24T00:00:00+00:00",
+      "effective_cost": 12.42,
+      "avi_score": 160.0,
+      "fgi_score": 68.1,
+      "bfi_score": 7.7,
       "is_new": false
     },
     {
@@ -80,7 +70,6 @@
       "aa_slug": "claude-fable-5",
       "lm_slug": "claude-fable-5",
       "or_slug": "anthropic/claude-fable-5",
-      "arc_agi": 89.2,
       "base_metrics": {
         "lm_elo": 1507.0,
         "lm_coding": 1512,
@@ -88,7 +77,7 @@
         "aa_quality": 62.0726622017462,
         "aa_coding": 76.4911915660979,
         "aa_reasoning": 97.0,
-        "speed_tps": 64.5625434993158
+        "speed_tps": 65.8729644288244
       },
       "livebench": {
         "model": "claude-fable-5-max-effort",
@@ -112,18 +101,15 @@
       },
       "aa_live_quality": 62.0726622017462,
       "aa_live_coding": 76.4911915660979,
-      "arc_display": "Claude Fable 5 (Max)",
-      "created_date": "2026-06-09T00:00:00.000Z",
-      "composite_score": 88.9,
-      "capability_q": 88.9,
-      "p_success": 88.4,
-      "token_multiplier": 1.29,
+      "composite_score": 87.8,
+      "capability_q": 87.8,
+      "p_success": 86.9,
+      "token_multiplier": 1.33,
       "blended_price": 18.0,
-      "effective_cost": 23.22,
-      "avi_score": 139.2,
-      "fgi_score": 73.9,
-      "bfi_score": 5.6,
-      "first_seen": "2026-06-09T00:00:00+00:00",
+      "effective_cost": 23.94,
+      "avi_score": 134.2,
+      "fgi_score": 71.1,
+      "bfi_score": 5.7,
       "is_new": false
     },
     {
@@ -137,7 +123,6 @@
       "aa_slug": "claude-opus-4-6",
       "lm_slug": "claude-opus-4-6",
       "or_slug": "anthropic/claude-opus-4.6",
-      "arc_agi": 69.2,
       "base_metrics": {
         "lm_elo": 1497.0,
         "lm_coding": 1495,
@@ -145,7 +130,7 @@
         "aa_quality": 38.77242629044645,
         "aa_coding": 95.8,
         "aa_reasoning": 96.0,
-        "speed_tps": 36.858151250163
+        "speed_tps": 37.9717496810389
       },
       "livebench": {
         "model": "claude-opus-4-6-thinking-auto-high-effort",
@@ -168,18 +153,15 @@
         }
       },
       "aa_live_quality": 38.77242629044645,
-      "arc_display": "Claude Opus 4.6 (120K, High)",
-      "created_date": "2026-02-05T00:00:00.000Z",
-      "composite_score": 82.3,
-      "capability_q": 82.3,
-      "p_success": 77.5,
-      "token_multiplier": 1.64,
+      "composite_score": 81.2,
+      "capability_q": 81.2,
+      "p_success": 75.1,
+      "token_multiplier": 1.73,
       "blended_price": 9.0,
-      "effective_cost": 14.76,
-      "avi_score": 135.1,
-      "fgi_score": 56.2,
-      "bfi_score": 5.1,
-      "first_seen": "2026-02-05T00:00:00+00:00",
+      "effective_cost": 15.57,
+      "avi_score": 128.9,
+      "fgi_score": 52.8,
+      "bfi_score": 5.2,
       "is_new": false
     },
     {
@@ -193,7 +175,6 @@
       "aa_slug": "claude-sonnet-5",
       "lm_slug": "claude-sonnet-5",
       "or_slug": "anthropic/claude-sonnet-5",
-      "arc_agi": 64.2,
       "base_metrics": {
         "lm_elo": 1410,
         "lm_coding": 1485,
@@ -201,7 +182,7 @@
         "aa_quality": 55.261211717405,
         "aa_coding": 71.5455507005132,
         "aa_reasoning": 93.5,
-        "speed_tps": 79.5209674894544
+        "speed_tps": 70.4816414406337
       },
       "livebench": {
         "model": "claude-sonnet-5-xhigh-effort",
@@ -233,7 +214,7 @@
       "effective_cost": 6.05,
       "avi_score": 183.9,
       "fgi_score": 54.6,
-      "bfi_score": 22.5,
+      "bfi_score": 20.0,
       "is_new": false
     },
     {
@@ -247,7 +228,6 @@
       "aa_slug": "claude-sonnet-4-6",
       "lm_slug": "claude-sonnet-4-6",
       "or_slug": "anthropic/claude-sonnet-4.6",
-      "arc_agi": 60.4,
       "base_metrics": {
         "lm_elo": 1472.0,
         "lm_coding": 1478,
@@ -255,7 +235,7 @@
         "aa_quality": 36.80117620071165,
         "aa_coding": 95.0,
         "aa_reasoning": 95.2,
-        "speed_tps": 43.4106757586501
+        "speed_tps": 43.690976446258
       },
       "livebench": {
         "model": "claude-sonnet-4-6-thinking-auto-high-effort",
@@ -270,18 +250,15 @@
         "categories": {}
       },
       "aa_live_quality": 36.80117620071165,
-      "arc_display": "Claude Sonnet 4.6 (High)",
-      "created_date": "2026-02-17T00:00:00.000Z",
-      "composite_score": 80.4,
-      "capability_q": 80.4,
-      "p_success": 73.3,
-      "token_multiplier": 1.8,
+      "composite_score": 79.8,
+      "capability_q": 79.8,
+      "p_success": 71.8,
+      "token_multiplier": 1.86,
       "blended_price": 5.4,
-      "effective_cost": 9.72,
-      "avi_score": 148.0,
-      "fgi_score": 50.5,
+      "effective_cost": 10.04,
+      "avi_score": 143.9,
+      "fgi_score": 48.6,
       "bfi_score": 8.8,
-      "first_seen": "2026-02-17T00:00:00+00:00",
       "is_new": false
     },
     {
@@ -295,7 +272,6 @@
       "aa_slug": "claude-haiku-4-5",
       "lm_slug": "claude-haiku-4-5",
       "or_slug": "anthropic/claude-haiku-4.5",
-      "arc_agi": 4.0,
       "base_metrics": {
         "lm_elo": 1320,
         "lm_coding": 1360,
@@ -305,18 +281,15 @@
         "aa_reasoning": 80.0,
         "speed_tps": 125.0
       },
-      "arc_display": "Claude Haiku 4.5 (Thinking 32K)",
-      "created_date": "2025-10-01T00:00:00.000Z",
-      "composite_score": 63.6,
-      "capability_q": 63.6,
-      "p_success": 26.7,
-      "token_multiplier": 7.04,
+      "composite_score": 66.4,
+      "capability_q": 66.4,
+      "p_success": 33.8,
+      "token_multiplier": 5.31,
       "blended_price": 1.8,
-      "effective_cost": 12.67,
-      "avi_score": 80.6,
-      "fgi_score": 8.8,
-      "bfi_score": 46.8,
-      "first_seen": "2025-10-01T00:00:00+00:00",
+      "effective_cost": 9.56,
+      "avi_score": 97.8,
+      "fgi_score": 13.0,
+      "bfi_score": 48.8,
       "is_new": false
     },
     {
@@ -330,9 +303,8 @@
       "aa_slug": "gemini-3-1-pro",
       "lm_slug": "gemini-3.1-pro",
       "or_slug": "google/gemini-3.1-pro-preview",
-      "arc_agi": 77.1,
       "base_metrics": {
-        "lm_elo": 1486,
+        "lm_elo": 1210.0,
         "lm_coding": 1460,
         "lm_hard": 1445,
         "aa_quality": 93.5,
@@ -360,18 +332,15 @@
           "IF": 79.1
         }
       },
-      "arc_display": "Gemini 3.1 Pro (Preview)",
-      "created_date": "2026-02-19T00:00:00.000Z",
-      "composite_score": 85.1,
-      "capability_q": 85.1,
-      "p_success": 82.8,
-      "token_multiplier": 1.46,
+      "composite_score": 76.9,
+      "capability_q": 76.9,
+      "p_success": 64.3,
+      "token_multiplier": 2.22,
       "blended_price": 4.0,
-      "effective_cost": 5.84,
-      "avi_score": 203.5,
-      "fgi_score": 64.1,
-      "bfi_score": 14.1,
-      "first_seen": "2026-02-19T00:00:00+00:00",
+      "effective_cost": 8.88,
+      "avi_score": 138.7,
+      "fgi_score": 39.6,
+      "bfi_score": 12.8,
       "is_new": false
     },
     {
@@ -385,7 +354,6 @@
       "aa_slug": "gemini-3-7-flash",
       "lm_slug": "gemini-3.7-flash",
       "or_slug": "google/gemini-3.7-flash",
-      "arc_agi": 84.6,
       "base_metrics": {
         "lm_elo": 1490,
         "lm_coding": 1445,
@@ -393,7 +361,7 @@
         "aa_quality": 56.0301180773699,
         "aa_coding": 76.1214280760161,
         "aa_reasoning": 92.0,
-        "speed_tps": 315.342361912648
+        "speed_tps": 299.723358984643
       },
       "livebench": {
         "model": "gemini-3.7-flash-high",
@@ -417,18 +385,15 @@
       },
       "aa_live_quality": 56.0301180773699,
       "aa_live_coding": 76.1214280760161,
-      "arc_display": "Gemini 3.7 Flash (High)",
-      "created_date": "2026-08-13T00:00:00.000Z",
-      "composite_score": 84.8,
-      "capability_q": 84.8,
-      "p_success": 82.3,
-      "token_multiplier": 1.47,
+      "composite_score": 83.3,
+      "capability_q": 83.3,
+      "p_success": 79.5,
+      "token_multiplier": 1.57,
       "blended_price": 0.68,
-      "effective_cost": 1.0,
-      "avi_score": 439.2,
-      "fgi_score": 63.3,
-      "bfi_score": 320.4,
-      "first_seen": "2026-08-13T00:00:00+00:00",
+      "effective_cost": 1.07,
+      "avi_score": 409.9,
+      "fgi_score": 59.0,
+      "bfi_score": 299.2,
       "is_new": false
     },
     {
@@ -442,7 +407,6 @@
       "aa_slug": "gemini-3-1-flash-lite",
       "lm_slug": "gemini-3.1-flash-lite",
       "or_slug": "google/gemini-3.1-flash-lite",
-      "arc_agi": 18.0,
       "base_metrics": {
         "lm_elo": 1432,
         "lm_coding": 1395,
@@ -464,15 +428,15 @@
         "instruction_following": null,
         "categories": {}
       },
-      "composite_score": 69.2,
-      "capability_q": 69.2,
-      "p_success": 41.7,
-      "token_multiplier": 4.08,
+      "composite_score": 70.1,
+      "capability_q": 70.1,
+      "p_success": 44.3,
+      "token_multiplier": 3.77,
       "blended_price": 0.5,
-      "effective_cost": 2.04,
-      "avi_score": 203.5,
-      "fgi_score": 18.6,
-      "bfi_score": 184.7,
+      "effective_cost": 1.89,
+      "avi_score": 216.8,
+      "fgi_score": 20.7,
+      "bfi_score": 187.1,
       "is_new": false
     },
     {
@@ -486,7 +450,6 @@
       "aa_slug": "glm-5-3",
       "lm_slug": "glm-5.3",
       "or_slug": "z-ai/glm-5.3",
-      "arc_agi": 38.0,
       "base_metrics": {
         "lm_elo": 1362,
         "lm_coding": 1390,
@@ -494,7 +457,7 @@
         "aa_quality": 59.5134408119521,
         "aa_coding": 74.7572478845887,
         "aa_reasoning": 88.5,
-        "speed_tps": 73.6449373311773
+        "speed_tps": 72.6115356725472
       },
       "livebench": {
         "model": "glm-5.3",
@@ -518,15 +481,15 @@
       },
       "aa_live_quality": 59.5134408119521,
       "aa_live_coding": 74.7572478845887,
-      "composite_score": 77.5,
-      "capability_q": 77.5,
-      "p_success": 65.9,
-      "token_multiplier": 2.14,
+      "composite_score": 78.9,
+      "capability_q": 78.9,
+      "p_success": 69.6,
+      "token_multiplier": 1.96,
       "blended_price": 2.0,
-      "effective_cost": 4.28,
-      "avi_score": 188.2,
-      "fgi_score": 41.5,
-      "bfi_score": 31.0,
+      "effective_cost": 3.92,
+      "avi_score": 203.2,
+      "fgi_score": 45.8,
+      "bfi_score": 31.1,
       "is_new": false
     },
     {
@@ -540,7 +503,6 @@
       "aa_slug": "kimi-k3",
       "lm_slug": "kimi-k3",
       "or_slug": "moonshot/kimi-k3",
-      "arc_agi": 60.4,
       "base_metrics": {
         "lm_elo": 1489.0,
         "lm_coding": 1475,
@@ -548,7 +510,7 @@
         "aa_quality": 59.6994671342592,
         "aa_coding": 76.2393362463587,
         "aa_reasoning": 95.0,
-        "speed_tps": 40.3865503986701
+        "speed_tps": 38.9453370137886
       },
       "livebench": {
         "model": "kimi-k3",
@@ -572,18 +534,15 @@
       },
       "aa_live_quality": 59.6994671342592,
       "aa_live_coding": 76.2393362463587,
-      "arc_display": "Kimi K3 (Max)",
-      "created_date": "2026-07-16T00:00:00.000Z",
-      "composite_score": 84.7,
-      "capability_q": 84.7,
-      "p_success": 82.1,
-      "token_multiplier": 1.48,
+      "composite_score": 85.1,
+      "capability_q": 85.1,
+      "p_success": 82.8,
+      "token_multiplier": 1.46,
       "blended_price": 5.4,
-      "effective_cost": 7.99,
-      "avi_score": 178.4,
-      "fgi_score": 63.0,
-      "bfi_score": 8.7,
-      "first_seen": "2026-07-16T00:00:00+00:00",
+      "effective_cost": 7.88,
+      "avi_score": 181.2,
+      "fgi_score": 64.1,
+      "bfi_score": 8.4,
       "is_new": false
     },
     {
@@ -597,7 +556,6 @@
       "aa_slug": "deepseek-v4-pro",
       "lm_slug": "deepseek-v4-pro",
       "or_slug": "deepseek/deepseek-v4-pro",
-      "arc_agi": 63.5,
       "base_metrics": {
         "lm_elo": 1458.0,
         "lm_coding": 1415,
@@ -605,7 +563,7 @@
         "aa_quality": 53.1976849297815,
         "aa_coding": 68.8310618671105,
         "aa_reasoning": 92.0,
-        "speed_tps": 60.5079389252693
+        "speed_tps": 54.0686066289047
       },
       "livebench": {
         "model": "deepseek-v4-pro",
@@ -629,16 +587,15 @@
       },
       "aa_live_quality": 53.1976849297815,
       "aa_live_coding": 68.8310618671105,
-      "composite_score": 80.0,
-      "capability_q": 80.0,
-      "p_success": 72.3,
-      "token_multiplier": 1.84,
+      "composite_score": 79.3,
+      "capability_q": 79.3,
+      "p_success": 70.6,
+      "token_multiplier": 1.92,
       "blended_price": 0.49,
-      "effective_cost": 0.91,
-      "avi_score": 402.5,
-      "fgi_score": 49.2,
-      "bfi_score": 72.4,
-      "first_seen": "2026-08-13T00:00:00+00:00",
+      "effective_cost": 0.95,
+      "avi_score": 387.5,
+      "fgi_score": 47.0,
+      "bfi_score": 64.1,
       "is_new": false
     },
     {
@@ -652,7 +609,6 @@
       "aa_slug": "deepseek-v4-flash",
       "lm_slug": "deepseek-v4-flash",
       "or_slug": "deepseek/deepseek-v4-flash",
-      "arc_agi": 61.4,
       "base_metrics": {
         "lm_elo": 1436.0,
         "lm_coding": 1360,
@@ -660,7 +616,7 @@
         "aa_quality": 51.7665776089032,
         "aa_coding": 69.062543348592,
         "aa_reasoning": 84.0,
-        "speed_tps": 102.827415250048
+        "speed_tps": 107.910346925489
       },
       "livebench": {
         "model": "deepseek-v4-flash",
@@ -684,16 +640,15 @@
       },
       "aa_live_quality": 51.7665776089032,
       "aa_live_coding": 69.062543348592,
-      "composite_score": 75.7,
-      "capability_q": 75.7,
-      "p_success": 60.9,
-      "token_multiplier": 2.41,
+      "composite_score": 74.4,
+      "capability_q": 74.4,
+      "p_success": 57.2,
+      "token_multiplier": 2.65,
       "blended_price": 0.07,
-      "effective_cost": 0.17,
-      "avi_score": 611.3,
-      "fgi_score": 36.0,
-      "bfi_score": 355.2,
-      "first_seen": "2026-07-31T00:00:00+00:00",
+      "effective_cost": 0.19,
+      "avi_score": 575.1,
+      "fgi_score": 32.2,
+      "bfi_score": 366.4,
       "is_new": false
     },
     {
@@ -707,7 +662,6 @@
       "aa_slug": "mimo-v2-5",
       "lm_slug": "mimo-v2.5",
       "or_slug": "xiaomi/mimo-v2.5",
-      "arc_agi": 24.0,
       "base_metrics": {
         "lm_elo": 1434.0,
         "lm_coding": 1335,
@@ -717,15 +671,15 @@
         "aa_reasoning": 79.5,
         "speed_tps": 115.0
       },
-      "composite_score": 68.9,
-      "capability_q": 68.9,
-      "p_success": 40.8,
-      "token_multiplier": 4.19,
+      "composite_score": 69.2,
+      "capability_q": 69.2,
+      "p_success": 41.7,
+      "token_multiplier": 4.08,
       "blended_price": 0.17,
-      "effective_cost": 0.7,
-      "avi_score": 323.2,
-      "fgi_score": 18.0,
-      "bfi_score": 233.0,
+      "effective_cost": 0.69,
+      "avi_score": 328.2,
+      "fgi_score": 18.6,
+      "bfi_score": 234.0,
       "is_new": false
     },
     {
@@ -739,15 +693,14 @@
       "aa_slug": "gpt-5-6-luna",
       "lm_slug": "gpt-5.6-luna",
       "or_slug": "openai/gpt-5.6-luna",
-      "arc_agi": 59.5,
       "base_metrics": {
-        "lm_elo": 1365,
+        "lm_elo": 1518.0,
         "lm_coding": 1395,
         "lm_hard": 1375,
         "aa_quality": 52.3180827840984,
         "aa_coding": 71.4480163684284,
         "aa_reasoning": 90.0,
-        "speed_tps": 128.331647292148
+        "speed_tps": 131.640573153359
       },
       "livebench": {
         "model": "gpt-5.6-luna-max",
@@ -771,18 +724,15 @@
       },
       "aa_live_quality": 52.3180827840984,
       "aa_live_coding": 71.4480163684284,
-      "arc_display": "GPT-5.6 Luna (Max)",
-      "created_date": "2026-07-09T00:00:00.000Z",
-      "composite_score": 77.6,
-      "capability_q": 77.6,
-      "p_success": 66.2,
-      "token_multiplier": 2.12,
+      "composite_score": 79.9,
+      "capability_q": 79.9,
+      "p_success": 72.1,
+      "token_multiplier": 1.85,
       "blended_price": 0.4,
-      "effective_cost": 0.85,
-      "avi_score": 387.5,
-      "fgi_score": 41.8,
-      "bfi_score": 171.6,
-      "first_seen": "2026-07-09T00:00:00+00:00",
+      "effective_cost": 0.74,
+      "avi_score": 437.8,
+      "fgi_score": 48.9,
+      "bfi_score": 181.2,
       "is_new": false
     },
     {
@@ -796,7 +746,6 @@
       "aa_slug": "qwen3-8-max",
       "lm_slug": "qwen3.8-max",
       "or_slug": "qwen/qwen3.8-max",
-      "arc_agi": 44.0,
       "base_metrics": {
         "lm_elo": 1479.0,
         "lm_coding": 1395,
@@ -804,7 +753,7 @@
         "aa_quality": 58.0774404479668,
         "aa_coding": 71.8134449993064,
         "aa_reasoning": 90.5,
-        "speed_tps": 38.3948323548569
+        "speed_tps": 40.5518894365307
       },
       "livebench": {
         "model": "qwen3.8-max",
@@ -828,15 +777,15 @@
       },
       "aa_live_quality": 58.0774404479668,
       "aa_live_coding": 71.8134449993064,
-      "composite_score": 80.7,
-      "capability_q": 80.7,
-      "p_success": 74.0,
-      "token_multiplier": 1.77,
+      "composite_score": 81.5,
+      "capability_q": 81.5,
+      "p_success": 75.8,
+      "token_multiplier": 1.7,
       "blended_price": 2.8,
-      "effective_cost": 4.96,
-      "avi_score": 193.4,
-      "fgi_score": 51.4,
-      "bfi_score": 13.0,
+      "effective_cost": 4.76,
+      "avi_score": 201.1,
+      "fgi_score": 53.8,
+      "bfi_score": 13.9,
       "is_new": false
     },
     {
@@ -850,7 +799,6 @@
       "aa_slug": "minimax-m3",
       "lm_slug": "minimax-m3",
       "or_slug": "minimax/minimax-m3",
-      "arc_agi": 32.0,
       "base_metrics": {
         "lm_elo": 1442.0,
         "lm_coding": 1360,
@@ -882,15 +830,15 @@
       },
       "aa_live_quality": 45.3968506399702,
       "aa_live_coding": 58.5691496740186,
-      "composite_score": 72.7,
-      "capability_q": 72.7,
-      "p_success": 52.1,
-      "token_multiplier": 3.02,
+      "composite_score": 73.0,
+      "capability_q": 73.0,
+      "p_success": 53.0,
+      "token_multiplier": 2.95,
       "blended_price": 0.48,
-      "effective_cost": 1.45,
-      "avi_score": 265.1,
-      "fgi_score": 27.3,
-      "bfi_score": 166.3,
+      "effective_cost": 1.42,
+      "avi_score": 270.1,
+      "fgi_score": 28.2,
+      "bfi_score": 167.0,
       "is_new": false
     },
     {
@@ -904,7 +852,6 @@
       "aa_slug": "mimo-v2-5-pro",
       "lm_slug": "mimo-v2.5-pro",
       "or_slug": "minimax/mimo-v2.5-pro",
-      "arc_agi": 35.0,
       "base_metrics": {
         "lm_elo": 1468.0,
         "lm_coding": 1360,
@@ -912,7 +859,7 @@
         "aa_quality": 42.8796821546836,
         "aa_coding": 60.189520044389,
         "aa_reasoning": 85.0,
-        "speed_tps": 34.2927523950793
+        "speed_tps": 37.4592102190945
       },
       "aa_live_quality": 42.8796821546836,
       "aa_live_coding": 60.189520044389,
@@ -924,9 +871,8 @@
       "effective_cost": 1.95,
       "avi_score": 238.7,
       "fgi_score": 30.1,
-      "bfi_score": 29.7,
-      "first_seen": "2026-08-28T13:57:05.529024+00:00",
-      "is_new": true
+      "bfi_score": 32.4,
+      "is_new": false
     },
     {
       "display": "Qwen3.7 Plus",
@@ -939,7 +885,6 @@
       "aa_slug": "qwen3-7-plus",
       "lm_slug": "qwen3.7-plus",
       "or_slug": "qwen/qwen3.7-plus",
-      "arc_agi": 35.0,
       "base_metrics": {
         "lm_elo": 1456.0,
         "lm_coding": 1360,
@@ -947,21 +892,20 @@
         "aa_quality": 39.3745992994168,
         "aa_coding": 55.8611631294216,
         "aa_reasoning": 85.0,
-        "speed_tps": 55.7501590336169
+        "speed_tps": 56.4600613274571
       },
       "aa_live_quality": 39.3745992994168,
       "aa_live_coding": 55.8611631294216,
-      "composite_score": 72.4,
-      "capability_q": 72.4,
-      "p_success": 51.2,
-      "token_multiplier": 3.1,
+      "composite_score": 72.2,
+      "capability_q": 72.2,
+      "p_success": 50.6,
+      "token_multiplier": 3.15,
       "blended_price": 0.7,
-      "effective_cost": 2.17,
-      "avi_score": 218.6,
-      "fgi_score": 26.5,
-      "bfi_score": 47.4,
-      "first_seen": "2026-08-28T13:57:05.529024+00:00",
-      "is_new": true
+      "effective_cost": 2.21,
+      "avi_score": 215.5,
+      "fgi_score": 26.0,
+      "bfi_score": 47.9,
+      "is_new": false
     },
     {
       "display": "Kimi K2.7 Code",
@@ -974,9 +918,8 @@
       "aa_slug": "kimi-k2-7-code",
       "lm_slug": "kimi-k2.7-code",
       "or_slug": "moonshot/kimi-k2.7-code",
-      "arc_agi": 35.0,
       "base_metrics": {
-        "lm_elo": 1350,
+        "lm_elo": 1473.0,
         "lm_coding": 1360,
         "lm_hard": 1340,
         "aa_quality": 43.0244715223736,
@@ -1006,17 +949,16 @@
       },
       "aa_live_quality": 43.0244715223736,
       "aa_live_coding": 60.761721459287,
-      "composite_score": 71.2,
-      "capability_q": 71.2,
-      "p_success": 47.6,
-      "token_multiplier": 3.42,
+      "composite_score": 73.6,
+      "capability_q": 73.6,
+      "p_success": 54.8,
+      "token_multiplier": 2.81,
       "blended_price": 0.7,
-      "effective_cost": 2.39,
-      "avi_score": 201.7,
-      "fgi_score": 23.4,
-      "bfi_score": 38.0,
-      "first_seen": "2026-08-28T13:57:05.529024+00:00",
-      "is_new": true
+      "effective_cost": 1.97,
+      "avi_score": 236.8,
+      "fgi_score": 29.9,
+      "bfi_score": 39.3,
+      "is_new": false
     },
     {
       "display": "Hunyuan 3",
@@ -1029,7 +971,6 @@
       "aa_slug": "hy3",
       "lm_slug": "hy3",
       "or_slug": "tencent/hy3",
-      "arc_agi": 35.0,
       "base_metrics": {
         "lm_elo": 1456.0,
         "lm_coding": 1360,
@@ -1037,21 +978,20 @@
         "aa_quality": 42.2134908724756,
         "aa_coding": 58.8027985851019,
         "aa_reasoning": 85.0,
-        "speed_tps": 94.7155039787695
+        "speed_tps": 97.7066533835716
       },
       "aa_live_quality": 42.2134908724756,
       "aa_live_coding": 58.8027985851019,
-      "composite_score": 73.1,
-      "capability_q": 73.1,
-      "p_success": 53.3,
-      "token_multiplier": 2.93,
+      "composite_score": 73.2,
+      "capability_q": 73.2,
+      "p_success": 53.6,
+      "token_multiplier": 2.9,
       "blended_price": 0.7,
-      "effective_cost": 2.05,
-      "avi_score": 229.1,
-      "fgi_score": 28.4,
-      "bfi_score": 81.3,
-      "first_seen": "2026-08-28T13:57:05.529024+00:00",
-      "is_new": true
+      "effective_cost": 2.03,
+      "avi_score": 230.8,
+      "fgi_score": 28.7,
+      "bfi_score": 84.0,
+      "is_new": false
     },
     {
       "display": "GLM-5.2",
@@ -1064,7 +1004,6 @@
       "aa_slug": "glm-5-2",
       "lm_slug": "glm-5.2",
       "or_slug": "z-ai/glm-5.2",
-      "arc_agi": 22.8,
       "base_metrics": {
         "lm_elo": 1350,
         "lm_coding": 1360,
@@ -1096,18 +1035,15 @@
       },
       "aa_live_quality": 52.6409563457385,
       "aa_live_coding": 68.7560688028853,
-      "arc_display": "GLM-5.2",
-      "created_date": "2026-06-13T00:00:00.000Z",
-      "composite_score": 73.2,
-      "capability_q": 73.2,
-      "p_success": 53.6,
-      "token_multiplier": 2.9,
+      "composite_score": 74.9,
+      "capability_q": 74.9,
+      "p_success": 58.6,
+      "token_multiplier": 2.55,
       "blended_price": 0.7,
-      "effective_cost": 2.03,
-      "avi_score": 230.8,
-      "fgi_score": 28.7,
-      "bfi_score": 60.0,
-      "first_seen": "2026-06-13T00:00:00+00:00",
+      "effective_cost": 1.79,
+      "avi_score": 257.2,
+      "fgi_score": 33.6,
+      "bfi_score": 61.4,
       "is_new": false
     },
     {
@@ -1121,7 +1057,6 @@
       "aa_slug": "longcat-2-0",
       "lm_slug": "longcat-2.0",
       "or_slug": "meituan/longcat-2.0",
-      "arc_agi": 30.0,
       "base_metrics": {
         "lm_elo": 1335,
         "lm_coding": 1340,
@@ -1129,21 +1064,20 @@
         "aa_quality": 33.9692584853255,
         "aa_coding": 45.2637328339576,
         "aa_reasoning": 80.0,
-        "speed_tps": 38.9358742569345
+        "speed_tps": 39.1721788535433
       },
       "aa_live_quality": 33.9692584853255,
       "aa_live_coding": 45.2637328339576,
-      "composite_score": 65.7,
-      "capability_q": 65.7,
-      "p_success": 32.0,
-      "token_multiplier": 5.67,
+      "composite_score": 65.2,
+      "capability_q": 65.2,
+      "p_success": 30.7,
+      "token_multiplier": 5.97,
       "blended_price": 0.48,
-      "effective_cost": 2.72,
-      "avi_score": 159.4,
-      "fgi_score": 11.9,
-      "bfi_score": 39.0,
-      "first_seen": "2026-08-28T13:57:05.529024+00:00",
-      "is_new": true
+      "effective_cost": 2.87,
+      "avi_score": 153.1,
+      "fgi_score": 11.1,
+      "bfi_score": 38.9,
+      "is_new": false
     },
     {
       "display": "GPT-5.6 Sol (Reasoning Flagship)",
@@ -1156,15 +1090,14 @@
       "aa_slug": "gpt-5-6-sol",
       "lm_slug": "gpt-5.6-sol",
       "or_slug": "openai/gpt-5.6-sol",
-      "arc_agi": 92.5,
       "base_metrics": {
-        "lm_elo": 1430,
+        "lm_elo": 1616.0,
         "lm_coding": 1515,
         "lm_hard": 1460,
         "aa_quality": 60.9298701329203,
         "aa_coding": 77.3880739353586,
         "aa_reasoning": 97.2,
-        "speed_tps": 78.774926307631
+        "speed_tps": 75.4857093163771
       },
       "livebench": {
         "model": "gpt-5.6-sol-max",
@@ -1188,18 +1121,15 @@
       },
       "aa_live_quality": 60.9298701329203,
       "aa_live_coding": 77.3880739353586,
-      "arc_display": "GPT-5.6 Sol (Max)",
-      "created_date": "2026-07-09T00:00:00.000Z",
-      "composite_score": 87.3,
-      "capability_q": 87.3,
-      "p_success": 86.2,
-      "token_multiplier": 1.35,
+      "composite_score": 89.3,
+      "capability_q": 89.3,
+      "p_success": 88.9,
+      "token_multiplier": 1.27,
       "blended_price": 3.6,
-      "effective_cost": 4.86,
-      "avi_score": 231.9,
-      "fgi_score": 69.9,
-      "bfi_score": 23.8,
-      "first_seen": "2026-07-09T00:00:00+00:00",
+      "effective_cost": 4.57,
+      "avi_score": 250.0,
+      "fgi_score": 74.9,
+      "bfi_score": 23.4,
       "is_new": false
     },
     {
@@ -1213,7 +1143,6 @@
       "aa_slug": "gpt-5-4-pro",
       "lm_slug": "gpt-5.4-pro",
       "or_slug": "openai/gpt-5.4-pro",
-      "arc_agi": 83.3,
       "base_metrics": {
         "lm_elo": 1425,
         "lm_coding": 1480,
@@ -1223,18 +1152,15 @@
         "aa_reasoning": 95.8,
         "speed_tps": 36.0
       },
-      "arc_display": "GPT-5.4 Pro (XHigh)",
-      "created_date": "2026-03-04T00:00:00.000Z",
-      "composite_score": 85.3,
-      "capability_q": 85.3,
-      "p_success": 83.1,
-      "token_multiplier": 1.45,
+      "composite_score": 83.5,
+      "capability_q": 83.5,
+      "p_success": 79.9,
+      "token_multiplier": 1.55,
       "blended_price": 60.0,
-      "effective_cost": 87.0,
-      "avi_score": 90.9,
-      "fgi_score": 64.6,
-      "bfi_score": 1.2,
-      "first_seen": "2026-03-04T00:00:00+00:00",
+      "effective_cost": 93.0,
+      "avi_score": 85.5,
+      "fgi_score": 59.6,
+      "bfi_score": 1.1,
       "is_new": false
     },
     {
@@ -1248,9 +1174,8 @@
       "aa_slug": "gpt-5-2-codex",
       "lm_slug": "gpt-5.2-codex",
       "or_slug": "openai/gpt-5.2-codex",
-      "arc_agi": 48.0,
       "base_metrics": {
-        "lm_elo": 1390,
+        "lm_elo": 1338.0,
         "lm_coding": 1465,
         "lm_hard": 1410,
         "aa_quality": 41.21537465813339,
@@ -1279,16 +1204,15 @@
         }
       },
       "aa_live_quality": 41.21537465813339,
-      "composite_score": 77.1,
-      "capability_q": 77.1,
-      "p_success": 64.8,
-      "token_multiplier": 2.2,
+      "composite_score": 76.4,
+      "capability_q": 76.4,
+      "p_success": 62.9,
+      "token_multiplier": 2.3,
       "blended_price": 4.2,
-      "effective_cost": 9.24,
-      "avi_score": 137.5,
-      "fgi_score": 40.2,
-      "bfi_score": 14.7,
-      "first_seen": "2025-12-11T00:00:00+00:00",
+      "effective_cost": 9.66,
+      "avi_score": 132.6,
+      "fgi_score": 38.1,
+      "bfi_score": 14.6,
       "is_new": false
     },
     {
@@ -1302,7 +1226,6 @@
       "aa_slug": "gpt-oss-120b",
       "lm_slug": "gpt-oss-120b",
       "or_slug": "openai/gpt-oss-120b",
-      "arc_agi": 38.5,
       "base_metrics": {
         "lm_elo": 1352.0,
         "lm_coding": 1380,
@@ -1310,7 +1233,7 @@
         "aa_quality": 24.126439151808,
         "aa_coding": 30.441115272576,
         "aa_reasoning": 86.0,
-        "speed_tps": 186.819146850557
+        "speed_tps": 197.737845707361
       },
       "livebench": {
         "model": "gpt-oss-120b",
@@ -1326,15 +1249,15 @@
       },
       "aa_live_quality": 24.126439151808,
       "aa_live_coding": 30.441115272576,
-      "composite_score": 62.9,
-      "capability_q": 62.9,
-      "p_success": 25.1,
-      "token_multiplier": 7.56,
+      "composite_score": 61.2,
+      "capability_q": 61.2,
+      "p_success": 21.5,
+      "token_multiplier": 9.03,
       "blended_price": 0.07,
-      "effective_cost": 0.5,
-      "avi_score": 300.9,
-      "fgi_score": 7.9,
-      "bfi_score": 550.0,
+      "effective_cost": 0.6,
+      "avi_score": 264.7,
+      "fgi_score": 6.1,
+      "bfi_score": 566.4,
       "is_new": false
     },
     {
@@ -1348,7 +1271,6 @@
       "aa_slug": "gpt-5-5",
       "lm_slug": "gpt-5-5-xhigh",
       "or_slug": "openai/gpt-5.5",
-      "arc_agi": 85.0,
       "base_metrics": {
         "lm_elo": 1477.0,
         "lm_coding": 1500,
@@ -1356,7 +1278,7 @@
         "aa_quality": 56.3066851860359,
         "aa_coding": 74.8911950339853,
         "aa_reasoning": 96.5,
-        "speed_tps": 91.8515665489254
+        "speed_tps": 85.5441798227556
       },
       "livebench": {
         "model": "gpt-5.5-xhigh",
@@ -1380,18 +1302,15 @@
       },
       "aa_live_quality": 56.3066851860359,
       "aa_live_coding": 74.8911950339853,
-      "arc_display": "GPT-5.5 (XHigh)",
-      "created_date": "2026-04-22T00:00:00.000Z",
-      "composite_score": 86.4,
-      "capability_q": 86.4,
-      "p_success": 84.9,
-      "token_multiplier": 1.39,
+      "composite_score": 85.4,
+      "capability_q": 85.4,
+      "p_success": 83.3,
+      "token_multiplier": 1.44,
       "blended_price": 10.0,
-      "effective_cost": 13.9,
-      "avi_score": 153.4,
-      "fgi_score": 67.6,
-      "bfi_score": 12.4,
-      "first_seen": "2026-04-22T00:00:00+00:00",
+      "effective_cost": 14.4,
+      "avi_score": 147.7,
+      "fgi_score": 64.9,
+      "bfi_score": 11.4,
       "is_new": false
     },
     {
@@ -1405,7 +1324,6 @@
       "aa_slug": "grok-4-5",
       "lm_slug": "grok-4.5",
       "or_slug": "x-ai/grok-4.5",
-      "arc_agi": 52.6,
       "base_metrics": {
         "lm_elo": 1470.0,
         "lm_coding": 1435,
@@ -1413,7 +1331,7 @@
         "aa_quality": 55.7588993916902,
         "aa_coding": 72.4489353585796,
         "aa_reasoning": 94.0,
-        "speed_tps": 52.7709326733526
+        "speed_tps": 54.1133152489838
       },
       "livebench": {
         "model": "grok-4.5",
@@ -1437,18 +1355,15 @@
       },
       "aa_live_quality": 55.7588993916902,
       "aa_live_coding": 72.4489353585796,
-      "arc_display": "Grok 4.5 (High)",
-      "created_date": "2026-07-16T00:00:00.000Z",
-      "composite_score": 81.7,
-      "capability_q": 81.7,
-      "p_success": 76.2,
-      "token_multiplier": 1.69,
+      "composite_score": 82.2,
+      "capability_q": 82.2,
+      "p_success": 77.3,
+      "token_multiplier": 1.65,
       "blended_price": 2.8,
-      "effective_cost": 4.73,
-      "avi_score": 202.7,
-      "fgi_score": 54.3,
-      "bfi_score": 18.1,
-      "first_seen": "2026-07-16T00:00:00+00:00",
+      "effective_cost": 4.62,
+      "avi_score": 207.4,
+      "fgi_score": 55.9,
+      "bfi_score": 18.7,
       "is_new": false
     },
     {
@@ -1462,7 +1377,6 @@
       "aa_slug": "qwen3-coder",
       "lm_slug": "qwen3-coder",
       "or_slug": "qwen/qwen3-coder",
-      "arc_agi": 42.0,
       "base_metrics": {
         "lm_elo": 1372,
         "lm_coding": 1450,
@@ -1472,15 +1386,15 @@
         "aa_reasoning": 88.5,
         "speed_tps": 80.0
       },
-      "composite_score": 75.4,
-      "capability_q": 75.4,
-      "p_success": 60.1,
-      "token_multiplier": 2.46,
+      "composite_score": 76.6,
+      "capability_q": 76.6,
+      "p_success": 63.5,
+      "token_multiplier": 2.26,
       "blended_price": 0.44,
-      "effective_cost": 1.08,
-      "avi_score": 327.9,
-      "fgi_score": 35.1,
-      "bfi_score": 97.5,
+      "effective_cost": 0.99,
+      "avi_score": 352.7,
+      "fgi_score": 38.8,
+      "bfi_score": 99.1,
       "is_new": false
     }
   ]

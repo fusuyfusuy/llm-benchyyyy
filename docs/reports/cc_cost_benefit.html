@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Command Code GOAT — Cost/Benefit (2026-09-01)</title><style>
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --card-hover: #1c2128;
+  --line: #30363d;
+  --txt: #e6edf3;
+  --mut: #8b949e;
+  --gr: #3fb950;
+  --bl: #58a6ff;
+  --yl: #d29922;
+  --pur: #a371f7;
+  --red: #f85149;
+  --amber: #f59e0b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--txt);
+  font: 13.5px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 28px;
+}
+.wrap { max-width: 1360px; margin: 0 auto; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 10px 0;
+}
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  color: var(--mut);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: rgba(22, 27, 34, 0.95);
+}
+th:hover { color: var(--bl); }
+tr:hover { background: rgba(56, 139, 253, 0.04); }
+td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+}
+.badge-gold { background: rgba(210,153,34,0.18); color: #d29922; border: 1px solid #d29922; }
+.badge-new { background: rgba(63,185,80,0.2); color: #3fb950; border: 1px solid #3fb950; }
+.badge-removed { background: rgba(248,81,73,0.2); color: #f85149; border: 1px solid #f85149; }
+.badge-cld { background: rgba(217,119,6,0.15); color: #d97706; }
+.badge-agy { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.badge-ocg { background: rgba(16,185,129,0.15); color: #10b981; }
+.badge-frt { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.badge-or { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.badge-cln { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.badge-stl { background: rgba(244,63,94,0.18); color: #f43f5e; border: 1px solid #f43f5e; }
+tr.added { background: rgba(63, 185, 80, 0.08) !important; }
+tr.added td.m, tr.added td:first-child { color: #3fb950 !important; font-weight: 700; }
+.removed-section { background: rgba(248,81,73,0.06); border: 1px solid rgba(248,81,73,0.25); border-radius: 8px; padding: 14px 16px; margin: 16px 0; }
+.removed-title { color: #f85149; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.removed-tag { display: inline-block; background: rgba(248,81,73,0.12); color: #ff7b72; border: 1px solid rgba(248,81,73,0.25); border-radius: 4px; padding: 3px 8px; font-family: monospace; font-size: 11.5px; margin: 3px 6px 3px 0; }
+.legend { color: var(--mut); font-size: 11px; margin-top: 10px; }
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.footer .path { color: var(--mut); font-size: 12px; }
+.footer .work { color: var(--txt); font-size: 12px; font-style: italic; }
+tr.pareto { background: rgba(210,153,34,0.18); border-left: 3px solid #d29922; }
+tr.flagship { background: rgba(63,185,80,0.07); }
+tr.value { background: rgba(88,166,255,0.07); }
+tr.free { opacity: 0.6; }
+.sub { color: var(--mut); margin: 0 0 14px; font-size: 13px; }
+.m { font-weight: 600; }
+.mid { display: block; color: var(--mut); font-size: 10px; font-weight: 400; white-space: nowrap; }
+.call { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--yl); border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+.call b { color: var(--yl); }
+.note { color: var(--mut); font-size: 12px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+</style></head><body><div class="wrap">
+<h1>Command Code GOAT — Cost/Benefit (2026-09-01)</h1>
+<p class="sub">OFFLINE (data: 20260831..20260901) — Command Code GOAT <code>$10/mo (first month $5)</code> · Caps: <b>$14/5h · $35/wk · $70/mo</b> pooled, per-model scaled by <code>credits/70</code> · <a href="https://commandcode.ai/docs/plans/goat#usage-limits" style="color:#58a6ff">usage limits</a> · Generated 2026-08-31T21:48:25.543857+00:00</p>
+<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> frontier · <span style="color:#3fb950">■ flagship</span> int ≥58 · <span style="color:#58a6ff">■ value</span> $70 credits + high int/$ · <b>Q(Cap)</b>=Capability · <b>P(Succ)</b>=pass rate · <b>Eff c/r</b>=cost per solved task · <b>AVI</b>=ROI · <b>FGI</b>=gate · <b>lev</b>=credits/10.</div>
+<div class="card">
+<table id="tbl">
+<thead><tr>
+<th>model</th><th>credits/mo</th><th>5h Cap</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>AVI</th><th>FGI</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th>
+</tr></thead>
+<tbody>
+<tr class="pareto"><td class="m">glm-5.3-flash</td><td class="n">$40</td><td class="n">$8.00</td><td class="n">$0.00170</td><td class="n">4,720</td><td class="n">11,800</td><td class="n">23,600</td><td class="n" style="font-weight:700; color:#2563eb;">83.7</td><td class="n">80.3%</td><td class="n">$0.00262</td><td class="n" style="font-weight:700; color:#10b981;">641.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">60.2</td><td class="n">57.5<span class="mid">glm-5-3-flash</span></td><td class="n">71.5</td><td class="n">#38<span class="mid">1469</span></td><td class="n">33800</td><td class="n">$0.00003</td><td class="n">4.0×</td></tr><tr class="pareto"><td class="m">deepseek-v4-flash</td><td class="n">$60</td><td class="n">$12.00</td><td class="n">$0.00063</td><td class="n">18,200</td><td class="n">45,600</td><td class="n">91,200</td><td class="n" style="font-weight:700; color:#2563eb;">83.5</td><td class="n">79.9%</td><td class="n">$0.00098</td><td class="n" style="font-weight:700; color:#10b981;">569.4</td><td class="n" style="font-weight:700; color:#8b5cf6;">59.6</td><td class="n">51.8<span class="mid">deepseek-v4-flash</span></td><td class="n">69.1</td><td class="n">#16<span class="mid">1580</span></td><td class="n">81961</td><td class="n">$0.00001</td><td class="n">6.0×</td></tr><tr class="pareto"><td class="m">deepseek-v4-flash-vision</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00063</td><td class="n">6,080</td><td class="n">15,200</td><td class="n">30,400</td><td class="n" style="font-weight:700; color:#2563eb;">81.6</td><td class="n">76.0%</td><td class="n">$0.00107</td><td class="n" style="font-weight:700; color:#10b981;">525.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">54.1</td><td class="n">51.5<span class="mid">deepseek-v4-flash-vision</span></td><td class="n">65.0</td><td class="n">—<span class="mid">—</span></td><td class="n">81497</td><td class="n">$0.00001</td><td class="n">2.0×</td></tr><tr class=""><td class="m">gpt-5.6-luna</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00135</td><td class="n">2,960</td><td class="n">7,400</td><td class="n">14,800</td><td class="n" style="font-weight:700; color:#2563eb;">81.2</td><td class="n">75.1%</td><td class="n">$0.00234</td><td class="n" style="font-weight:700; color:#10b981;">466.6</td><td class="n" style="font-weight:700; color:#8b5cf6;">52.8</td><td class="n">52.3<span class="mid">gpt-5-6-luna</span></td><td class="n">71.4</td><td class="n">#63<span class="mid">1452</span></td><td class="n">38697</td><td class="n">$0.00003</td><td class="n">2.0×</td></tr><tr class=""><td class="m">mimo-v2.5</td><td class="n">$30</td><td class="n">$6.00</td><td class="n">$0.00030</td><td class="n">19,500</td><td class="n">48,700</td><td class="n">97,400</td><td class="n" style="font-weight:700; color:#2563eb;">71.6</td><td class="n">48.8%</td><td class="n">$0.00098</td><td class="n" style="font-weight:700; color:#10b981;">383.8</td><td class="n" style="font-weight:700; color:#8b5cf6;">24.4</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">#92<span class="mid">1434</span></td><td class="n">—</td><td class="n">—</td><td class="n">3.0×</td></tr><tr class=""><td class="m">deepseek-v4-pro</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00194</td><td class="n">1,980</td><td class="n">4,940</td><td class="n">9,880</td><td class="n" style="font-weight:700; color:#2563eb;">81.3</td><td class="n">75.3%</td><td class="n">$0.00334</td><td class="n" style="font-weight:700; color:#10b981;">325.1</td><td class="n" style="font-weight:700; color:#8b5cf6;">53.1</td><td class="n">53.2<span class="mid">deepseek-v4-pro</span></td><td class="n">68.8</td><td class="n">#54<span class="mid">1458</span></td><td class="n">27354</td><td class="n">$0.00004</td><td class="n">2.0×</td></tr><tr class=""><td class="m">minimax-m3</td><td class="n">$47</td><td class="n">$9.40</td><td class="n">$0.00343</td><td class="n">2,770</td><td class="n">6,930</td><td class="n">13,900</td><td class="n" style="font-weight:700; color:#2563eb;">74.4</td><td class="n">57.2%</td><td class="n">$0.00910</td><td class="n" style="font-weight:700; color:#10b981;">296.2</td><td class="n" style="font-weight:700; color:#8b5cf6;">32.2</td><td class="n">45.4<span class="mid">minimax-m3</span></td><td class="n">58.6</td><td class="n">#78<span class="mid">1442</span></td><td class="n">13228</td><td class="n">$0.00008</td><td class="n">4.7×</td></tr><tr class="pareto"><td class="m">glm-5.3</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01482</td><td class="n">271</td><td class="n">677</td><td class="n">1,350</td><td class="n" style="font-weight:700; color:#2563eb;">86.8</td><td class="n">85.5%</td><td class="n">$0.02031</td><td class="n" style="font-weight:700; color:#10b981;">293.2</td><td class="n" style="font-weight:700; color:#8b5cf6;">68.6</td><td class="n">59.5<span class="mid">glm-5-3</span></td><td class="n">74.8</td><td class="n">#15<span class="mid">1484</span></td><td class="n">4015</td><td class="n">$0.00025</td><td class="n">2.0×</td></tr><tr class="pareto"><td class="m">muse-spark-1.2</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00918</td><td class="n">428</td><td class="n">1,070</td><td class="n">2,140</td><td class="n" style="font-weight:700; color:#2563eb;">85.5</td><td class="n">83.5%</td><td class="n">$0.01313</td><td class="n" style="font-weight:700; color:#10b981;">287.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">65.2</td><td class="n">56.8<span class="mid">muse-spark-1-2</span></td><td class="n">72.2</td><td class="n">—<span class="mid">—</span></td><td class="n">6183</td><td class="n">$0.00016</td><td class="n">2.0×</td></tr><tr class=""><td class="m">mimo-v2.5-pro</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00067</td><td class="n">5,700</td><td class="n">14,200</td><td class="n">28,500</td><td class="n" style="font-weight:700; color:#2563eb;">74.4</td><td class="n">57.2%</td><td class="n">$0.00177</td><td class="n" style="font-weight:700; color:#10b981;">285.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">32.2</td><td class="n">42.9<span class="mid">mimo-v2-5-pro</span></td><td class="n">60.2</td><td class="n">#40<span class="mid">1468</span></td><td class="n">64268</td><td class="n">$0.00002</td><td class="n">2.0×</td></tr><tr class="flagship"><td class="m">grok-4.6</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.02756</td><td class="n">144</td><td class="n">360</td><td class="n">719</td><td class="n" style="font-weight:700; color:#2563eb;">87.2</td><td class="n">86.1%</td><td class="n">$0.03748</td><td class="n" style="font-weight:700; color:#10b981;">256.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">69.7</td><td class="n">60.9<span class="mid">grok-4-6</span></td><td class="n">76.8</td><td class="n">#48<span class="mid">1461</span></td><td class="n">2211</td><td class="n">$0.00045</td><td class="n">2.0×</td></tr><tr class="pareto"><td class="m">gemini-3.7-flash</td><td class="n">$40</td><td class="n">$8.00</td><td class="n">$0.00990</td><td class="n">784</td><td class="n">1,960</td><td class="n">3,920</td><td class="n" style="font-weight:700; color:#2563eb;">85.6</td><td class="n">83.6%</td><td class="n">$0.01416</td><td class="n" style="font-weight:700; color:#10b981;">244.7</td><td class="n" style="font-weight:700; color:#8b5cf6;">65.4</td><td class="n">56.0<span class="mid">gemini-3-7-flash</span></td><td class="n">76.1</td><td class="n">#9<span class="mid">1490</span></td><td class="n">5660</td><td class="n">$0.00018</td><td class="n">4.0×</td></tr><tr class="value"><td class="m">glm-5.2</td><td class="n">$70</td><td class="n">$14.00</td><td class="n">$0.01482</td><td class="n">947</td><td class="n">2,370</td><td class="n">4,740</td><td class="n" style="font-weight:700; color:#2563eb;">81.4</td><td class="n">75.5%</td><td class="n">$0.02535</td><td class="n" style="font-weight:700; color:#10b981;">230.8</td><td class="n" style="font-weight:700; color:#8b5cf6;">53.4</td><td class="n">52.6<span class="mid">glm-5-2</span></td><td class="n">68.8</td><td class="n">#33<span class="mid">1472</span></td><td class="n">3551</td><td class="n">$0.00028</td><td class="n">7.0×</td></tr><tr class=""><td class="m">grok-4.5</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.02756</td><td class="n">144</td><td class="n">360</td><td class="n">719</td><td class="n" style="font-weight:700; color:#2563eb;">84.0</td><td class="n">80.8%</td><td class="n">$0.04189</td><td class="n" style="font-weight:700; color:#10b981;">225.1</td><td class="n" style="font-weight:700; color:#8b5cf6;">61.0</td><td class="n">55.8<span class="mid">grok-4-5</span></td><td class="n">72.4</td><td class="n">#36<span class="mid">1470</span></td><td class="n">2023</td><td class="n">$0.00049</td><td class="n">2.0×</td></tr><tr class=""><td class="m">inkling-small</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00559</td><td class="n">709</td><td class="n">1,770</td><td class="n">3,550</td><td class="n" style="font-weight:700; color:#2563eb;">71.1</td><td class="n">47.3%</td><td class="n">$0.01929</td><td class="n" style="font-weight:700; color:#10b981;">208.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">23.1</td><td class="n">41.2<span class="mid">inkling-small</span></td><td class="n">52.9</td><td class="n">—<span class="mid">—</span></td><td class="n">7364</td><td class="n">$0.00014</td><td class="n">2.0×</td></tr><tr class=""><td class="m">minimax-m2.7</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00343</td><td class="n">1,166</td><td class="n">2,914</td><td class="n">5,828</td><td class="n" style="font-weight:700; color:#2563eb;">69.1</td><td class="n">41.4%</td><td class="n">$0.01411</td><td class="n" style="font-weight:700; color:#10b981;">206.2</td><td class="n" style="font-weight:700; color:#8b5cf6;">18.4</td><td class="n">38.9<span class="mid">minimax-m2-7</span></td><td class="n">52.6</td><td class="n">#121<span class="mid">1417</span></td><td class="n">11326</td><td class="n">$0.00009</td><td class="n">2.0×</td></tr><tr class="pareto"><td class="m">kimi-k3</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01980</td><td class="n">196</td><td class="n">490</td><td class="n">980</td><td class="n" style="font-weight:700; color:#2563eb;">87.4</td><td class="n">86.4%</td><td class="n">$0.02673</td><td class="n" style="font-weight:700; color:#10b981;">197.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">70.2</td><td class="n">59.7<span class="mid">kimi-k3</span></td><td class="n">76.2</td><td class="n">#10<span class="mid">1489</span></td><td class="n">3015</td><td class="n">$0.00033</td><td class="n">2.0×</td></tr><tr class=""><td class="m">kimi-k2.6</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00940</td><td class="n">426</td><td class="n">1,064</td><td class="n">2,128</td><td class="n" style="font-weight:700; color:#2563eb;">75.8</td><td class="n">61.2%</td><td class="n">$0.02247</td><td class="n" style="font-weight:700; color:#10b981;">190.0</td><td class="n" style="font-weight:700; color:#8b5cf6;">36.3</td><td class="n">45.1<span class="mid">kimi-k2-6</span></td><td class="n">61.8</td><td class="n">#49<span class="mid">1461</span></td><td class="n">4802</td><td class="n">$0.00021</td><td class="n">2.0×</td></tr><tr class=""><td class="m">step-3.5-flash</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00113</td><td class="n">3,510</td><td class="n">8,770</td><td class="n">17,500</td><td class="n" style="font-weight:700; color:#2563eb;">60.5</td><td class="n">20.1%</td><td class="n">$0.01100</td><td class="n" style="font-weight:700; color:#10b981;">181.6</td><td class="n" style="font-weight:700; color:#8b5cf6;">5.5</td><td class="n">26.5<span class="mid">step-3-5-flash</span></td><td class="n">—</td><td class="n">#154<span class="mid">1394</span></td><td class="n">23509</td><td class="n">$0.00004</td><td class="n">2.0×</td></tr><tr class=""><td class="m">kimi-k2.7-code</td><td class="n">$60</td><td class="n">$12.00</td><td class="n">$0.01090</td><td class="n">1,080</td><td class="n">2,710</td><td class="n">5,420</td><td class="n" style="font-weight:700; color:#2563eb;">74.9</td><td class="n">58.6%</td><td class="n">$0.02780</td><td class="n" style="font-weight:700; color:#10b981;">180.0</td><td class="n" style="font-weight:700; color:#8b5cf6;">33.6</td><td class="n">43.0<span class="mid">kimi-k2-7-code</span></td><td class="n">60.8</td><td class="n">#44<span class="mid">1473</span></td><td class="n">3947</td><td class="n">$0.00025</td><td class="n">6.0×</td></tr><tr class=""><td class="m">glm-5</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01131</td><td class="n">354</td><td class="n">884</td><td class="n">1,768</td><td class="n" style="font-weight:700; color:#2563eb;">74.0</td><td class="n">56.0%</td><td class="n">$0.03088</td><td class="n" style="font-weight:700; color:#10b981;">176.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">31.0</td><td class="n">40.6<span class="mid">glm-5</span></td><td class="n">—</td><td class="n">#53<span class="mid">1458</span></td><td class="n">3585</td><td class="n">$0.00028</td><td class="n">2.0×</td></tr><tr class="pareto"><td class="m">gpt-5.6-sol</td><td class="n">$70</td><td class="n">$14.00</td><td class="n">$0.03380</td><td class="n">414</td><td class="n">1,040</td><td class="n">2,070</td><td class="n" style="font-weight:700; color:#2563eb;">88.6</td><td class="n">88.0%</td><td class="n">$0.04394</td><td class="n" style="font-weight:700; color:#10b981;">165.7</td><td class="n" style="font-weight:700; color:#8b5cf6;">73.1</td><td class="n">60.9<span class="mid">gpt-5-6-sol</span></td><td class="n">77.4</td><td class="n">#17<span class="mid">1482</span></td><td class="n">1803</td><td class="n">$0.00056</td><td class="n">7.0×</td></tr><tr class=""><td class="m">inkling</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00995</td><td class="n">396</td><td class="n">989</td><td class="n">1,980</td><td class="n" style="font-weight:700; color:#2563eb;">73.5</td><td class="n">54.5%</td><td class="n">$0.02825</td><td class="n" style="font-weight:700; color:#10b981;">162.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">29.6</td><td class="n">42.3<span class="mid">inkling</span></td><td class="n">52.1</td><td class="n">#81<span class="mid">1439</span></td><td class="n">4252</td><td class="n">$0.00023</td><td class="n">2.0×</td></tr><tr class=""><td class="m">glm-5.1</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01482</td><td class="n">270</td><td class="n">675</td><td class="n">1,349</td><td class="n" style="font-weight:700; color:#2563eb;">73.8</td><td class="n">55.4%</td><td class="n">$0.04106</td><td class="n" style="font-weight:700; color:#10b981;">151.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">30.4</td><td class="n">41.0<span class="mid">glm-5-1</span></td><td class="n">55.8</td><td class="n">#41<span class="mid">1466</span></td><td class="n">2764</td><td class="n">$0.00036</td><td class="n">2.0×</td></tr><tr class=""><td class="m">minimax-m2.5</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00193</td><td class="n">2,070</td><td class="n">5,176</td><td class="n">10,352</td><td class="n" style="font-weight:700; color:#2563eb;">64.8</td><td class="n">29.7%</td><td class="n">$0.01200</td><td class="n" style="font-weight:700; color:#10b981;">148.5</td><td class="n" style="font-weight:700; color:#8b5cf6;">10.5</td><td class="n">34.5<span class="mid">minimax-m2-5</span></td><td class="n">—</td><td class="n">#157<span class="mid">1390</span></td><td class="n">17844</td><td class="n">$0.00006</td><td class="n">2.0×</td></tr><tr class=""><td class="m">kimi-k2.5</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00596</td><td class="n">671</td><td class="n">1,678</td><td class="n">3,356</td><td class="n" style="font-weight:700; color:#2563eb;">69.2</td><td class="n">41.7%</td><td class="n">$0.02432</td><td class="n" style="font-weight:700; color:#10b981;">144.8</td><td class="n" style="font-weight:700; color:#8b5cf6;">18.6</td><td class="n">36.0<span class="mid">kimi-k2-5</span></td><td class="n">46.8</td><td class="n">#65<span class="mid">1450</span></td><td class="n">6044</td><td class="n">$0.00016</td><td class="n">2.0×</td></tr><tr class=""><td class="m">kimi-k2.7-code-highspeed</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.02180</td><td class="n">181</td><td class="n">452</td><td class="n">904</td><td class="n" style="font-weight:700; color:#2563eb;">74.9</td><td class="n">58.6%</td><td class="n">$0.05559</td><td class="n" style="font-weight:700; color:#10b981;">136.3</td><td class="n" style="font-weight:700; color:#8b5cf6;">33.6</td><td class="n">43.0<span class="mid">kimi-k2-7-code</span></td><td class="n">60.8</td><td class="n">#44<span class="mid">1473</span></td><td class="n">1974</td><td class="n">$0.00051</td><td class="n">2.0×</td></tr><tr class=""><td class="m">step-3.7-flash</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00234</td><td class="n">1,670</td><td class="n">4,180</td><td class="n">8,370</td><td class="n" style="font-weight:700; color:#2563eb;">62.0</td><td class="n">23.1%</td><td class="n">$0.01950</td><td class="n" style="font-weight:700; color:#10b981;">129.9</td><td class="n" style="font-weight:700; color:#8b5cf6;">6.9</td><td class="n">30.9<span class="mid">step-3-7-flash</span></td><td class="n">39.6</td><td class="n">—<span class="mid">—</span></td><td class="n">13182</td><td class="n">$0.00008</td><td class="n">2.0×</td></tr><tr class=""><td class="m">nemotron-3-ultra</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00686</td><td class="n">575</td><td class="n">1,440</td><td class="n">2,870</td><td class="n" style="font-weight:700; color:#2563eb;">53.0</td><td class="n">9.3%</td><td class="n">$0.15416</td><td class="n" style="font-weight:700; color:#10b981;">45.6</td><td class="n" style="font-weight:700; color:#8b5cf6;">1.5</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">deepseek-v4-flash-fast</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00381</td><td class="n">1,040</td><td class="n">2,610</td><td class="n">5,210</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">glm-5.2-fast</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.02904</td><td class="n">138</td><td class="n">346</td><td class="n">691</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class="free"><td class="m">laguna-s-2.1-free</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr><tr class=""><td class="m">muse-spark-1.2-contributor</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00021</td><td class="n">18,200</td><td class="n">45,500</td><td class="n">90,900</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">qwen-3.6-max-preview</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01529</td><td class="n">262</td><td class="n">654</td><td class="n">1,308</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">qwen-3.6-plus</td><td class="n">$33</td><td class="n">$6.60</td><td class="n">$0.00588</td><td class="n">1,100</td><td class="n">2,750</td><td class="n">5,500</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">3.3×</td></tr><tr class=""><td class="m">qwen-3.7-flash</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00034</td><td class="n">11,601</td><td class="n">29,002</td><td class="n">58,005</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">qwen-3.7-max</td><td class="n">$33</td><td class="n">$6.60</td><td class="n">$0.02820</td><td class="n">232</td><td class="n">579</td><td class="n">1,160</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">3.3×</td></tr><tr class=""><td class="m">qwen-3.7-plus</td><td class="n">$33</td><td class="n">$6.60</td><td class="n">$0.00458</td><td class="n">1,420</td><td class="n">3,560</td><td class="n">7,110</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">3.3×</td></tr><tr class=""><td class="m">qwen-3.8-27b</td><td class="n">$70</td><td class="n">$14.00</td><td class="n">$0.00280</td><td class="n">4,790</td><td class="n">12,000</td><td class="n">24,000</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">7.0×</td></tr><tr class=""><td class="m">qwen-3.8-flash</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00100</td><td class="n">3,910</td><td class="n">9,780</td><td class="n">19,600</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">qwen-3.8-max</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.01506</td><td class="n">261</td><td class="n">654</td><td class="n">1,310</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr><tr class=""><td class="m">tencent-hy3</td><td class="n">$70</td><td class="n">$14.00</td><td class="n">$0.00196</td><td class="n">7,080</td><td class="n">17,700</td><td class="n">35,400</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">7.0×</td></tr><tr class=""><td class="m">tencent-hy4-preview</td><td class="n">$20</td><td class="n">$4.00</td><td class="n">$0.00317</td><td class="n">1,220</td><td class="n">3,060</td><td class="n">6,120</td><td class="n" style="font-weight:700; color:#2563eb;">—</td><td class="n">—</td><td class="n">—</td><td class="n" style="font-weight:700; color:#10b981;">—</td><td class="n" style="font-weight:700; color:#8b5cf6;">—</td><td class="n">—<span class="mid"></span></td><td class="n">—</td><td class="n">—<span class="mid">—</span></td><td class="n">—</td><td class="n">—</td><td class="n">2.0×</td></tr>
+</tbody>
+</table>
+<div class="legend">Click headers to sort. "—" = not benchmarked / free. AA/LMArena from shared snapshots; pricing from commandcode.ai/docs/plans/goat. Cross-source scores incomparable.</div>
+</div>
+
+
+    <div class="card">
+        <h3 style="margin-top:0; color:#38bdf8; font-size:15px;">🎯 Dynamic Function & Role Recommendations (Weighted Multi-Metric Selection)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Function / Role</th>
+                    <th>🥇 Recommended Winner</th>
+                    <th>🥈 Runner-Up</th>
+                    <th>Tactical Guidance</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td style="font-weight:600; color:#38bdf8;">🏗️ System Architecture &amp; Complex Design</td>
+            <td><b>gpt-5.6-sol</b> <span class="badge badge-gold">$70/m</span> <span style="color:#10b981; font-weight:700;">(90.1)</span></td>
+            <td><b>grok-4.6</b> <span class="badge">$20/m</span> <span style="color:#94a3b8;">(89.2)</span></td>
+            <td style="color:#94a3b8; font-size:12px;">Deep reasoning &amp; high FGI gates. Use for contracts, spec lock, and hard debugging.</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600; color:#38bdf8;">💻 Pair Programming &amp; Code Editing</td>
+            <td><b>glm-5.3-flash</b> <span class="badge badge-gold">$40/m</span> <span style="color:#10b981; font-weight:700;">(90.0)</span></td>
+            <td><b>deepseek-v4-flash</b> <span class="badge">$60/m</span> <span style="color:#94a3b8;">(88.4)</span></td>
+            <td style="color:#94a3b8; font-size:12px;">Surgical diffs, coding Elo &amp; multi-turn alignment without drift.</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600; color:#38bdf8;">🔄 Daily Driver (High ROI Workhorse)</td>
+            <td><b>glm-5.3-flash</b> <span class="badge badge-gold">$40/m</span> <span style="color:#10b981; font-weight:700;">(95.3)</span></td>
+            <td><b>deepseek-v4-flash</b> <span class="badge">$60/m</span> <span style="color:#94a3b8;">(94.0)</span></td>
+            <td style="color:#94a3b8; font-size:12px;">Top AVI &amp; cost-efficiency. Autonomous loops without token explosion.</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight:600; color:#38bdf8;">⚡ Fast Boilerplate &amp; Mechanical Fill</td>
+            <td><b>muse-spark-1.2-contributor</b> <span class="badge badge-gold">$20/m</span> <span style="color:#10b981; font-weight:700;">(94.0)</span></td>
+            <td><b>mimo-v2.5</b> <span class="badge">$30/m</span> <span style="color:#94a3b8;">(91.7)</span></td>
+            <td style="color:#94a3b8; font-size:12px;">High throughput (TPS/BFI) for mechanical generation and test scaffolding.</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+    
+<div class="call"><b>Takeaway:</b> Cheapest/req (MiMo-V2.5, DeepSeek Flash, Hy3) buys the most requests per 5h window — bulk fills. Flagship intelligence (Grok 4.6, GPT-5.6 Sol, Kimi K3) costs more/req but scores higher. Best int/$ usually in the middle (GLM-5.2, DeepSeek Flash, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
+<p class="note">Full JSON: <a href="cc_cost_benefit.json" style="color:#58a6ff">cc_cost_benefit.json</a> · Raw snapshot: <code>data/raw/cc_goat_docs_YYYYMMDD.html</code> with <code>--fetch</code>. Stdlib only. Re-run: <code>python3 checkers/commandcode_cost_benefit_analyzer.py</code>.</p>
+<div class="footer"><span class="path">path: outputs/cc_cost_benefit.html</span><span class="work">Current work: live GOAT cost/benefit of 43 models (27 ranked) — best value glm-5.2, flagship glm-5.3.</span></div>
+</div>
+<script>
+(function(){
+  var tbl = document.getElementById('tbl');
+  if(!tbl) return;
+  function getVal(tr, i){
+    var td = tr.children[i];
+    if(!td) return '';
+    var t = (td.innerText || '').replace(/[^0-9.\-]/g, '').trim();
+    var n = parseFloat(t);
+    return isNaN(n) ? (td.innerText || '').toLowerCase() : n;
+  }
+  tbl.querySelectorAll('th').forEach(function(th, i){
+    th.addEventListener('click', function(){
+      var tbody = tbl.tBodies[0];
+      var rows = [].slice.call(tbody.rows);
+      var asc = th.asc = !th.asc;
+      rows.sort(function(a, b){
+        var av = getVal(a, i), bv = getVal(b, i);
+        if(typeof av === 'number' && typeof bv === 'number') return asc ? av - bv : bv - av;
+        return asc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      });
+      rows.forEach(function(r){ tbody.appendChild(r); });
+    });
+  });
+})();
+</script>
+</body></html>

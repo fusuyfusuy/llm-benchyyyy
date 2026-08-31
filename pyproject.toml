@@ -8,6 +8,7 @@ dependencies = []
 [project.scripts]
 bcheck = "checkers.llm_benchmark_aggregator:main"
 ocheck = "checkers.opencode_cost_benefit_analyzer:main"
+ccheck = "checkers.commandcode_cost_benefit_analyzer:main"
 fcheck = "checkers.free_model_ranker:main"
 scheck = "checkers.stealth_model_detector:main"
 

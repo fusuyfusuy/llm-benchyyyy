@@ -25,6 +25,23 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertGreater(c, 0.0)
         self.assertLess(c, 0.01)
 
+    def test_quality_sort_mode_distinct_from_cap(self):
+        # quality sorts by raw AA intelligenceIndex; cap sorts by the
+        # z-derived capability_q composite — inverse rankings prove both modes.
+        rows = [
+            {"model_id": "a", "benchmarks": {"aa_intelligence": 40.0, "capability_q": 90.0}, "value": {"avi_score": 100.0, "fgi_score": 80.0, "bfi_score": 30.0, "intelligence_per_dollar": 5.0}, "requests": {}},
+            {"model_id": "b", "benchmarks": {"aa_intelligence": 70.0, "capability_q": 60.0}, "value": {"avi_score": 50.0, "fgi_score": 40.0, "bfi_score": 20.0, "intelligence_per_dollar": 9.0}, "requests": {}},
+            {"model_id": "c", "benchmarks": {"aa_intelligence": None, "capability_q": 30.0}, "value": {"avi_score": 10.0, "fgi_score": None, "bfi_score": None, "intelligence_per_dollar": None}, "requests": {}},
+        ]
+        ids = lambda key: [r["model_id"] for r in sorted(rows, key=key)]
+        self.assertEqual(ids(ogc.build_sort_key("quality", lambda r: 999.0)), ["b", "a", "c"])  # None falls last
+        self.assertEqual(ids(ogc.build_sort_key("cap", lambda r: 999.0)), ["a", "b", "c"])
+        # All 8 CLI modes resolve against a well-formed row without raising
+        for mode in ("avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"):
+            ogc.build_sort_key(mode, lambda r: 999.0)(rows[0])
+        with self.assertRaises(ValueError):
+            ogc.build_sort_key("bogus", lambda r: 999.0)
+
     def test_snapshot_discovery(self):
         snap_aa = ogc.pick_latest_raw("artificial_analysis")
         self.assertIsNotNone(snap_aa)

@@ -69,7 +69,7 @@ class TestBenchmarksCheck(unittest.TestCase):
         md = bc.render_markdown_report(models)
         self.assertIn("# Consolidated LLM Benchmark", md)
         self.assertIn("| Model |", md)
-        self.assertIn("ARC-AGI-2", md)
+        self.assertIn("LiveBench (%)", md)
         self.assertIn("AVI (Value)", md)
 
     def test_livebench_parsing(self):
@@ -183,7 +183,7 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         models = list(bc.MODELS_CATALOG.values())
         pareto_ids = bc.compute_pareto_frontier(models)
         self.assertIn("Claude Opus 5 (Thinking)", pareto_ids)
-        self.assertIn("DeepSeek V4 Flash", pareto_ids)
+        self.assertIn("GPT-5.6 Sol (Reasoning Flagship)", pareto_ids)
         self.assertIn("GPT-OSS 120B (Medium)", pareto_ids)
         self.assertIn("Gemini 3.7 Flash (Thinking)", pareto_ids)
         self.assertIn("GPT 5.6 Luna", pareto_ids)
@@ -258,45 +258,7 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertIn("Legacy Model 1", html_text)
 
 
-class TestBcheckArcAndCache(unittest.TestCase):
-    ARC_SNAP = {
-        "models": [
-            {"id": "anthropic-opus-5-max", "displayName": "Claude Opus 5 (Max)", "providerId": "Anthropic", "modelGroup": "anthropic-opus-5", "modelReleaseDate": "2026-07-24T00:00:00.000Z"},
-            {"id": "anthropic-opus-5-high", "displayName": "Claude Opus 5 (High)", "providerId": "Anthropic", "modelGroup": "anthropic-opus-5-high", "modelReleaseDate": "2026-07-24T00:00:00.000Z"},
-            {"id": "2025_human_panel", "displayName": "Human Panel", "providerId": "Human", "modelGroup": "Human", "modelReleaseDate": None},
-        ],
-        "evaluations": [
-            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.904, "display": True},
-            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-high", "score": 0.883, "display": True},
-            {"datasetId": "v2_Semi_Private", "modelId": "2025_human_panel", "score": 1.0, "display": True},
-            {"datasetId": "v1_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.5, "display": True},
-            {"datasetId": "v2_Semi_Private", "modelId": "anthropic-opus-5-max", "score": 0.1, "display": False},
-        ],
-    }
-
-    def test_arc_base_name(self):
-        self.assertEqual(bc.arc_base_name("Claude Opus 5 (Max)"), "Claude Opus 5")
-        self.assertEqual(bc.arc_base_name("Gemini 3.1 Pro (High)"), "Gemini 3.1 Pro")
-        self.assertEqual(bc.arc_base_name("LongCat 2.0 (Meituan)"), "LongCat 2.0 (Meituan)")
-        self.assertEqual(bc.arc_base_name("GPT-OSS 120B (Medium)"), "GPT-OSS 120B")
-
-    def test_parse_arc_best_tier_and_filters(self):
-        m = bc.parse_arc(self.ARC_SNAP)
-        self.assertEqual(m["Claude Opus 5"]["score_pct"], 90.4)
-        self.assertNotIn("Human Panel", m)
-        self.assertNotIn(100.0, [v["score_pct"] for v in m.values()])
-        self.assertNotIn(50.0, [v["score_pct"] for v in m.values()])  # v1 dataset ignored
-        # tier-stripped base key holds the best (Max) record; group keys keep per-tier detail
-        self.assertEqual(m["Claude Opus 5"]["display"], "Claude Opus 5 (Max)")
-        self.assertEqual(m["anthropic-opus-5-high"]["score_pct"], 88.3)
-
-    def test_find_arc_matches_catalog_model(self):
-        m = bc.parse_arc(self.ARC_SNAP)
-        rec = bc.find_arc({"display": "Claude Opus 5 (Thinking)", "or_slug": "anthropic/claude-opus-5"}, m)
-        self.assertIsNotNone(rec)
-        self.assertEqual(rec["score_pct"], 90.4)
-        self.assertIsNone(bc.find_arc({"display": "GLM-5.3", "or_slug": "z-ai/glm-5.3"}, m))
-        self.assertIsNone(bc.find_arc({"display": "Nope 9", "or_slug": None}, m))
+class TestBcheckCache(unittest.TestCase):
 
     def test_newest_snapshot_age_and_staleness(self):
         # S2-M2: age keys on the _YYYYMMDD date embedded in the filename — a
@@ -312,7 +274,6 @@ class TestBcheckArcAndCache(unittest.TestCase):
                 self.assertGreater(bc.newest_snapshot_age_h("*lmarena*20*.html"), 30 * 24.0)
                 note = bc.cache_staleness_note()
                 self.assertIn("LMArena", note)
-                self.assertIn("ARC-AGI missing", note)
                 self.assertIn("--fetch", note)
                 # date-less filenames still fall back to mtime (checked by the
                 # bc.snapshot_age_hours unit test; here just ensure no crash)
@@ -320,7 +281,7 @@ class TestBcheckArcAndCache(unittest.TestCase):
                 (Path(td) / "artificial_analysis_20260101.html").write_text("x")
                 # newest matching snapshot wins: today-dated copies clear the note
                 today = datetime.now(timezone.utc).strftime("%Y%m%d")
-                for nm in (f"lmarena_{today}.html", f"arc_agi_{today}.json",
+                for nm in (f"lmarena_{today}.html",
                            f"livebench_{today}.csv", f"artificial_analysis_{today}.html"):
                     (Path(td) / nm).write_text("x")
                 self.assertEqual(bc.cache_staleness_note(), "")
@@ -363,11 +324,11 @@ class TestBcheckArcAndCache(unittest.TestCase):
     def test_stale_note_renders_cli_and_html(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
         models = list(bc.MODELS_CATALOG.values())
-        tui = bc.render_cli_table(models, color=False, stale_note="cached responses >24h — run with --fetch: ARC-AGI missing")
+        tui = bc.render_cli_table(models, color=False, stale_note="cached responses >24h — run with --fetch: LMArena missing")
         self.assertIn("cached responses >24h", tui)
         self.assertIn("[!]", tui)
-        h = bc.render_html_report(models, stale_note="stale: ARC-AGI missing")
-        self.assertIn("stale: ARC-AGI missing", h)
+        h = bc.render_html_report(models, stale_note="stale: LMArena missing")
+        self.assertIn("stale: LMArena missing", h)
 
 
 
@@ -434,18 +395,6 @@ class TestFetchPath(unittest.TestCase):
         self.assertEqual(out["probe-model-9"]["intelligenceIndex"], 55.0)
         snap = Path(self._tmp.name) / f"artificial_analysis_{self.stamp}.html"
         self.assertTrue(snap.exists())
-
-    def test_arc_fetch_true_parses_and_saves(self):
-        models = json.dumps([{"id": "probe-9", "displayName": "Probe 9", "providerId": "P", "modelGroup": "probe-9", "modelReleaseDate": "2026-08-01T00:00:00.000Z"}])
-        evals = json.dumps([{"datasetId": "v2_Semi_Private", "modelId": "probe-9", "score": 0.42, "display": True}])
-        with unittest.mock.patch.object(
-            bc, "fetch_url",
-            side_effect=lambda url, timeout=15: models if "models" in url else evals,
-        ):
-            snap = bc.load_arc_data(fetch=True)
-        self.assertIsNotNone(snap)
-        self.assertEqual(len(snap["evaluations"]), 1)
-        self.assertTrue((Path(self._tmp.name) / f"arc_agi_{self.stamp}.json").exists())
 
     def test_fetch_exception_is_logged_not_swallowed(self):
         with unittest.mock.patch.object(bc, "fetch_url", side_effect=OSError("simulated outage")):

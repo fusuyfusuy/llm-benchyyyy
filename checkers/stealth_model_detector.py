@@ -377,7 +377,7 @@ def main():  # noqa: PLR0915
         else:
             body = bc.fetch_url(AA_URL, timeout=20)
             if body:
-                html_txt = body.decode(errors="ignore")
+                html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
                 if do_write:
                     s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
                     bc.atomic_write_text(s, html_txt)
@@ -403,7 +403,7 @@ def main():  # noqa: PLR0915
         else:
             body = bc.fetch_url(LMARENA_URL, timeout=20)
             if body:
-                html_txt = body.decode(errors="ignore")
+                html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
                 if do_write:
                     s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
                     bc.atomic_write_text(s, html_txt)

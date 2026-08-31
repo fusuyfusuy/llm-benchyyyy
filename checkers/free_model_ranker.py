@@ -102,7 +102,7 @@ def fetch_or_load_cached_json(
         body = bc.fetch_url(api_url, timeout=20)
         if body:
             try:
-                data = json.loads(body.decode("utf-8", errors="ignore"))
+                data = json.loads(body if isinstance(body, str) else body.decode("utf-8", errors="ignore"))
                 if write:
                     target = RAW / f"{snapshot_prefix}_{dt.date.today().isoformat().replace('-', '')}.json"
                     bc.atomic_write_text(target, json.dumps(data, indent=2))
@@ -615,7 +615,7 @@ def main():  # noqa: PLR0915
     else:
         body = bc.fetch_url(AA_URL, timeout=20)
         if body:
-            html_txt = body.decode(errors="ignore")
+            html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
             if do_write:
                 s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
                 bc.atomic_write_text(s, html_txt)
@@ -640,7 +640,7 @@ def main():  # noqa: PLR0915
     else:
         body = bc.fetch_url(LMARENA_URL, timeout=20)
         if body:
-            html_txt = body.decode(errors="ignore")
+            html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
             if do_write:
                 s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
                 bc.atomic_write_text(s, html_txt)

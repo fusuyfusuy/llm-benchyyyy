@@ -97,7 +97,7 @@ OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OCGO_USAGE_API = "https://opencode.ai/zen/go/v1/usage"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-LMARENA_URL = "https://arena.ai/leaderboard/text"
+LMARENA_URL = "https://arena.ai/leaderboard"
 ARENA_URL = "https://arena.ai/leaderboard/text"
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
@@ -1252,6 +1252,38 @@ def render_limits_table(
     return "\n".join(out)
 
 
+def build_sort_key(sort_mode, eff_cost_fn):
+    """Return a row sort key for the given --sort mode.
+
+    All modes sort primary metric descending, then capability_q descending,
+    then model_id ascending — None/0-valued primaries fall to -1 (last).
+    """
+    def _cq(r):
+        return r["benchmarks"]["capability_q"] or -1
+
+    def _avi(r):
+        return r["value"]["avi_score"] or -1
+
+    if sort_mode == "fgi":
+        return lambda r: (-(r["value"]["fgi_score"] or -1), -_cq(r), r["model_id"])
+    if sort_mode == "bfi":
+        return lambda r: (-(r["value"]["bfi_score"] or -1), -_cq(r), r["model_id"])
+    if sort_mode == "cap":
+        return lambda r: (-_cq(r), -_avi(r), r["model_id"])
+    if sort_mode == "quality":
+        # Raw AA Quality Index (intelligenceIndex), NOT the z-derived capability_q composite
+        return lambda r: (-(r["benchmarks"].get("aa_intelligence") or -1), -_cq(r), r["model_id"])
+    if sort_mode == "req5h":
+        return lambda r: (-(r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed") or 0), -_avi(r), r["model_id"])
+    if sort_mode == "cost":
+        return lambda r: (eff_cost_fn(r), -_cq(r), r["model_id"])
+    if sort_mode == "intel":
+        return lambda r: (-(r["value"]["intelligence_per_dollar"] or -1), -_cq(r), r["model_id"])
+    if sort_mode == "avi":
+        return lambda r: (-_avi(r), -_cq(r), r["model_id"])
+    raise ValueError(f"unknown sort mode: {sort_mode}")
+
+
 def main():
     ap = argparse.ArgumentParser(description="OpenCode Go catalog checker — benchmarks + cost/benefit (offline cache by default; live only with --fetch)")
     ap.add_argument("--fetch", "--refresh", action="store_true",
@@ -1279,7 +1311,7 @@ def main():
     )
     ap.add_argument(
         "--sort",
-        choices=["avi", "fgi", "bfi", "cap", "req5h", "cost", "intel"],
+        choices=["avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"],
         default="avi",
         help="Sort order (default: avi)",
     )
@@ -1801,6 +1833,7 @@ def main():
 
     # Sort by chosen sort mode (default: avi)
     sort_mode = getattr(args, "sort", "avi")
+
     def _eff_cost(r):
         # S2-M1 class guard (parity with bc.compute_pareto_frontier._row_cost):
         # 0.0 is a REAL cost — free tiers dominate the frontier/sort; only
@@ -1810,20 +1843,7 @@ def main():
             v = r.get("cost_per_request_usd")
         return 999.0 if v is None else float(v)
 
-    if sort_mode == "fgi":
-        sort_key_fn = lambda r: (-(r["value"]["fgi_score"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
-    elif sort_mode == "bfi":
-        sort_key_fn = lambda r: (-(r["value"]["bfi_score"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
-    elif sort_mode == "cap":
-        sort_key_fn = lambda r: (-(r["benchmarks"]["capability_q"] or -1), -(r["value"]["avi_score"] or -1), r["model_id"])
-    elif sort_mode == "req5h":
-        sort_key_fn = lambda r: (-(r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed") or 0), -(r["value"]["avi_score"] or -1), r["model_id"])
-    elif sort_mode == "cost":
-        sort_key_fn = lambda r: (_eff_cost(r), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
-    elif sort_mode == "intel":
-        sort_key_fn = lambda r: (-(r["value"]["intelligence_per_dollar"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
-    else:  # "avi"
-        sort_key_fn = lambda r: (-(r["value"]["avi_score"] or -1), -(r["benchmarks"]["capability_q"] or -1), r["model_id"])
+    sort_key_fn = build_sort_key(sort_mode, _eff_cost)
 
     rows_sorted = sorted(rows, key=sort_key_fn)
 
@@ -1831,7 +1851,7 @@ def main():
     dynamic_docs_ids = set(pricing_live.keys()) | DOCS_IDS | ({"ox-alpha-free"} if "ox-alpha-free" in ocgo_api_ids else set())
     pareto_ids = set()
     try:
-        cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids]
+        cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids and r["benchmarks"].get("capability_q") is not None]
         for a in cand:
             a_cost = _eff_cost(a)
             a_q = a["benchmarks"].get("capability_q", 0)

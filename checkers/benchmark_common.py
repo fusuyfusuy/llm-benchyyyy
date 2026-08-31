@@ -57,6 +57,16 @@ C_CLINE = "\033[38;5;39m"     # Dodger Blue / Sky Accent
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+
+def fetch_url(url: str, timeout: int = 15) -> str | None:
+    """Fetch URL with standard user agent header. Returns decoded UTF-8 string or None on failure."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
 # ==============================================================================
 # 2. STRING NORMALIZATION & SAFE VALUE CONVERSIONS
 # ==============================================================================
@@ -498,13 +508,60 @@ def parse_livebench(csv_text: str, categories_json: str | dict | None = None, ve
 
 def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
     """
-    Parse Arena.ai / LMSYS Arena HTML leaderboard table.
+    Parse Arena.ai / LMSYS Arena HTML leaderboard.
+    Supports Next.js App Router RSC streamed JSON arrays ('"entries":[{...}]')
+    with automatic fallback to static HTML table parsing.
     Returns: dict[model_slug -> {rank, elo, votes, price_raw, context_raw, score_raw}]
     """
+    out = {}
+    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
+    pos = 0
+    while True:
+        idx = unescaped.find('"entries":[{', pos)
+        if idx == -1:
+            break
+        end_idx = unescaped.find("}]", idx)
+        if end_idx == -1:
+            break
+        json_str = '{"entries":' + unescaped[idx + 10 : end_idx + 2] + "}"
+        try:
+            data = json.loads(json_str)
+            for e in data.get("entries", []):
+                name = e.get("modelDisplayName") or e.get("modelKey")
+                if not name:
+                    continue
+                slug = norm_model_slug(name)
+                rank = _safe_int(e.get("rank"))
+                rating = e.get("rating")
+                elo = round(float(rating), 0) if rating is not None else None
+                votes = _safe_int(e.get("votes"))
+                p_in = e.get("inputPricePerMillion")
+                p_out = e.get("outputPricePerMillion")
+                p_str = f"${p_in} / ${p_out}" if p_in is not None else ""
+                ctx = e.get("contextLength")
+                ctx_str = f"{ctx//1000}k" if ctx else ""
+                if slug not in out:
+                    out[slug] = {
+                        "rank": rank,
+                        "elo": elo,
+                        "votes": votes,
+                        "price_raw": p_str,
+                        "context_raw": ctx_str,
+                        "score_raw": str(int(elo)) if elo else "",
+                    }
+        except Exception:
+            pass
+        pos = end_idx + 2
+
+    if out:
+        if verbose:
+            print(f"  LMArena: parsed {len(out)} entries from Next.js payload")
+        return out
+
+    # Legacy HTML table fallback
     trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
     if verbose:
         print(f"  LMArena: found {len(trs)} tr rows")
-    out = {}
     for tr in trs[1:]:
         cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
         if len(cells) < 7:
@@ -673,7 +730,7 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
 
 # Canonical API / Scrape Endpoints
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-LMARENA_URL = "https://lmarena.ai/?leaderboard"
+LMARENA_URL = "https://arena.ai/leaderboard"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
 OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
@@ -1207,7 +1264,22 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
     name = re.sub(r"\s*\([^)]*\)", "", raw_name).strip()
     
     # Pool / Limit badge
-    if context == "ocheck":
+    if context == "ccheck":
+        cred = m.get("pricing", {}).get("monthly_credits")
+        if cred is None:
+            # fallback for older snapshots that used monthly_usage_limit_usd
+            cred = m.get("pricing", {}).get("monthly_usage_limit_usd")
+        if cred is None:
+            pool_str = "Free"
+        elif cred >= 60:
+            pool_str = f"${cred:.0f}/m"
+        elif cred >= 40:
+            pool_str = f"${cred:.0f}/m"
+        elif cred >= 30:
+            pool_str = f"${cred:.0f}/m"
+        else:
+            pool_str = f"${cred:.0f}/m"
+    elif context == "ocheck":
         usage = m.get("pricing", {}).get("monthly_usage_limit_usd")
         if usage == 60:
             pool_str = "$60/m"
@@ -1242,8 +1314,7 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
     )
     
     reasoning = _safe_float(
-        m.get("arc_agi")
-        or m.get("benchmarks", {}).get("aa_intelligence")
+        m.get("benchmarks", {}).get("aa_intelligence")
         or m.get("base_metrics", {}).get("aa_reasoning")
         or (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None),
         default=None,
@@ -1651,12 +1722,8 @@ def diff_model_catalog(
 
         # If brand new model unseen in previous snapshot
         is_brand_new = has_prev_snapshot and (mid not in prev_seen_map)
-        if not first_seen_str:
-            if is_brand_new:
-                first_seen_str = now_dt.isoformat()
-            elif not has_prev_snapshot:
-                # Cold start: initialize timestamp, but don't mark as green unless explicit created date
-                first_seen_str = now_dt.isoformat()
+        if not first_seen_str and is_brand_new:
+            first_seen_str = now_dt.isoformat()
 
         if first_seen_str:
             r["first_seen"] = first_seen_str

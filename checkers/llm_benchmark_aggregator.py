@@ -12,7 +12,6 @@ Ingests & synthesizes:
 1. Arena.ai / LMSYS Arena (Overall Elo, Coding Elo, Hard Prompts Elo, Agent/Code Leaderboard)
 2. Artificial Analysis (Quality Index, Coding Index, Math & Reasoning Index, Speed tok/s, Price $/M)
 3. OpenRouter Benchmarks & Metrics (Latency, Throughput, Pricing)
-4. ARC Prize (ARC-AGI-2 verified fluid reasoning benchmark)
 
 Zero-dependency Python 3 standard library.
 """
@@ -84,7 +83,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-opus-5",
         "lm_slug": "claude-opus-5",
         "or_slug": "anthropic/claude-opus-5",
-        "arc_agi": 90.4,
         "base_metrics": {
             "lm_elo": 1435,
             "lm_coding": 1520,
@@ -106,7 +104,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-fable-5",
         "lm_slug": "claude-fable-5",
         "or_slug": "anthropic/claude-fable-5",
-        "arc_agi": 88.0,
         "base_metrics": {
             "lm_elo": 1432,
             "lm_coding": 1512,
@@ -128,7 +125,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-opus-4-6",
         "lm_slug": "claude-opus-4-6",
         "or_slug": "anthropic/claude-opus-4.6",
-        "arc_agi": 68.8,
         "base_metrics": {
             "lm_elo": 1420,
             "lm_coding": 1495,
@@ -150,7 +146,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-sonnet-5",
         "lm_slug": "claude-sonnet-5",
         "or_slug": "anthropic/claude-sonnet-5",
-        "arc_agi": 64.2,
         "base_metrics": {
             "lm_elo": 1410,
             "lm_coding": 1485,
@@ -172,7 +167,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-sonnet-4-6",
         "lm_slug": "claude-sonnet-4-6",
         "or_slug": "anthropic/claude-sonnet-4.6",
-        "arc_agi": 62.5,
         "base_metrics": {
             "lm_elo": 1398,
             "lm_coding": 1478,
@@ -194,7 +188,6 @@ MODELS_CATALOG = {
         "aa_slug": "claude-haiku-4-5",
         "lm_slug": "claude-haiku-4-5",
         "or_slug": "anthropic/claude-haiku-4.5",
-        "arc_agi": 24.5,
         "base_metrics": {
             "lm_elo": 1320,
             "lm_coding": 1360,
@@ -217,7 +210,6 @@ MODELS_CATALOG = {
         "aa_slug": "gemini-3-1-pro",
         "lm_slug": "gemini-3.1-pro",
         "or_slug": "google/gemini-3.1-pro-preview",
-        "arc_agi": 77.1,
         "base_metrics": {
             "lm_elo": 1486,
             "lm_coding": 1460,
@@ -239,7 +231,6 @@ MODELS_CATALOG = {
         "aa_slug": "gemini-3-7-flash",
         "lm_slug": "gemini-3.7-flash",
         "or_slug": "google/gemini-3.7-flash",
-        "arc_agi": 84.6,
         "base_metrics": {
             "lm_elo": 1490,
             "lm_coding": 1445,
@@ -261,7 +252,6 @@ MODELS_CATALOG = {
         "aa_slug": "gemini-3-1-flash-lite",
         "lm_slug": "gemini-3.1-flash-lite",
         "or_slug": "google/gemini-3.1-flash-lite",
-        "arc_agi": 18.0,
         "base_metrics": {
             "lm_elo": 1432,
             "lm_coding": 1395,
@@ -284,7 +274,6 @@ MODELS_CATALOG = {
         "aa_slug": "glm-5-3",
         "lm_slug": "glm-5.3",
         "or_slug": "z-ai/glm-5.3",
-        "arc_agi": 38.0,
         "base_metrics": {
             "lm_elo": 1362,
             "lm_coding": 1390,
@@ -306,7 +295,6 @@ MODELS_CATALOG = {
         "aa_slug": "kimi-k3",
         "lm_slug": "kimi-k3",
         "or_slug": "moonshot/kimi-k3",
-        "arc_agi": 66.5,
         "base_metrics": {
             "lm_elo": 1410,
             "lm_coding": 1475,
@@ -328,7 +316,6 @@ MODELS_CATALOG = {
         "aa_slug": "deepseek-v4-pro",
         "lm_slug": "deepseek-v4-pro",
         "or_slug": "deepseek/deepseek-v4-pro",
-        "arc_agi": 63.5,
         "base_metrics": {
             "lm_elo": 1375,
             "lm_coding": 1415,
@@ -350,7 +337,6 @@ MODELS_CATALOG = {
         "aa_slug": "deepseek-v4-flash",
         "lm_slug": "deepseek-v4-flash",
         "or_slug": "deepseek/deepseek-v4-flash",
-        "arc_agi": 61.4,
         "base_metrics": {
             "lm_elo": 1335,
             "lm_coding": 1360,
@@ -372,7 +358,6 @@ MODELS_CATALOG = {
         "aa_slug": "mimo-v2-5",
         "lm_slug": "mimo-v2.5",
         "or_slug": "xiaomi/mimo-v2.5",
-        "arc_agi": 24.0,
         "base_metrics": {
             "lm_elo": 1315,
             "lm_coding": 1335,
@@ -394,7 +379,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-5-6-luna",
         "lm_slug": "gpt-5.6-luna",
         "or_slug": "openai/gpt-5.6-luna",
-        "arc_agi": 59.6,
         "base_metrics": {
             "lm_elo": 1365,
             "lm_coding": 1395,
@@ -416,7 +400,6 @@ MODELS_CATALOG = {
         "aa_slug": "qwen3-8-max",
         "lm_slug": "qwen3.8-max",
         "or_slug": "qwen/qwen3.8-max",
-        "arc_agi": 44.0,
         "base_metrics": {
             "lm_elo": 1368,
             "lm_coding": 1395,
@@ -438,7 +421,6 @@ MODELS_CATALOG = {
         "aa_slug": "minimax-m3",
         "lm_slug": "minimax-m3",
         "or_slug": "minimax/minimax-m3",
-        "arc_agi": 32.0,
         "base_metrics": {
             "lm_elo": 1338,
             "lm_coding": 1360,
@@ -460,7 +442,6 @@ MODELS_CATALOG = {
         "aa_slug": "mimo-v2-5-pro",
         "lm_slug": "mimo-v2.5-pro",
         "or_slug": "minimax/mimo-v2.5-pro",
-        "arc_agi": 35.0,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1360,
@@ -482,7 +463,6 @@ MODELS_CATALOG = {
         "aa_slug": "qwen3-7-plus",
         "lm_slug": "qwen3.7-plus",
         "or_slug": "qwen/qwen3.7-plus",
-        "arc_agi": 35.0,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1360,
@@ -504,7 +484,6 @@ MODELS_CATALOG = {
         "aa_slug": "kimi-k2-7-code",
         "lm_slug": "kimi-k2.7-code",
         "or_slug": "moonshot/kimi-k2.7-code",
-        "arc_agi": 35.0,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1360,
@@ -526,7 +505,6 @@ MODELS_CATALOG = {
         "aa_slug": "hy3",
         "lm_slug": "hy3",
         "or_slug": "tencent/hy3",
-        "arc_agi": 35.0,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1360,
@@ -548,7 +526,6 @@ MODELS_CATALOG = {
         "aa_slug": "glm-5-2",
         "lm_slug": "glm-5.2",
         "or_slug": "z-ai/glm-5.2",
-        "arc_agi": 35.0,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1360,
@@ -570,7 +547,6 @@ MODELS_CATALOG = {
         "aa_slug": "longcat-2-0",
         "lm_slug": "longcat-2.0",
         "or_slug": "meituan/longcat-2.0",
-        "arc_agi": 30.0,
         "base_metrics": {
             "lm_elo": 1335,
             "lm_coding": 1340,
@@ -593,7 +569,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-5-6-sol",
         "lm_slug": "gpt-5.6-sol",
         "or_slug": "openai/gpt-5.6-sol",
-        "arc_agi": 81.0,
         "base_metrics": {
             "lm_elo": 1430,
             "lm_coding": 1515,
@@ -615,7 +590,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-5-4-pro",
         "lm_slug": "gpt-5.4-pro",
         "or_slug": "openai/gpt-5.4-pro",
-        "arc_agi": 72.5,
         "base_metrics": {
             "lm_elo": 1425,
             "lm_coding": 1480,
@@ -637,7 +611,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-5-2-codex",
         "lm_slug": "gpt-5.2-codex",
         "or_slug": "openai/gpt-5.2-codex",
-        "arc_agi": 48.0,
         "base_metrics": {
             "lm_elo": 1390,
             "lm_coding": 1465,
@@ -659,7 +632,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-oss-120b",
         "lm_slug": "gpt-oss-120b",
         "or_slug": "openai/gpt-oss-120b",
-        "arc_agi": 38.5,
         "base_metrics": {
             "lm_elo": 1350,
             "lm_coding": 1380,
@@ -681,7 +653,6 @@ MODELS_CATALOG = {
         "aa_slug": "gpt-5-5",
         "lm_slug": "gpt-5-5-xhigh",
         "or_slug": "openai/gpt-5.5",
-        "arc_agi": 78.5,
         "base_metrics": {
             "lm_elo": 1428,
             "lm_coding": 1500,
@@ -703,7 +674,6 @@ MODELS_CATALOG = {
         "aa_slug": "grok-4-5",
         "lm_slug": "grok-4.5",
         "or_slug": "x-ai/grok-4.5",
-        "arc_agi": 67.1,
         "base_metrics": {
             "lm_elo": 1395,
             "lm_coding": 1435,
@@ -725,7 +695,6 @@ MODELS_CATALOG = {
         "aa_slug": "qwen3-coder",
         "lm_slug": "qwen3-coder",
         "or_slug": "qwen/qwen3-coder",
-        "arc_agi": 42.0,
         "base_metrics": {
             "lm_elo": 1372,
             "lm_coding": 1450,
@@ -745,24 +714,9 @@ MODELS_CATALOG = {
 LIVEBENCH_URL = "https://livebench.ai"
 LIVEBENCH_CSV_URL = "https://livebench.ai/table_2026_06_25.csv"
 LIVEBENCH_CAT_URL = "https://livebench.ai/categories_2026_06_25.json"
-LMARENA_URL = "https://arena.ai/leaderboard/text"
+LMARENA_URL = "https://arena.ai/leaderboard"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-ARC_MODELS_URL = "https://arcprize.org/media/data/models.json"
-ARC_EVALS_URL = "https://arcprize.org/media/data/evaluations.json"
-ARC_DATASET = "v2_Semi_Private"  # main public ARC-AGI-2 leaderboard column (arcprize.org/leaderboard)
 CACHE_TTL_H = bc.CACHE_TTL_H  # canonical 24h freshness window lives in benchmark_common (rule 7)
-
-# Trailing effort/tier parentheticals stripped for base-name matching (ARC lists one row per tier)
-ARC_TIER_RE = re.compile(r"\s*\((?:[^()]*(?:max|x-?high|high|medium|low|thinking|preview|cot|effort|reasoning|flagship|bedrock)[^()]*)\)\s*$", re.I)
-
-
-def arc_base_name(s):
-    """Strip trailing effort/tier parentheticals: 'Claude Opus 5 (Max)' -> 'Claude Opus 5'."""
-    prev = None
-    while s and prev != s:
-        prev = s
-        s = ARC_TIER_RE.sub("", s).strip()
-    return s
 
 
 # Trailing effort/tier hyphen-tokens stripped for LiveBench base-name matching
@@ -789,7 +743,7 @@ def find_livebench(model_id_or_dict, live_map):
       1. Exact normalized match.
       2. Tier-base match: LiveBench lists many flagships ONLY under effort/tier
          suffixes (-max-effort, -preview-high); link via the tier-stripped base
-         name, best overall per base (same best-per-base rule as parse_arc).
+         name, best overall per base.
       3. Variant fallback: shared token-safe matcher (S2-C2).
     Miss at every stage => caller keeps the static catalog value.
     """
@@ -896,37 +850,6 @@ def find_aa(model_id_or_dict, aa_map):
         qn = bc.norm_id(c)
         for k, v in aa_map.items():
             if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("intelligenceIndex") is not None:
-                return v
-    return None
-
-
-def find_arc(model_id_or_dict, arc_map):
-    """Version-safe matching for ARC-AGI-2 leaderboard models."""
-    if not arc_map:
-        return None
-    if isinstance(model_id_or_dict, dict):
-        cands = [
-            model_id_or_dict.get("display"),
-            arc_base_name(model_id_or_dict.get("display") or ""),
-            model_id_or_dict.get("aa_slug"),
-            model_id_or_dict.get("or_slug"),
-        ]
-    else:
-        cands = [model_id_or_dict]
-    for c in cands:
-        if not c:
-            continue
-        cn = norm_model_slug(c)
-        if not cn:
-            continue
-        # 1. Exact match
-        for k, v in arc_map.items():
-            if norm_model_slug(k) == cn:
-                return v
-        # 2. Variant fallback: shared token-safe matcher (S2-C2); None => static value kept.
-        qn = bc.norm_id(c)
-        for k, v in arc_map.items():
-            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("score_pct") is not None:
                 return v
     return None
 
@@ -1061,7 +984,6 @@ def cache_staleness_note():
         ("LiveBench", "*livebench*20*.csv"),
         ("LMArena", "*lmarena*20*.html"),
         ("Artificial Analysis", "*artificial_analysis*20*.html"),
-        ("ARC-AGI", "arc_agi_20*.json"),
     ):
         age = newest_snapshot_age_h(pat)
         if age is None:
@@ -1071,77 +993,6 @@ def cache_staleness_note():
     if not parts:
         return ""
     return "cached responses >24h — run with --fetch: " + ", ".join(parts)
-
-
-def load_arc_data(verbose=False, fetch=False):
-    """ARC-AGI-2 leaderboard data from the 24h response cache (arc_agi_YYYYMMDD.json) or live endpoints."""
-    if fetch:
-        m_txt = fetch_url(ARC_MODELS_URL)
-        e_txt = fetch_url(ARC_EVALS_URL)
-        if m_txt and e_txt:
-            try:
-                snap = {
-                    "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-                    "models": json.loads(m_txt),
-                    "evaluations": json.loads(e_txt),
-                }
-                stamp = dt.date.today().isoformat().replace("-", "")
-                s = RAW / f"arc_agi_{stamp}.json"
-                bc.atomic_write_text(s, json.dumps(snap, indent=2))
-                print(f"  saved ARC-AGI -> {s.relative_to(ROOT)} ({len(snap['evaluations'])} evals)")
-                return snap
-            except Exception as e:  # noqa: BLE001
-                print(f"  WARN ARC-AGI fetch/parse: {e}", file=sys.stderr)
-        else:
-            print("  WARN ARC-AGI endpoints fetch failed, falling back to cached snapshot", file=sys.stderr)
-    matches = sorted(glob.glob(str(RAW / "arc_agi_20*.json")))
-    for p_json in reversed(matches):
-        try:
-            return json.loads(pathlib.Path(p_json).read_text(encoding="utf-8", errors="ignore"))
-        except Exception:  # noqa: BLE001
-            pass
-    return None
-
-
-def parse_arc(snap, verbose=False):
-    """Normalize ARC-AGI-2 scores keyed by full displayName, modelGroup, and tier-stripped base name.
-
-    Only ARC_DATASET rows, display != False, Human excluded; best (max) score per group/base.
-    """
-    if not isinstance(snap, dict):
-        return {}
-    models = {m.get("id"): m for m in snap.get("models", []) if isinstance(m, dict) and m.get("id")}
-    best_group = {}
-    for e in snap.get("evaluations", []):
-        if not isinstance(e, dict) or e.get("datasetId") != ARC_DATASET or e.get("display") is False:
-            continue
-        m = models.get(e.get("modelId"))
-        if not m or m.get("providerId") == "Human":
-            continue
-        if not isinstance(e.get("score"), (int, float)):
-            continue
-        pct = round(float(e["score"]) * 100.0, 1)
-        group = m.get("modelGroup") or m["id"]
-        cur = best_group.get(group)
-        if cur is None or pct > cur["score_pct"]:
-            best_group[group] = {
-                "score_pct": pct,
-                "display": m.get("displayName") or group,
-                "released": m.get("modelReleaseDate"),
-            }
-    out = {}
-
-    def _put(key, rec):
-        if key and (key not in out or rec["score_pct"] > out[key]["score_pct"]):
-            out[key] = rec
-
-    for group, rec in best_group.items():
-        _put(rec["display"], rec)
-        _put(group, rec)
-        _put(arc_base_name(rec["display"]), rec)
-    if verbose:
-        print(f"  ARC: {len(best_group)} scored groups ({ARC_DATASET})")
-    return out
 
 
 def _z_scores(values: list) -> list:
@@ -1164,7 +1015,7 @@ def _z_scores(values: list) -> list:
 def calculate_composite_scores(models_dict):
     """
     Computes:
-      1. Normalized Composite Capability Q ∈ [40.0, 99.9] across Arena, AA, and ARC-AGI-2.
+      1. Normalized Composite Capability Q ∈ [40.0, 99.9] across Arena, AA, and LiveBench.
       2. Task Success Probability P_succ(Q) modeling the capability threshold floor.
       3. Hidden Token Multiplier T_mult(Q) accounting for retry / debug token burn.
       4. Effective Cost E_cost ($/M) per successfully verified task.
@@ -1197,7 +1048,6 @@ def calculate_composite_scores(models_dict):
     z_lm_elo = _z_scores([m["base_metrics"].get("lm_elo") for m in m_list])
     z_lm_cod = _z_scores([m["base_metrics"].get("lm_coding") for m in m_list])
     z_aa_reas = _z_scores([m["base_metrics"].get("aa_reasoning") for m in m_list])  # static for ALL: no live AA equivalent, uniform scale
-    z_arc = _z_scores([m.get("arc_agi") for m in m_list])
     z_live = _z_scores([
         m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") if isinstance(m.get("livebench"), (int, float)) else None)
         for m in m_list
@@ -1209,7 +1059,6 @@ def calculate_composite_scores(models_dict):
         (0.150, z_aa_qual),
         (0.125, z_aa_cod),
         (0.125, z_aa_reas),
-        (0.175, z_arc),
         (0.175, z_live),
     )
 
@@ -1268,7 +1117,6 @@ BCHECK_COL_MEDAL_KEYS = {
     "avi": (lambda m: m.get("avi_score", 0), True, None),
     "fgi": (lambda m: m.get("fgi_score", 0), True, None),
     "live": (lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float))),
-    "arc": (lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float))),
     "arena": (lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float))),
     "speed": (lambda m: m["base_metrics"].get("speed_tps", 0), True, lambda m: isinstance(m["base_metrics"].get("speed_tps"), (int, float))),
     "price": (lambda m: m.get("blended_price", 999), False, None),
@@ -1308,7 +1156,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("AVI", 6, ">"),
             ("FGI", 5, ">"),
             ("Live%", 6, ">"),
-            ("ARC-2", 6, ">"),
         ]
     else:
         headers = [
@@ -1321,7 +1168,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("AVI", 6, ">"),
             ("FGI", 5, ">"),
             ("Live%", 6, ">"),
-            ("ARC-2", 6, ">"),
             ("Arena", 6, ">"),
             ("Speed", 7, ">"),
             ("Price", 12, ">"),
@@ -1336,7 +1182,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     # 1. Executive Summary Banner
-    title_str = "⚡ AGENTIC BENCHMARK & COST-BENEFIT RADAR (Arena.ai · LiveBench · ARC-AGI-2 · AA)"
+    title_str = "⚡ AGENTIC BENCHMARK & COST-BENEFIT RADAR (Arena.ai · LiveBench · AA)"
     f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score', 0):.1f})" if top_frontier else ""
     v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score', 0):.1f})" if top_avi else ""
     s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed['base_metrics'].get('speed_tps', 0):.0f}t/s)" if top_speed else ""
@@ -1364,7 +1210,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" AGENTIC BENCHMARK & COST-BENEFIT RADAR (LiveBench · ARC-2 · Arena · AA) — Tracked: {total_models} models",
+        plain_title_line=f" AGENTIC BENCHMARK & COST-BENEFIT RADAR (LiveBench · Arena · AA) — Tracked: {total_models} models",
         plain_diff_parts=diff_parts,
     ))
 
@@ -1415,7 +1261,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         avi_badge = medal_badge(meds.get("avi"), color=color)
         fgi_badge = medal_badge(meds.get("fgi"), color=color)
         live_badge = medal_badge(meds.get("live"), color=color)
-        arc_badge = medal_badge(meds.get("arc"), color=color)
         arena_badge = medal_badge(meds.get("arena"), color=color)
         speed_badge = medal_badge(meds.get("speed"), color=color)
         price_badge = medal_badge(meds.get("price"), color=color)
@@ -1427,7 +1272,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         fgi = m.get("fgi_score", 0)
         lb = m.get("livebench", {})
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
-        arc = m.get("arc_agi", "-")
         lcod = bm.get("lm_coding", "-")
         elo = bm.get("lm_elo", "-")
         spd = bm.get("speed_tps", "-")
@@ -1441,7 +1285,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         avi_disp = f"{avi:.1f}" + avi_badge
         fgi_disp = f"{fgi:.1f}" + fgi_badge
         lb_disp = (f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—") + live_badge
-        arc_disp = (f"{arc:.1f}%" if isinstance(arc, (int, float)) else f"{arc}") + arc_badge
         elo_disp = (f"{int(elo)}" if isinstance(elo, (int, float)) else f"{elo}") + arena_badge
         spd_disp = (f"{spd:.0f}t/s" if isinstance(spd, (int, float)) else f"{spd}") + speed_badge
         price_disp = price_str + price_badge
@@ -1460,7 +1303,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             avi_color = score_color_avi(avi)
             fgi_color = score_color_fgi(fgi)
             lb_color = C_GREEN if (isinstance(lb_res, (int, float)) and lb_res >= 78.0) else (C_CYAN if (isinstance(lb_res, (int, float)) and lb_res >= 70.0) else (C_YELLOW if (isinstance(lb_res, (int, float)) and lb_res >= 60.0) else C_GRAY))
-            arc_color = C_GREEN if (isinstance(arc, (int, float)) and arc >= 75.0) else (C_CYAN if (isinstance(arc, (int, float)) and arc >= 55.0) else (C_YELLOW if (isinstance(arc, (int, float)) and arc >= 40.0) else C_GRAY))
             elo_color = C_GREEN if (isinstance(elo, (int, float)) and elo >= 1480) else (C_CYAN if (isinstance(elo, (int, float)) and elo >= 1440) else (C_YELLOW if (isinstance(elo, (int, float)) and elo >= 1400) else C_GRAY))
             spd_color = C_GREEN if (isinstance(spd, (int, float)) and spd >= 100) else (C_CYAN if (isinstance(spd, (int, float)) and spd >= 60) else C_WHITE)
 
@@ -1474,7 +1316,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
                 color_cell(avi_disp, avi_color, width=6, align=">", bg=bg),
                 color_cell(fgi_disp, fgi_color, width=5, align=">", bg=bg),
                 color_cell(lb_disp, lb_color, width=6, align=">", bg=bg),
-                color_cell(arc_disp, arc_color, width=6, align=">", bg=bg),
             ]
             if not is_slim:
                 row_cells.extend([
@@ -1494,7 +1335,6 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
                 f"{avi_disp:>6}",
                 f"{fgi_disp:>5}",
                 f"{lb_disp:>6}",
-                f"{arc_disp:>6}",
             ]
             if not is_slim:
                 row_items.extend([
@@ -1521,12 +1361,12 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
             ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
-            ("Q(Cap)", "Capability (40–99.9) across Arena, LiveBench, ARC-2, AA.", C_GREEN),
+            ("Q(Cap)", "Capability (40–99.9) across Arena, LiveBench, AA.", C_GREEN),
             ("FGI", "Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.", C_GREEN),
             ("AVI", "Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.", C_GREEN),
             ("Eff $/M", "Real Cost/Task: Price × retry multiplier (T_mult).", C_GREEN),
             ("P(Succ)", "Estimated 1-turn pass rate (<40% = high multi-file risk).", C_GREEN),
-            ("Live/ARC", "LiveBench coding % · ARC-AGI-2 fluid reasoning %.", C_GREEN),
+            ("Live", "LiveBench coding % · decontaminated overall.", C_GREEN),
         ],
         color=color,
     ))
@@ -1548,7 +1388,6 @@ def render_podium_table(models_list, color=None):
         ("Q(Cap) — Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
         ("FGI — Architectural Gate", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
         ("AVI — Daily Driver ROI", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
-        ("ARC-AGI-2 — Fluid Logic", lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float)), lambda m: f"{m.get('arc_agi'):.1f}%"),
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai — Global Elo", lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_elo'))}"),
         ("Coding Elo — LMSYS Arena", lambda m: m["base_metrics"].get("lm_coding", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_coding"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_coding'))}"),
@@ -1643,12 +1482,12 @@ def render_markdown_report(models_list, title=None, pareto_ids=None):
 
     lines = [
         f"# {title}\n",
-        f"Consolidated capability & cost-efficiency benchmark across **OpenCode Go**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models** across Arena.ai, LiveBench (https://livebench.ai), ARC Prize (ARC-AGI-2), and Artificial Analysis.",
+        f"Consolidated capability & cost-efficiency benchmark across **OpenCode Go**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models** across Arena.ai, LiveBench (https://livebench.ai), and Artificial Analysis.",
         "",
         "## 1. Master Agentic Value & Capability Leaderboard",
         "",
-        "| Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | AVI (Value) | FGI (Gate) | LiveBench (%) | ARC-AGI-2 (%) | Coding Elo | Speed | Raw $/M |",
-        "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
+        "| Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | AVI (Value) | FGI (Gate) | LiveBench (%) | Coding Elo | Speed | Raw $/M |",
+        "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
 
     for m in models_list:
@@ -1665,20 +1504,18 @@ def render_markdown_report(models_list, title=None, pareto_ids=None):
         lb = m.get("livebench", {})
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
-        arc = f"{m.get('arc_agi', '—'):.1f}%" if isinstance(m.get('arc_agi'), (int, float)) else "—"
         lcod = f"{bm.get('lm_coding', '—')}"
         spd = f"{bm.get('speed_tps', '—'):.0f} t/s" if isinstance(bm.get('speed_tps'), (int, float)) else "—"
         cost = f"${m['price_in']:.2f} / ${m['price_out']:.2f}"
 
         lines.append(
-            f"| {mid} | {sub} | {q} | {psucc} | {eff_cost} | {avi} | {fgi} | {lb_str} | {arc} | {lcod} | {spd} | {cost} |"
+            f"| {mid} | {sub} | {q} | {psucc} | {eff_cost} | {avi} | {fgi} | {lb_str} | {lcod} | {spd} | {cost} |"
         )
 
     podium_cols = [
         ("Q(Cap) — Composite Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
         ("FGI — Architectural Gate Index", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
         ("AVI — Agentic Value Index (ROI)", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
-        ("ARC-AGI-2 (%) — Fluid Reasoning", lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float)), lambda m: f"{m.get('arc_agi'):.1f}%"),
         ("LiveBench (%) — Decontaminated", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai Elo — Global Arena", lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_elo'))}"),
         ("Coding Elo — LMSYS Arena", lambda m: m["base_metrics"].get("lm_coding", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_coding"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_coding'))}"),
@@ -1782,7 +1619,6 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             <td style="font-weight:700; color:#10b981;">{m.get('avi_score', 0):.1f}</td>
             <td style="font-weight:700; color:#8b5cf6;">{m.get('fgi_score', 0):.1f}</td>
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
-            <td>{m.get('arc_agi', '—')}%</td>
             <td>{bm.get('lm_coding', '—')}</td>
             <td>{bm.get('speed_tps', '—')} t/s</td>
             <td>${m['price_in']:.2f} / ${m['price_out']:.2f}</td>
@@ -1793,7 +1629,6 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         ("Q(Cap) — Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
         ("FGI — Architectural Gate", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
         ("AVI — Daily Driver ROI", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
-        ("ARC-AGI-2 — Fluid Logic", lambda m: m.get("arc_agi", 0) if isinstance(m.get("arc_agi"), (int, float)) else 0, True, lambda m: isinstance(m.get("arc_agi"), (int, float)), lambda m: f"{m.get('arc_agi'):.1f}%"),
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai — Global Elo", lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_elo'))}"),
         ("Coding Elo — LMSYS Arena", lambda m: m["base_metrics"].get("lm_coding", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_coding"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_coding'))}"),
@@ -1854,7 +1689,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 <body>
 <div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
-    <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · ARC Prize (ARC-AGI-2) · Agentic Value Index (AVI)</div>
+    <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · Agentic Value Index (AVI)</div>
     {f'<div class="legend">⚠ {html.escape(stale_note)}</div>' if stale_note else ""}
 
     <h2>1. Master Agentic Value Leaderboard</h2>
@@ -1870,7 +1705,6 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
                 <th>AVI (ROI)</th>
                 <th>FGI (Gate)</th>
                 <th>LiveBench</th>
-                <th>ARC-AGI-2</th>
                 <th>Coding Elo</th>
                 <th>Speed</th>
                 <th>Price In/Out</th>
@@ -1948,7 +1782,7 @@ def main():
     parser.add_argument("--md", type=str, nargs="?", const="stdout", help="Output Markdown report")
     parser.add_argument("--html", type=str, nargs="?", const="docs/reports/benchmarks.html", help="Generate HTML dashboard")
     parser.add_argument("--fetch", "--refresh", action="store_true",
-                        help="Refresh the 24h response cache now: fetch LiveBench/LMArena/Artificial Analysis/ARC-AGI live, save dated snapshots to docs/data/raw/, and update the benchmarks.json NEW baseline. Default runs fully offline on cache.")
+                        help="Refresh the 24h response cache now: fetch LiveBench/LMArena/Artificial Analysis live, save dated snapshots to docs/data/raw/, and update the benchmarks.json NEW baseline. Default runs fully offline on cache.")
     parser.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     parser.add_argument("--slim", action="store_true", help="Force compact 95-column table layout (for split panes)")
     parser.add_argument("--wide", action="store_true", help="Force full 125-column table layout")
@@ -1993,16 +1827,6 @@ def main():
             if rec.get("medianTps") is not None:
                 bm["speed_tps"] = rec["medianTps"]
 
-    # Load ARC-AGI-2 (arcprize.org static JSON); best tier per group; static catalog value stays the offline fallback
-    arc_map = parse_arc(load_arc_data(fetch=do_fetch))
-    if arc_map:
-        for mid, m in MODELS_CATALOG.items():
-            rec = find_arc(m, arc_map)
-            if rec and rec.get("score_pct") is not None:
-                m["arc_agi"] = rec["score_pct"]
-                m["arc_display"] = rec["display"]
-                m["created_date"] = rec.get("released")
-
     calculate_composite_scores(MODELS_CATALOG)
 
     models = list(MODELS_CATALOG.values())
@@ -2036,7 +1860,7 @@ def main():
     elif args.sort == "coding":
         models.sort(key=lambda m: m["base_metrics"].get("lm_coding", 0), reverse=True)
     elif args.sort == "reasoning":
-        models.sort(key=lambda m: (m.get("arc_agi", 0) + m["base_metrics"].get("aa_reasoning", 0)), reverse=True)
+        models.sort(key=lambda m: m["base_metrics"].get("aa_reasoning", 0), reverse=True)
     elif args.sort == "speed":
         models.sort(key=lambda m: m["base_metrics"].get("speed_tps", 0), reverse=True)
     elif args.sort == "live":

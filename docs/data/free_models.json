@@ -11,19 +11,7 @@
     "note": "free = OpenCode Zen/Go -free tiers + Cline Free tier (OpenRouter list NOT shown; OR catalog fetched only to validate Cline free claims + price/context); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable"
   },
   "catalog_diff": {
-    "added": [
-      "big-pickle",
-      "cline-free/longcat-2.0",
-      "deepseek-v4-flash-free",
-      "hy3-free",
-      "laguna-s-2.1-free",
-      "ling-3.0-flash-fin-free",
-      "mimo-v2.5-free",
-      "muse-spark-1.2-contributor-free",
-      "nemotron-3-ultra-free",
-      "nemotron-3.5-lightning-free",
-      "z-ai/glm-5.3-flash"
-    ],
+    "added": [],
     "removed": [
       "cohere/north-mini-code:free",
       "dots-studio/dots-3-note-preview:free",
@@ -83,8 +71,8 @@
         "LM"
       ],
       "composite": 0.93,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "deepseek-v4-flash-free",
@@ -117,8 +105,8 @@
         "LM"
       ],
       "composite": 0.505,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "ling-3.0-flash-fin-free",
@@ -148,8 +136,8 @@
         "AA"
       ],
       "composite": -0.006,
-      "first_seen": "2026-08-31T00:10:47.233187+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "cline-free/longcat-2.0",
@@ -179,8 +167,8 @@
         "AA"
       ],
       "composite": -0.421,
-      "first_seen": "2026-08-30T03:14:37.124969+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "mimo-v2.5-free",
@@ -210,8 +198,8 @@
         "LM"
       ],
       "composite": -0.906,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "nemotron-3.5-lightning-free",
@@ -241,8 +229,8 @@
         "AA"
       ],
       "composite": -1.538,
-      "first_seen": "2026-08-31T00:10:47.233187+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "big-pickle",
@@ -272,8 +260,8 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "laguna-s-2.1-free",
@@ -305,8 +293,8 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-31T00:10:47.233187+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "muse-spark-1.2-contributor-free",
@@ -336,8 +324,8 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "nemotron-3-ultra-free",
@@ -367,8 +355,8 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     },
     {
       "model_id": "z-ai/glm-5.3-flash",
@@ -398,8 +386,8 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-31T00:10:47.233187+00:00",
-      "is_new": true
+      "first_seen": null,
+      "is_new": false
     }
   ]
 }

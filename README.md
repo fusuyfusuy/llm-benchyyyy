@@ -7,7 +7,7 @@ LLM benchmark aggregation, model catalog intelligence, free model ranking, and O
 The project provides four primary CLI tools under `checkers/`:
 
 ### 1. `bcheck` — Multi-Source Benchmark Aggregator
-Aggregates benchmark evaluations from **Artificial Analysis (Quality Index)**, **LiveBench (Reasoning/Coding/Math/Data)**, **LMArena (Coding Arena ELO)**, and **ARC-AGI-1 / ARC-AGI-2**:
+Aggregates benchmark evaluations from **Artificial Analysis (Quality Index)**, **LiveBench (Reasoning/Coding/Math/Data)**, and **LMArena (Coding Arena ELO)**:
 ```bash
 # Run against cached snapshots
 python3 -m checkers.llm_benchmark_aggregator
@@ -27,6 +27,13 @@ ocheck
 
 # Generate standalone HTML visualization report
 ocheck --html docs/reports/ocgo_cost_benefit.html
+```
+
+### 2b. `ccheck` — Command Code GOAT Cost-Benefit Analyzer
+Checks the GOAT plan catalog (https://commandcode.ai/docs/plans/goat#usage-limits) against the same benchmark suite — per-model monthly credits ($20–$70), pooled caps ($14/5h · $35/wk · $70/mo), and docs-published request counts. Offline by default on `docs/data/raw/cc_goat_docs_*.html`.
+```bash
+ccheck
+ccheck --fetch   # live-fetch GOAT docs + shared AA/LMArena/OpenRouter snapshots
 ```
 
 ### 3. `fcheck` — Free Model Ranker
@@ -60,7 +67,7 @@ scheck --html docs/reports/stealth_models.html
   - `test_*.py` — Unit tests.
 - `docs/` — Datasets, models index, and generated reports:
   - `docs/data/` — Consolidated JSON databases (`benchmarks.json`, `ocgo_live.json`, `free_models.json`, `stealth_models.json`).
-  - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, ARC-AGI, and OpenRouter.
+  - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, and OpenRouter.
   - `docs/reports/` — Exported HTML, JSON, and Markdown reports.
   - `docs/models.md` — Reference documentation on models.
 - `reviews/` — Architectural reviews and audit reports.
