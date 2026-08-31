@@ -506,6 +506,43 @@ class TestCrossSourceFinders(unittest.TestCase):
         rec_bad = bc.find_aa_for_model("claude-3.5-sonnet", aa_map)
         self.assertIsNone(rec_bad)
 
+    def test_find_aa_reasoning_effort_tiers_and_canonical_matching(self):
+        aa_map = {
+            "gpt-5-6-luna-low": {"slug": "gpt-5-6-luna-low", "intelligenceIndex": 33.85},
+            "gpt-5-6-luna-medium": {"slug": "gpt-5-6-luna-medium", "intelligenceIndex": 38.91},
+            "gpt-5-6-luna": {"slug": "gpt-5-6-luna", "intelligenceIndex": 52.32},
+            "glm-5-2-non-reasoning": {"slug": "glm-5-2-non-reasoning", "intelligenceIndex": 34.20},
+            "glm-5-2": {"slug": "glm-5-2", "intelligenceIndex": 52.64},
+            "grok-4-6-medium": {"slug": "grok-4-6-medium", "intelligenceIndex": 54.10},
+            "grok-4-6": {"slug": "grok-4-6", "intelligenceIndex": 60.92},
+        }
+        # Exact canonical match overrides lower-tier prefixes
+        rec_luna = bc.find_aa_for_model("gpt-5.6-luna", aa_map)
+        self.assertIsNotNone(rec_luna)
+        self.assertEqual(rec_luna["slug"], "gpt-5-6-luna")
+        self.assertEqual(rec_luna["intelligenceIndex"], 52.32)
+
+        rec_glm = bc.find_aa_for_model("glm-5.2", aa_map)
+        self.assertIsNotNone(rec_glm)
+        self.assertEqual(rec_glm["slug"], "glm-5-2")
+        self.assertEqual(rec_glm["intelligenceIndex"], 52.64)
+
+        rec_grok = bc.find_aa_for_model("grok-4.6", aa_map)
+        self.assertIsNotNone(rec_grok)
+        self.assertEqual(rec_grok["slug"], "grok-4-6")
+        self.assertEqual(rec_grok["intelligenceIndex"], 60.92)
+
+    def test_tier_tokens_and_variant_conflict(self):
+        # Effort and reasoning tiers must be recognized as variant conflicts
+        self.assertTrue(bc.variant_conflict("gpt-5.6-luna", "gpt-5.6-luna-low"))
+        self.assertTrue(bc.variant_conflict("gpt-5.6-luna", "gpt-5.6-luna-medium"))
+        self.assertTrue(bc.variant_conflict("glm-5.2", "glm-5.2-non-reasoning"))
+        self.assertTrue(bc.variant_conflict("claude-3.7-sonnet", "claude-3.7-sonnet-thinking"))
+        # Identical canonical models must not conflict
+        self.assertFalse(bc.variant_conflict("gpt-5.6-luna", "gpt-5-6-luna"))
+        self.assertFalse(bc.variant_conflict("glm-5.2", "glm-5-2"))
+
 
 if __name__ == "__main__":
     unittest.main()
+

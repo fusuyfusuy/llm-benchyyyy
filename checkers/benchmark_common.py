@@ -82,11 +82,28 @@ def norm_model_slug(s: str) -> str:
     return s
 
 
-VARIANT_TOKENS = frozenset({
-    "pro", "max", "ultra", "mini", "lite", "next", "omni", "exp", "experimental",
-    "thinking", "high", "xhigh", "preview", "contributor", "coder", "codex",
-    "instruct", "turbo", "flash", "nitro", "speed", "smart", "free", "fast", "r1", "r2",
+TIER_TOKENS = frozenset({
+    "effort", "max", "xhigh", "high", "medium", "low", "minimal",
+    "nothinking", "thinking", "non", "reasoning", "preview", "auto", "base",
+    "none", "standard", "default",
 })
+
+VARIANT_TOKENS = frozenset({
+    "pro", "max", "ultra", "mini", "micro", "nano", "tiny", "small", "lite", "next",
+    "omni", "exp", "experimental", "thinking", "high", "xhigh", "medium", "low", "minimal",
+    "preview", "contributor", "coder", "codex", "instruct", "turbo", "flash", "nitro",
+    "speed", "smart", "free", "fast", "r1", "r2", "plus", "heavy", "light", "air",
+    "vision", "vl", "audio", "voice", "live", "non", "reasoning", "effort", "base",
+})
+
+
+def strip_tier_tokens(s: str) -> str:
+    """Strip trailing effort/tier tokens from a normalized slug."""
+    toks = (norm_model_slug(s) or "").split("-")
+    while toks and toks[-1] in TIER_TOKENS:
+        toks.pop()
+    return "-".join(toks)
+
 
 def _id_tokens(norm: str) -> list[str]:
     """Tokenize a normalized model id; separators are [-_ ./ ], stray punctuation
@@ -666,35 +683,55 @@ OCGO_DOCS = "https://opencode.ai/docs/go/"
 
 
 def find_aa_for_model(model_id: str, aa_map: dict) -> dict | None:
-    """Find best Artificial Analysis record for a model ID with variant conflict safety."""
+    """Find best Artificial Analysis record for a model ID.
+    Collects exact and tier-base candidates and selects the highest scoring one.
+    """
     if not aa_map or not model_id:
         return None
-    n = norm_id(model_id)
-    if n in aa_map:
-        return aa_map[n]
-    for slug, rec in aa_map.items():
-        if norm_id(slug) == n:
-            return rec
+    sn = norm_model_slug(model_id)
+    if not sn:
+        return None
+
+    # 1. Exact canonical matches + tier-base candidates (highest intelligenceIndex)
+    candidates = [
+        rec for slug, rec in aa_map.items()
+        if rec.get("intelligenceIndex") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
+    ]
+    if candidates:
+        return max(candidates, key=lambda r: float(r.get("intelligenceIndex") or 0.0))
+
+    # 2. Strict variant fallback
     for slug, rec in aa_map.items():
         if rec.get("intelligenceIndex") is None:
             continue
-        if not variant_conflict(n, norm_id(slug)):
+        if not variant_conflict(sn, norm_model_slug(slug)):
             return rec
     return None
 
 
 def find_lm_for_model(model_id: str, lm_map: dict) -> dict | None:
-    """Find best LMArena record for a model ID with variant conflict safety."""
+    """Find best LMArena record for a model ID.
+    Collects exact and tier-base candidates and selects the highest ELO rating.
+    """
     if not lm_map or not model_id:
         return None
-    n = norm_id(model_id)
-    if n in lm_map:
-        return lm_map[n]
+    sn = norm_model_slug(model_id)
+    if not sn:
+        return None
+
+    # 1. Exact canonical matches + tier-base candidates (highest ELO)
+    candidates = [
+        rec for slug, rec in lm_map.items()
+        if rec.get("elo") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
+    ]
+    if candidates:
+        return max(candidates, key=lambda r: float(r.get("elo") or 0.0))
+
+    # 2. Strict variant fallback
     for slug, rec in lm_map.items():
-        if norm_id(slug) == n:
-            return rec
-    for slug, rec in lm_map.items():
-        if not variant_conflict(n, norm_id(slug)):
+        if rec.get("elo") is None:
+            continue
+        if not variant_conflict(sn, norm_model_slug(slug)):
             return rec
     return None
 
@@ -703,39 +740,47 @@ def find_or_for_model(model_id: str, or_map: dict) -> tuple[str | None, dict | N
     """Find best OpenRouter record for a model ID with variant conflict safety."""
     if not or_map or not model_id:
         return None, None
-    n = norm_id(model_id)
+    sn = norm_model_slug(model_id)
+    if not sn:
+        return None, None
+
+    # 1. Exact canonical match on suffix or full id
     for oid, rec in or_map.items():
         suffix = oid.split("/")[-1]
-        if norm_id(suffix) == n or norm_id(oid) == n:
+        if norm_model_slug(suffix) == sn or norm_model_slug(oid) == sn:
             return oid, rec
+
+    # 2. Strict variant fallback
     for oid, rec in or_map.items():
         suffix = oid.split("/")[-1]
-        if not variant_conflict(n, norm_id(suffix)) or not variant_conflict(n, norm_id(oid)):
+        if not variant_conflict(sn, norm_model_slug(suffix)) or not variant_conflict(sn, norm_model_slug(oid)):
             return oid, rec
     return None, None
 
 
 def find_livebench_for_model(model_id: str, live_map: dict) -> dict | None:
-    """Find best LiveBench record for a model ID with variant conflict safety."""
+    """Find best LiveBench record for a model ID.
+    Collects exact and tier-base candidates and selects the highest overall score.
+    """
     if not live_map or not model_id:
         return None
-    n = norm_id(model_id)
-    base_n = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot)-", "", n)
+    sn = norm_model_slug(model_id)
+    if not sn:
+        return None
 
-    if n in live_map:
-        return live_map[n]
-    if base_n in live_map:
-        return live_map[base_n]
+    # 1. Exact canonical matches + tier-base candidates (highest overall score)
+    candidates = [
+        rec for slug, rec in live_map.items()
+        if rec.get("overall") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
+    ]
+    if candidates:
+        return max(candidates, key=lambda r: float(r.get("overall") or 0.0))
 
+    # 2. Strict variant fallback
     for slug, rec in live_map.items():
-        if norm_id(slug) in (n, base_n):
-            return rec
-
-    for slug, rec in live_map.items():
-        ns = norm_id(slug)
         if rec.get("overall") is None:
             continue
-        if not variant_conflict(base_n, ns) or (base_n != n and not variant_conflict(n, ns)):
+        if not variant_conflict(sn, norm_model_slug(slug)):
             return rec
     return None
 

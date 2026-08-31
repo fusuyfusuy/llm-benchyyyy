@@ -48,11 +48,11 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertIn("intelligenceIndex", glm_aa)
         self.assertEqual(glm_aa["slug"], "glm-5-3")
 
-        # LMArena publishes no plain glm-5.3 row in this snapshot (only glm-5.3-max /
-        # glm-5): the old unguarded contains loop borrowed the -max entry's ELO
-        # (S1-C2). The migrated finder must refuse and leave the column static.
+        # LMArena tier linking: glm-5.3 links to top-tier glm-5.3-max (Rank #15, ELO 1484)
         glm_lm = ogc.find_lm_for_ocgo("glm-5.3", lm_map)
-        self.assertIsNone(glm_lm)
+        self.assertIsNotNone(glm_lm)
+        self.assertEqual(glm_lm["rank"], 15)
+        self.assertEqual(glm_lm["elo"], 1484.0)
 
     def test_livebench_snapshot(self):
         snap_csv = ogc.RAW / "livebench_20260625.csv"
