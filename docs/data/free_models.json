@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-30T13:01:41.918608+00:00",
+  "generated_at": "2026-08-31T00:10:47.234205+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "opencode_zen_api": "https://opencode.ai/zen/v1/models",
@@ -7,28 +7,34 @@
     "cline_recommended_models_api": "https://api.cline.bot/api/v1/ai/cline/recommended-models",
     "cline_freemodel_api": "https://api.cline.bot/api/v1/ai/cline/recommended-models",
     "artificial_analysis": "https://artificialanalysis.ai/leaderboards/models",
-    "lmarena": "https://arena.ai/leaderboard/text",
-    "note": "free = OpenRouter prompt+completion $0 + OpenCode Zen/Go free tiers + Cline Free tier; composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable; OpenRouter/OpenCode/Cline contribute list + context (no public bulk intelligence metric)"
+    "lmarena": "https://lmarena.ai/?leaderboard",
+    "note": "free = OpenCode Zen/Go -free tiers + Cline Free tier (OpenRouter list NOT shown; OR catalog fetched only to validate Cline free claims + price/context); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable"
   },
   "catalog_diff": {
     "added": [
       "big-pickle",
       "cline-free/longcat-2.0",
-      "cohere/north-mini-code:free",
       "deepseek-v4-flash-free",
+      "hy3-free",
+      "laguna-s-2.1-free",
+      "ling-3.0-flash-fin-free",
+      "mimo-v2.5-free",
+      "muse-spark-1.2-contributor-free",
+      "nemotron-3-ultra-free",
+      "nemotron-3.5-lightning-free",
+      "z-ai/glm-5.3-flash"
+    ],
+    "removed": [
+      "cohere/north-mini-code:free",
       "dots-studio/dots-3-note-preview:free",
       "google/gemma-4-26b-a4b-it:free",
       "google/gemma-4-31b-it:free",
       "google/lyria-3-clip-preview",
       "google/lyria-3-pro-preview",
-      "hy3-free",
       "inclusionai/ling-3.0-flash-fin:free",
       "liquid/lfm-2.5-2.6b:free",
-      "mimo-v2.5-free",
       "minimax/minimax-m2.7:free",
       "minimax/minimax-m3:free",
-      "muse-spark-1.2-contributor-free",
-      "nemotron-3-ultra-free",
       "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       "nvidia/nemotron-3-super-120b-a12b:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
@@ -41,14 +47,45 @@
       "thinkingmachines/inkling:free",
       "z-ai/glm-5.2:free"
     ],
-    "removed": [],
-    "total_current": 28,
+    "total_current": 11,
     "total_previous": 28
   },
-  "n_free": 28,
+  "n_free": 11,
   "n_with_aa": 5,
-  "n_with_lm": 6,
+  "n_with_lm": 3,
   "models": [
+    {
+      "model_id": "hy3-free",
+      "display": "hy3",
+      "display_full": "hy3",
+      "provider": "opencode",
+      "source": "oc",
+      "stealth": false,
+      "also_listed": [],
+      "benchmarks": {
+        "aa_slug": "hy3",
+        "aa_intelligence": 42.2134908724756,
+        "aa_coding": 58.8027985851019,
+        "aa_agentic": 31.4171993127148,
+        "aa_median_tps": null,
+        "aa_context": null,
+        "lmarena_rank": 59,
+        "lmarena_elo": 1456.0,
+        "lmarena_votes": 6466,
+        "openrouter_context": null,
+        "capability_q": 85.9,
+        "p_success": 84.1,
+        "token_multiplier": 1.42,
+        "fgi_score": 66.3
+      },
+      "coverage": [
+        "AA",
+        "LM"
+      ],
+      "composite": 0.93,
+      "first_seen": "2026-08-27T16:25:34.462526+00:00",
+      "is_new": true
+    },
     {
       "model_id": "deepseek-v4-flash-free",
       "display": "deepseek-v4-flash",
@@ -64,55 +101,85 @@
         "aa_intelligence": 51.7665776089032,
         "aa_coding": 69.062543348592,
         "aa_agentic": 48.414147766323,
-        "aa_median_tps": 121.800187044788,
-        "aa_context": 1000000,
-        "lmarena_rank": 86,
-        "lmarena_elo": 1436.0,
-        "lmarena_votes": 49001,
+        "aa_median_tps": null,
+        "aa_context": null,
+        "lmarena_rank": 83,
+        "lmarena_elo": 1438.0,
+        "lmarena_votes": 48660,
         "openrouter_context": null,
-        "capability_q": 87.2,
-        "p_success": 86.1,
-        "token_multiplier": 1.36,
-        "fgi_score": 69.7
+        "capability_q": 82.3,
+        "p_success": 77.5,
+        "token_multiplier": 1.64,
+        "fgi_score": 56.2
       },
       "coverage": [
         "AA",
         "LM"
       ],
-      "composite": 1.088,
+      "composite": 0.505,
       "first_seen": "2026-08-27T16:25:34.462526+00:00",
       "is_new": true
     },
     {
-      "model_id": "hy3-free",
-      "display": "hy3",
-      "display_full": "hy3",
+      "model_id": "ling-3.0-flash-fin-free",
+      "display": "ling-3.0-flash-fin",
+      "display_full": "ling-3.0-flash-fin",
       "provider": "opencode",
       "source": "oc",
       "stealth": false,
       "also_listed": [],
       "benchmarks": {
-        "aa_slug": "hy3",
-        "aa_intelligence": 42.2134908724756,
-        "aa_coding": 58.8027985851019,
-        "aa_agentic": 31.4171993127148,
-        "aa_median_tps": 66.4639651540818,
-        "aa_context": 256000,
-        "lmarena_rank": 56,
-        "lmarena_elo": 1457.0,
-        "lmarena_votes": 5877,
+        "aa_slug": "ling-3-0-flash",
+        "aa_intelligence": 37.820825176113,
+        "aa_coding": 50.6497953946456,
+        "aa_agentic": 29.3111649484536,
+        "aa_median_tps": null,
+        "aa_context": null,
+        "lmarena_rank": null,
+        "lmarena_elo": null,
+        "lmarena_votes": null,
         "openrouter_context": null,
-        "capability_q": 84.7,
-        "p_success": 82.1,
-        "token_multiplier": 1.48,
-        "fgi_score": 63.0
+        "capability_q": 77.9,
+        "p_success": 67.0,
+        "token_multiplier": 2.08,
+        "fgi_score": 42.7
       },
       "coverage": [
-        "AA",
-        "LM"
+        "AA"
       ],
-      "composite": 0.793,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
+      "composite": -0.006,
+      "first_seen": "2026-08-31T00:10:47.233187+00:00",
+      "is_new": true
+    },
+    {
+      "model_id": "cline-free/longcat-2.0",
+      "display": "longcat-2.0",
+      "display_full": "longcat-2.0",
+      "provider": "cline",
+      "source": "cln",
+      "stealth": false,
+      "also_listed": [],
+      "benchmarks": {
+        "aa_slug": "longcat-2-0",
+        "aa_intelligence": 33.9692584853255,
+        "aa_coding": 45.2637328339576,
+        "aa_agentic": 21.9579587628866,
+        "aa_median_tps": null,
+        "aa_context": null,
+        "lmarena_rank": null,
+        "lmarena_elo": null,
+        "lmarena_votes": null,
+        "openrouter_context": null,
+        "capability_q": 74.4,
+        "p_success": 57.2,
+        "token_multiplier": 2.65,
+        "fgi_score": 32.2
+      },
+      "coverage": [
+        "AA"
+      ],
+      "composite": -0.421,
+      "first_seen": "2026-08-30T03:14:37.124969+00:00",
       "is_new": true
     },
     {
@@ -130,148 +197,51 @@
         "aa_agentic": null,
         "aa_median_tps": null,
         "aa_context": null,
-        "lmarena_rank": 91,
+        "lmarena_rank": 92,
         "lmarena_elo": 1434.0,
-        "lmarena_votes": 44557,
+        "lmarena_votes": 44515,
         "openrouter_context": null,
-        "capability_q": 82.9,
-        "p_success": 78.7,
-        "token_multiplier": 1.6,
-        "fgi_score": 57.9
+        "capability_q": 70.3,
+        "p_success": 44.9,
+        "token_multiplier": 3.7,
+        "fgi_score": 21.2
       },
       "coverage": [
         "LM"
       ],
-      "composite": 0.582,
+      "composite": -0.906,
       "first_seen": "2026-08-27T16:25:34.462526+00:00",
       "is_new": true
     },
     {
-      "model_id": "nvidia/nemotron-3-ultra-550b-a55b:free",
-      "display": "nemotron-3-ultra-550b-a55b",
-      "display_full": "nvidia/nemotron-3-ultra-550b-a55b",
-      "provider": "nvidia",
-      "source": "or",
+      "model_id": "nemotron-3.5-lightning-free",
+      "display": "nemotron-3.5-lightning",
+      "display_full": "nemotron-3.5-lightning",
+      "provider": "opencode",
+      "source": "oc",
       "stealth": false,
       "also_listed": [],
       "benchmarks": {
-        "aa_slug": "nvidia-nemotron-3-ultra-550b-a55b",
-        "aa_intelligence": 38.3185469149774,
-        "aa_coding": 49.2652413649605,
-        "aa_agentic": 27.4979347079038,
-        "aa_median_tps": 171.780698769312,
-        "aa_context": 262144,
-        "lmarena_rank": 102,
-        "lmarena_elo": 1426.0,
-        "lmarena_votes": 10700,
-        "openrouter_context": 1000000,
-        "capability_q": 79.6,
-        "p_success": 71.3,
-        "token_multiplier": 1.89,
-        "fgi_score": 47.9
-      },
-      "coverage": [
-        "AA",
-        "LM"
-      ],
-      "composite": 0.189,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "cline-free/longcat-2.0",
-      "display": "longcat-2.0",
-      "display_full": "longcat-2.0",
-      "provider": "cline",
-      "source": "cln",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": "longcat-2-0",
-        "aa_intelligence": 33.9692584853255,
-        "aa_coding": 45.2637328339576,
-        "aa_agentic": 21.9579587628866,
-        "aa_median_tps": 41.3436265491977,
-        "aa_context": 1000000,
+        "aa_slug": "nemotron-3-5-lightning",
+        "aa_intelligence": 23.606237599256,
+        "aa_coding": 26.7621202663337,
+        "aa_agentic": 13.7616597938144,
+        "aa_median_tps": null,
+        "aa_context": null,
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
         "openrouter_context": null,
-        "capability_q": 73.7,
-        "p_success": 55.1,
-        "token_multiplier": 2.79,
-        "fgi_score": 30.1
+        "capability_q": 64.9,
+        "p_success": 29.9,
+        "token_multiplier": 6.16,
+        "fgi_score": 10.6
       },
       "coverage": [
         "AA"
       ],
-      "composite": -0.51,
-      "first_seen": "2026-08-30T03:14:37.124969+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "nvidia/nemotron-3-super-120b-a12b:free",
-      "display": "nemotron-3-super-120b-a12b",
-      "display_full": "nvidia/nemotron-3-super-120b-a12b",
-      "provider": "nvidia",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": "nvidia-nemotron-3-super-120b-a12b",
-        "aa_intelligence": 25.6684845978586,
-        "aa_coding": 37.7163094742683,
-        "aa_agentic": 8.79209278350516,
-        "aa_median_tps": 141.659289579323,
-        "aa_context": 1000000,
-        "lmarena_rank": 187,
-        "lmarena_elo": 1360.0,
-        "lmarena_votes": 7535,
-        "openrouter_context": 262144,
-        "capability_q": 66.6,
-        "p_success": 34.3,
-        "token_multiplier": 5.21,
-        "fgi_score": 13.4
-      },
-      "coverage": [
-        "AA",
-        "LM"
-      ],
-      "composite": -1.347,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "nvidia/nemotron-3.5-lightning:free",
-      "display": "nemotron-3.5-lightning",
-      "display_full": "nvidia/nemotron-3.5-lightning",
-      "provider": "nvidia",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [
-        "oc"
-      ],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": 200,
-        "lmarena_elo": 1348.0,
-        "lmarena_votes": 3392,
-        "openrouter_context": 1000000,
-        "capability_q": 65.1,
-        "p_success": 30.4,
-        "token_multiplier": 6.04,
-        "fgi_score": 10.9
-      },
-      "coverage": [
-        "LM"
-      ],
-      "composite": -1.518,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
+      "composite": -1.538,
+      "first_seen": "2026-08-31T00:10:47.233187+00:00",
       "is_new": true
     },
     {
@@ -306,200 +276,14 @@
       "is_new": true
     },
     {
-      "model_id": "cohere/north-mini-code:free",
-      "display": "north-mini-code",
-      "display_full": "cohere/north-mini-code",
-      "provider": "cohere",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 256000,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "dots-studio/dots-3-note-preview:free",
-      "display": "dots-3-note-preview",
-      "display_full": "dots-studio/dots-3-note-preview",
-      "provider": "dots-studio",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 512000,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "google/gemma-4-26b-a4b-it:free",
-      "display": "gemma-4-26b-a4b-it",
-      "display_full": "google/gemma-4-26b-a4b-it",
-      "provider": "google",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 262144,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "google/gemma-4-31b-it:free",
-      "display": "gemma-4-31b-it",
-      "display_full": "google/gemma-4-31b-it",
-      "provider": "google",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 262144,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "google/lyria-3-clip-preview",
-      "display": "lyria-3-clip-preview",
-      "display_full": "google/lyria-3-clip-preview",
-      "provider": "google",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 1048576,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "google/lyria-3-pro-preview",
-      "display": "lyria-3-pro-preview",
-      "display_full": "google/lyria-3-pro-preview",
-      "provider": "google",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 1048576,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "inclusionai/ling-3.0-flash-fin:free",
-      "display": "ling-3.0-flash-fin",
-      "display_full": "inclusionai/ling-3.0-flash-fin",
-      "provider": "inclusionai",
-      "source": "or",
+      "model_id": "laguna-s-2.1-free",
+      "display": "laguna-s-2.1",
+      "display_full": "laguna-s-2.1",
+      "provider": "opencode",
+      "source": "oc",
       "stealth": false,
       "also_listed": [
-        "oc"
+        "cln"
       ],
       "benchmarks": {
         "aa_slug": null,
@@ -511,7 +295,7 @@
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
-        "openrouter_context": 262144,
+        "openrouter_context": null,
         "capability_q": null,
         "p_success": null,
         "token_multiplier": null,
@@ -521,100 +305,7 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "liquid/lfm-2.5-2.6b:free",
-      "display": "lfm-2.5-2.6b",
-      "display_full": "liquid/lfm-2.5-2.6b",
-      "provider": "liquid",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 65536,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "minimax/minimax-m2.7:free",
-      "display": "minimax-m2.7",
-      "display_full": "minimax/minimax-m2.7",
-      "provider": "minimax",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 196608,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "minimax/minimax-m3:free",
-      "display": "minimax-m3",
-      "display_full": "minimax/minimax-m3",
-      "provider": "minimax",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 1048576,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
+      "first_seen": "2026-08-31T00:10:47.233187+00:00",
       "is_new": true
     },
     {
@@ -680,11 +371,11 @@
       "is_new": true
     },
     {
-      "model_id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "display": "nemotron-3-nano-omni-30b-a3b-reasoning",
-      "display_full": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
-      "provider": "nvidia",
-      "source": "or",
+      "model_id": "z-ai/glm-5.3-flash",
+      "display": "glm-5.3-flash",
+      "display_full": "z-ai/glm-5.3-flash",
+      "provider": "cline",
+      "source": "cln",
       "stealth": false,
       "also_listed": [],
       "benchmarks": {
@@ -697,7 +388,7 @@
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
-        "openrouter_context": 256000,
+        "openrouter_context": null,
         "capability_q": null,
         "p_success": null,
         "token_multiplier": null,
@@ -707,227 +398,7 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "nvidia/nemotron-3.5-content-safety:free",
-      "display": "nemotron-3.5-content-safety",
-      "display_full": "nvidia/nemotron-3.5-content-safety",
-      "provider": "nvidia",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 128000,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "openrouter/free",
-      "display": "free",
-      "display_full": "openrouter/free",
-      "provider": "openrouter",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 200000,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "poolside/laguna-s-2.1:free",
-      "display": "laguna-s-2.1",
-      "display_full": "poolside/laguna-s-2.1",
-      "provider": "poolside",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [
-        "cln",
-        "oc"
-      ],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 262144,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "poolside/laguna-xs-2.1:free",
-      "display": "laguna-xs-2.1",
-      "display_full": "poolside/laguna-xs-2.1",
-      "provider": "poolside",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 262144,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "thinkingmachines/inkling-small:free",
-      "display": "inkling-small",
-      "display_full": "thinkingmachines/inkling-small",
-      "provider": "thinkingmachines",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 1048576,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "thinkingmachines/inkling:free",
-      "display": "inkling",
-      "display_full": "thinkingmachines/inkling",
-      "provider": "thinkingmachines",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 1048576,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
-      "is_new": true
-    },
-    {
-      "model_id": "z-ai/glm-5.2:free",
-      "display": "glm-5.2",
-      "display_full": "z-ai/glm-5.2",
-      "provider": "z-ai",
-      "source": "or",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": 256000,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": "2026-08-27T16:25:34.462526+00:00",
+      "first_seen": "2026-08-31T00:10:47.233187+00:00",
       "is_new": true
     }
   ]

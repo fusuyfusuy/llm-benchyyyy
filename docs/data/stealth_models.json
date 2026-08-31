@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-30T13:01:42.041031+00:00",
+  "generated_at": "2026-08-31T00:10:47.349151+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "artificial_analysis": "https://artificialanalysis.ai/leaderboards/models",
-    "lmarena": "https://arena.ai/leaderboard/text",
+    "lmarena": "https://lmarena.ai/?leaderboard",
     "note": "stealth = OpenRouter id starts with 'stealth/' (anonymous/undisclosed models); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO)"
   },
   "n_stealth": 0,

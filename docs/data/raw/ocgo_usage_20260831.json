@@ -1,0 +1,20 @@
+{
+  "fetched_at": "2026-08-30T23:27:34.287342+00:00",
+  "usage": {
+    "rolling": {
+      "status": "ok",
+      "percent": 0,
+      "resetsAt": "2026-08-31T04:27:34.220Z"
+    },
+    "weekly": {
+      "status": "ok",
+      "percent": 57,
+      "resetsAt": "2026-08-31T00:00:00.220Z"
+    },
+    "monthly": {
+      "status": "ok",
+      "percent": 78,
+      "resetsAt": "2026-09-19T17:43:09.220Z"
+    }
+  }
+}
