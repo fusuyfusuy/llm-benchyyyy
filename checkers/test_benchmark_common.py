@@ -18,6 +18,10 @@ class TestBenchmarkCommon(unittest.TestCase):
         self.assertEqual(bc.norm_id("GLM-5.3 (Thinking)"), "glm-5.3-thinking")
         self.assertEqual(bc.norm_model_slug("claude-opus-5-xhigh"), "opus-5-xhigh")
         self.assertEqual(bc.norm_model_slug("google-gemini-3.7-flash"), "gemini-3-7-flash")
+        self.assertEqual(bc.norm_model_slug("qwen-3.8-flash"), "qwen3-8-flash")
+        self.assertEqual(bc.norm_model_slug("qwen-3.8-max"), "qwen3-8-max")
+        self.assertEqual(bc.norm_model_slug("tencent-hy3"), "hy3")
+        self.assertEqual(bc.strip_tier_tokens("qwen3-8-flash-next"), "qwen3-8-flash")
 
     def test_safe_conversions(self):
         self.assertEqual(bc._safe_float("$1,234.56"), 1234.56)
@@ -76,12 +80,32 @@ class TestBenchmarkCommon(unittest.TestCase):
         # Value indices
         avi = bc.compute_avi(85.0, 5.0)
         self.assertGreater(avi, 0.0)
+        self.assertEqual(bc.compute_avi(None, 5.0), 0.0)
+        self.assertEqual(bc.compute_avi(85.0, None), 0.0)
 
         fgi = bc.compute_fgi(90.0, 95.0)
         self.assertGreater(fgi, 0.0)
+        self.assertEqual(bc.compute_fgi(None, 95.0), 0.0)
+        self.assertEqual(bc.compute_fgi(90.0, None), 0.0)
 
         bfi = bc.compute_bfi(80.0, 100.0, 0.5)
         self.assertGreater(bfi, 0.0)
+        self.assertEqual(bc.compute_bfi(None, 100.0, 0.5), 0.0)
+        self.assertEqual(bc.compute_bfi(80.0, None, 0.5), 0.0)
+        self.assertEqual(bc.compute_bfi(80.0, 100.0, None), 0.0)
+
+        qvi = bc.compute_qvi(88.0, 500)
+        self.assertGreater(qvi, 0.0)
+        self.assertEqual(bc.compute_qvi(None, 500), 0.0)
+        self.assertEqual(bc.compute_qvi(88.0, None), 0.0)
+        self.assertEqual(bc.compute_qvi(88.0, 0), 0.0)
+
+        # None guards on base functions
+        self.assertEqual(bc.compute_capability_q(None), 78.0)
+        self.assertEqual(bc.compute_p_success(None), 0.0)
+        self.assertEqual(bc.compute_token_multiplier(None), 100.0)
+        self.assertIsNone(bc.compute_effective_cost(None, 1.0))
+        self.assertIsNone(bc.compute_effective_cost(1.0, None))
 
     def test_display_helpers(self):
         text = f"{bc.C_BOLD}{bc.C_GREEN}Hello World{bc.C_RESET}"
@@ -138,6 +162,7 @@ class TestBenchmarkCommon(unittest.TestCase):
             {"display": "Claude Fable 5 (High)", "pool": "claude", "capability_q": 89.4, "fgi_score": 75.1, "avi_score": 141.6, "bfi_score": 120.0, "p_success": 89.0, "effective_cost": 22.86, "base_metrics": {"lm_coding": 1508, "speed_tps": 35}},
             {"display": "DeepSeek V4 Flash", "pool": "ocgo", "capability_q": 73.4, "fgi_score": 29.3, "avi_score": 552.0, "bfi_score": 450.0, "p_success": 54.2, "effective_cost": 0.20, "base_metrics": {"lm_coding": 1436, "speed_tps": 95}},
             {"display": "MiMo-V2.5", "pool": "ocgo", "capability_q": 69.2, "fgi_score": 18.6, "avi_score": 328.2, "bfi_score": 520.0, "p_success": 41.7, "effective_cost": 0.69, "base_metrics": {"lm_coding": 1434, "speed_tps": 115}},
+            {"display": "Unpriced Model", "pool": "free", "capability_q": 50.0, "fgi_score": 10.0, "avi_score": 100.0, "bfi_score": 50.0, "p_success": 20.0, "effective_cost": None, "base_metrics": {}},
         ]
         recs = bc.compute_role_recommendations(sample_models, context="bcheck")
         self.assertIn("architecture", recs)

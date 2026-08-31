@@ -45,7 +45,7 @@ from benchmark_common import (
     C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
     parse_price,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
-    compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
+    compute_effective_cost, compute_avi, compute_fgi, compute_bfi, compute_qvi,
     parse_lmarena,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_html,
@@ -664,6 +664,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
             ("Eff c/r", 7, ">"),
+            ("Val", 5, ">"),
             ("AVI", 5, ">"),
             ("FGI", 4, ">"),
             ("Remain", 10, "^"),
@@ -678,6 +679,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
             ("Eff c/r", 7, ">"),
+            ("Value", 5, ">"),
             ("AVI", 5, ">"),
             ("FGI", 4, ">"),
             ("Remain", 10, "^"),
@@ -685,6 +687,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         ]
 
     total_models = len(models_list)
+    top_val = max(models_list, key=lambda m: m["value"].get("qvi_score", 0)) if models_list else None
     top_frontier = max(models_list, key=lambda m: m["value"].get("fgi_score", 0)) if models_list else None
     top_avi = max(models_list, key=lambda m: m["value"].get("avi_score", 0)) if models_list else None
     top_req = max(models_list, key=lambda m: (m["requests"].get("per_5h_docs") or m["requests"].get("per_5h_computed") or 0)) if models_list else None
@@ -694,6 +697,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         {
             "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
             "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
+            "value": (lambda r: r["value"].get("qvi_score") or r["value"].get("value_score") or 0, True, None),
             "avi": (lambda r: r["value"].get("avi_score") or 0, True, None),
             "fgi": (lambda r: r["value"].get("fgi_score") or 0, True, None),
         },
@@ -704,15 +708,15 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/docs/go/#usage-limits)"
+    v_info = f"Top Val: {top_val['model_id'][:14]} (Val {top_val['value'].get('qvi_score', 0):.1f})" if top_val else ""
     f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
-    v_info = f"Top ROI: {top_avi['model_id'][:14]} (AVI {top_avi['value'].get('avi_score', 0):.1f})" if top_avi else ""
     top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
     s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
     usage_part = f" │ Usage: {usage_note}" if usage_note else ""
     if is_slim:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info}" + usage_part
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {v_info} │ {f_info}" + usage_part
     else:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {f_info} │ {v_info} │ {s_info}" + usage_part
+        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {v_info} │ {f_info} │ {s_info}" + usage_part
 
     diff_notices = []
     diff_parts = []
@@ -782,10 +786,12 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         p_val = r["benchmarks"].get("p_success", 0)
         eff_c_val = r["value"].get("effective_cost_per_request")
         eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
+        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
         avi_val = r["value"].get("avi_score", 0)
         fgi_val = r["value"].get("fgi_score", 0)
         q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color)
         p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color)
+        qvi_disp = f"{qvi_val:.1f}" + bc.medal_badge(meds.get("value"), color=color) if qvi_val is not None else "—"
         avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color)
         fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color)
 
@@ -835,6 +841,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 (lambda v: v < 0.01, C_CYAN),
                 (lambda v: v < 0.03, C_YELLOW),
             ], default_color=C_MAGENTA)
+            qvi_color = bc.score_color_qvi(qvi_val)
             avi_color = bc.score_color_avi(avi_val)
             fgi_color = bc.score_color_fgi(fgi_val)
 
@@ -853,6 +860,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 color_cell(q_disp, q_color, width=6, align=">", bg=bg),
                 color_cell(p_disp, p_color, width=7, align=">", bg=bg),
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
+                color_cell(qvi_disp, qvi_color, width=5, align=">", bg=bg),
                 color_cell(avi_disp, avi_color, width=5, align=">", bg=bg),
                 color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg),
                 color_cell(rem_str, rem_color, width=10, align="^", bg=bg),
@@ -874,6 +882,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 f"{q_disp:>6}",
                 f"{p_disp:>7}",
                 f"{eff_c_str:>7}",
+                f"{qvi_disp:>5}",
                 f"{avi_disp:>5}",
                 f"{fgi_disp:>4}",
                 f"{rem_str:^10}",
@@ -1264,6 +1273,11 @@ def build_sort_key(sort_mode, eff_cost_fn):
     def _avi(r):
         return r["value"]["avi_score"] or -1
 
+    def _qvi(r):
+        return r["value"].get("qvi_score") or r["value"].get("value_score") or -1
+
+    if sort_mode in ("value", "qvi"):
+        return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
     if sort_mode == "fgi":
         return lambda r: (-(r["value"]["fgi_score"] or -1), -_cq(r), r["model_id"])
     if sort_mode == "bfi":
@@ -1311,9 +1325,9 @@ def main():
     )
     ap.add_argument(
         "--sort",
-        choices=["avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"],
-        default="avi",
-        help="Sort order (default: avi)",
+        choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"],
+        default="value",
+        help="Sort order (default: value)",
     )
     args = ap.parse_args()
 
@@ -1818,6 +1832,11 @@ def main():
         v["effective_requests_per_month"] = eff_req_mo
 
         # Value indices
+        qvi = compute_qvi(q_score, eff_req_5h)
+        b["qvi_score"] = qvi
+        v["qvi_score"] = qvi
+        v["value_score"] = qvi
+
         avi = compute_avi(q_score, effective_blended_price)
         b["avi_score"] = avi
         v["avi_score"] = avi
@@ -1831,13 +1850,15 @@ def main():
         b["bfi_score"] = bfi
         v["bfi_score"] = bfi
 
-    # Sort by chosen sort mode (default: avi)
-    sort_mode = getattr(args, "sort", "avi")
+    # Sort by chosen sort mode (default: value)
+    sort_mode = getattr(args, "sort", "value")
 
     def _eff_cost(r):
         # S2-M1 class guard (parity with bc.compute_pareto_frontier._row_cost):
         # 0.0 is a REAL cost — free tiers dominate the frontier/sort; only
         # None falls through, and 999 is for fully-unknown cost only.
+        if r["pricing"].get("monthly_usage_limit_usd") is None or "free" in r["model_id"].lower():
+            return 0.0
         v = r["value"].get("effective_cost_per_request")
         if v is None:
             v = r.get("cost_per_request_usd")
@@ -1854,9 +1875,9 @@ def main():
         cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids and r["benchmarks"].get("capability_q") is not None]
         for a in cand:
             a_cost = _eff_cost(a)
-            a_q = a["benchmarks"].get("capability_q", 0)
+            a_q = a["benchmarks"].get("capability_q") or 0.0
             candidates = [
-                (_eff_cost(b), b["benchmarks"].get("capability_q", 0))
+                (_eff_cost(b), b["benchmarks"].get("capability_q") or 0.0)
                 for b in cand
                 if b is not a
             ]
@@ -2005,6 +2026,8 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
         p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
         eff_c = r["value"].get("effective_cost_per_request")
         eff_c_s = f"${eff_c:.5f}" if isinstance(eff_c, float) else "—"
+        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
+        qvi_s = f"{qvi_val:.1f}" if isinstance(qvi_val, (int, float)) else "—"
         avi_val = r["value"].get("avi_score")
         avi_s = f"{avi_val:.1f}" if isinstance(avi_val, (int, float)) else "—"
         fgi_val = r.get("value", {}).get("fgi_score")
@@ -2071,6 +2094,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
             f'<td class="n" style="font-weight:700; color:#2563eb;">{q_s}</td>'
             f'<td class="n">{p_s}</td>'
             f'<td class="n">{eff_c_s}</td>'
+            f'<td class="n" style="font-weight:700; color:#059669;">{qvi_s}</td>'
             f'<td class="n" style="font-weight:700; color:#10b981;">{avi_s}</td>'
             f'<td class="n" style="font-weight:700; color:#8b5cf6;">{fgi_s}</td>'
             f'<td class="n">{aa_int_s}<span class="mid">{aa_slug}</span></td>'
@@ -2105,12 +2129,12 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 <h1>{html_lib.escape(title)}</h1>
 <p class="sub">{html_lib.escape(data_note)} — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · usage source: <b>{html_lib.escape(usage_note or 'unavailable')}</b> · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
 
-<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
+<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>Value</b> = Quota utility · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
 
 <div class="card">
 <table id="tbl">
 <thead><tr>
-<th>model</th><th>$Usage/mo</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>AVI (ROI)</th><th>FGI (Gate)</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th><th>remain</th>
+<th>model</th><th>$Usage/mo</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>Value</th><th>AVI (ROI)</th><th>FGI (Gate)</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th><th>remain</th>
 </tr></thead>
 <tbody>
 {''.join(trs)}

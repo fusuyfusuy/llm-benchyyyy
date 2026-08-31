@@ -36,8 +36,8 @@ class TestOcgoCheck(unittest.TestCase):
         ids = lambda key: [r["model_id"] for r in sorted(rows, key=key)]
         self.assertEqual(ids(ogc.build_sort_key("quality", lambda r: 999.0)), ["b", "a", "c"])  # None falls last
         self.assertEqual(ids(ogc.build_sort_key("cap", lambda r: 999.0)), ["a", "b", "c"])
-        # All 8 CLI modes resolve against a well-formed row without raising
-        for mode in ("avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"):
+        # All CLI modes resolve against a well-formed row without raising
+        for mode in ("value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"):
             ogc.build_sort_key(mode, lambda r: 999.0)(rows[0])
         with self.assertRaises(ValueError):
             ogc.build_sort_key("bogus", lambda r: 999.0)

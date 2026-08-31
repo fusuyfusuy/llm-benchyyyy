@@ -53,7 +53,7 @@ from benchmark_common import (
     C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
     parse_price,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
-    compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
+    compute_effective_cost, compute_avi, compute_fgi, compute_bfi, compute_qvi,
     parse_lmarena,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_html,
@@ -420,16 +420,17 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
     out = []
     if is_slim:
         headers = [
-            ("Rank", 4, "^"), ("Model", 22, "<"), ("Credits", 8, "^"), ("Req/5h", 6, ">"),
-            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"),
+            ("Rank", 4, "^"), ("Model", 20, "<"), ("Credits", 8, "^"), ("Req/5h", 6, ">"),
+            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Val", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"),
         ]
     else:
         headers = [
             ("Rank", 4, "^"), ("Model", 22, "<"), ("Credits", 8, "^"), ("5h Cap", 7, ">"), ("Req/5h", 7, ">"),
-            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"), ("Lev", 5, ">"),
+            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"), ("Lev", 5, ">"),
         ]
     total_models = len(models_list)
     scored = [m for m in models_list if m["benchmarks"].get("capability_q") is not None]
+    top_val = max(scored, key=lambda m: m["value"].get("qvi_score") or 0) if scored else None
     top_frontier = max(scored, key=lambda m: m["value"].get("fgi_score") or 0) if scored else None
     top_avi = max(scored, key=lambda m: m["value"].get("avi_score") or 0) if scored else None
     top_req = max(models_list, key=lambda m: (m["requests"].get("per_5h_docs") or m["requests"].get("per_5h_computed") or 0)) if models_list else None
@@ -438,6 +439,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         {
             "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
             "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
+            "value": (lambda r: r["value"].get("qvi_score") or r["value"].get("value_score") or 0, True, None),
             "avi": (lambda r: r["value"].get("avi_score") or 0, True, None),
             "fgi": (lambda r: r["value"].get("fgi_score") or 0, True, None),
         },
@@ -445,14 +447,14 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
     )
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
     title_str = "⚡ COMMAND CODE GOAT — COST/BENEFIT & AGENTIC RADAR (https://commandcode.ai/docs/plans/goat#usage-limits)"
+    v_info = f"Top Val: {top_val['model_id'][:14]} (Val {top_val['value'].get('qvi_score', 0):.1f})" if top_val else ""
     f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
-    v_info = f"Top ROI: {top_avi['model_id'][:14]} (AVI {top_avi['value'].get('avi_score', 0):.1f})" if top_avi else ""
     top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
     s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
     if is_slim:
-        summary_str = f" Caps: $14/5h · $35/wk · $70/mo · credits $20–$70 │ {f_info} │ {v_info}"
+        summary_str = f" Caps: $14/5h · $35/wk · $70/mo · credits $20–$70 │ {v_info} │ {f_info}"
     else:
-        summary_str = f" Caps: $14/5h · $35/wk · $70/mo · credits $20–$70 │ {f_info} │ {v_info} │ {s_info}"
+        summary_str = f" Caps: $14/5h · $35/wk · $70/mo · credits $20–$70 │ {v_info} │ {f_info} │ {s_info}"
     diff_notices = []
     diff_parts = []
     if added_ids:
@@ -492,7 +494,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         else:
             rank_str = f" #{rank_num}"
         is_added = r["model_id"] in added_ids
-        m_name_w = 22
+        m_name_w = 20 if is_slim else 22
         raw_mid = r["model_id"]
         mid_display = f"+{raw_mid}"[:m_name_w] if is_added else raw_mid[:m_name_w]
         credits = r["pricing"].get("monthly_credits")
@@ -507,10 +509,12 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         p_val = r["benchmarks"].get("p_success")
         eff_c_val = r["value"].get("effective_cost_per_request")
         eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
+        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
         avi_val = r["value"].get("avi_score")
         fgi_val = r["value"].get("fgi_score")
         q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color) if q_val is not None else "—"
         p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color) if p_val is not None else "—"
+        qvi_disp = f"{qvi_val:.1f}" + bc.medal_badge(meds.get("value"), color=color) if qvi_val is not None else "—"
         avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color) if avi_val is not None else "—"
         fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color) if fgi_val is not None else "—"
         lev_val = r["value"].get("leverage_vs_10usd_sub")
@@ -535,6 +539,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
             q_color = bc.score_color_q(q_val) if q_val is not None else C_DIM
             p_color = bc.score_color_p(p_val) if p_val is not None else C_DIM
             eff_color = bc.color_ladder(eff_c_val, [(lambda v: v < 0.002, C_GREEN), (lambda v: v < 0.01, C_CYAN), (lambda v: v < 0.03, C_YELLOW)], default_color=C_MAGENTA)
+            qvi_color = bc.score_color_qvi(qvi_val) if qvi_val is not None else C_DIM
             avi_color = bc.score_color_avi(avi_val) if avi_val is not None else C_DIM
             fgi_color = bc.score_color_fgi(fgi_val) if fgi_val is not None else C_DIM
             row_cells = [
@@ -549,6 +554,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
                 color_cell(q_disp, q_color, width=6, align=">", bg=bg),
                 color_cell(p_disp, p_color, width=7, align=">", bg=bg),
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
+                color_cell(qvi_disp, qvi_color, width=5, align=">", bg=bg),
                 color_cell(avi_disp, avi_color, width=5, align=">", bg=bg),
                 color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg),
             ])
@@ -559,7 +565,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
             row_items = [f"{rank_str:^4}", f"{mid_display:<{m_name_w}}", f"{credits_str:^8}"]
             if not is_slim:
                 row_items.append(f"{cap_5h_str:>7}")
-            row_items.extend([f"{req5_str:>{7 if not is_slim else 6}}", f"{q_disp:>6}", f"{p_disp:>7}", f"{eff_c_str:>7}", f"{avi_disp:>5}", f"{fgi_disp:>4}"])
+            row_items.extend([f"{req5_str:>{7 if not is_slim else 6}}", f"{q_disp:>6}", f"{p_disp:>7}", f"{eff_c_str:>7}", f"{qvi_disp:>5}", f"{avi_disp:>5}", f"{fgi_disp:>4}"])
             if not is_slim:
                 row_items.append(f"{lev_str:>5}")
             out.append(" ".join(row_items))
@@ -581,6 +587,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
             ("$70 credits", "GPT-5.6 Sol, GLM-5.2, Tencent Hy3, Qwen 3.8 27B — max monthly headroom.", C_GREEN),
             ("$60 credits", "DeepSeek V4 Flash, Kimi K2.7 Code — daily driver.", C_CYAN),
             ("$20 credits", "New/discounted models — still 2× public pricing.", C_WHITE),
+            ("Value (QVI)", "Delivered Task Utility = log10(N_eff + 1) × (Q/70)^2.4 × 100.", C_GREEN),
             ("Eff c/r", "Real cost per solved task = base cost/req × retry multiplier.", C_WHITE),
         ],
         color=color,
@@ -597,6 +604,11 @@ def build_sort_key(sort_mode, eff_cost_fn):
         return r["benchmarks"]["capability_q"] or -1
     def _avi(r):
         return r["value"]["avi_score"] or -1
+    def _qvi(r):
+        return r["value"].get("qvi_score") or r["value"].get("value_score") or -1
+
+    if sort_mode in ("value", "qvi"):
+        return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
     if sort_mode == "fgi":
         return lambda r: (-(r["value"]["fgi_score"] or -1), -_cq(r), r["model_id"])
     if sort_mode == "bfi":
@@ -629,7 +641,7 @@ def main():
     ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors")
     ap.add_argument("--slim", action="store_true", help="Force compact table layout")
     ap.add_argument("--wide", action="store_true", help="Force full table layout")
-    ap.add_argument("--sort", choices=["avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"], default="avi", help="Sort order (default: avi)")
+    ap.add_argument("--sort", choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"], default="value", help="Sort order (default: value)")
     args = ap.parse_args()
     verbose = args.verbose
     do_fetch = bool(args.fetch)
@@ -881,9 +893,12 @@ def main():
             v["effective_cost_per_request"] = None
             v["effective_requests_per_5h"] = None
             v["effective_requests_per_month"] = None
+            v["qvi_score"] = None
+            v["value_score"] = None
             v["avi_score"] = None
             v["fgi_score"] = None
             v["bfi_score"] = None
+            b["qvi_score"] = None
             b["avi_score"] = None
             b["fgi_score"] = None
             b["bfi_score"] = None
@@ -913,6 +928,10 @@ def main():
         req_mo_val = r["requests"].get("per_month_docs") or r["requests"].get("per_month_computed")
         eff_req_mo = _safe_int_round(req_mo_val / t_mult) if req_mo_val else None
         v["effective_requests_per_month"] = eff_req_mo
+        qvi = compute_qvi(q_score, eff_req_5h)
+        b["qvi_score"] = qvi
+        v["qvi_score"] = qvi
+        v["value_score"] = qvi
         avi = compute_avi(q_score, effective_blended_price)
         b["avi_score"] = avi
         v["avi_score"] = avi
@@ -924,8 +943,10 @@ def main():
         b["bfi_score"] = bfi
         v["bfi_score"] = bfi
 
-    sort_mode = getattr(args, "sort", "avi")
+    sort_mode = getattr(args, "sort", "value")
     def _eff_cost(r):
+        if r["pricing"].get("monthly_credits") is None or "free" in r["model_id"].lower():
+            return 0.0
         v = r["value"].get("effective_cost_per_request")
         if v is None:
             v = r.get("cost_per_request_usd")
@@ -937,8 +958,8 @@ def main():
         cand = [r for r in rows_sorted if r["model_id"] in DOCS_IDS and r["benchmarks"].get("capability_q") is not None]
         for a in cand:
             a_cost = _eff_cost(a)
-            a_q = a["benchmarks"].get("capability_q", 0)
-            candidates = [(_eff_cost(b), b["benchmarks"].get("capability_q", 0)) for b in cand if b is not a]
+            a_q = a["benchmarks"].get("capability_q") or 0.0
+            candidates = [(_eff_cost(b), b["benchmarks"].get("capability_q") or 0.0) for b in cand if b is not a]
             if not bc.pareto_dominated(a_cost, a_q, candidates, cost_epsilon=0.0001):
                 pareto_ids.add(a["model_id"])
     except Exception:
@@ -1032,6 +1053,8 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
         p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
         eff_c = r["value"].get("effective_cost_per_request")
         eff_c_s = f"${eff_c:.5f}" if isinstance(eff_c, float) else "—"
+        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
+        qvi_s = f"{qvi_val:.1f}" if isinstance(qvi_val, (int, float)) else "—"
         avi_val = r["value"].get("avi_score")
         avi_s = f"{avi_val:.1f}" if isinstance(avi_val, (int, float)) else "—"
         fgi_val = r.get("value", {}).get("fgi_score")
@@ -1076,6 +1099,7 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
             f'<td class="n" style="font-weight:700; color:#2563eb;">{q_s}</td>'
             f'<td class="n">{p_s}</td>'
             f'<td class="n">{eff_c_s}</td>'
+            f'<td class="n" style="font-weight:700; color:#059669;">{qvi_s}</td>'
             f'<td class="n" style="font-weight:700; color:#10b981;">{avi_s}</td>'
             f'<td class="n" style="font-weight:700; color:#8b5cf6;">{fgi_s}</td>'
             f'<td class="n">{aa_int_s}<span class="mid">{aa_slug}</span></td>'
@@ -1106,11 +1130,11 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
     body = f"""
 <h1>{html_lib.escape(title)}</h1>
 <p class="sub">{html_lib.escape(data_note)} — Command Code GOAT <code>$10/mo (first month $5)</code> · Caps: <b>$14/5h · $35/wk · $70/mo</b> pooled, per-model scaled by <code>credits/70</code> · <a href="https://commandcode.ai/docs/plans/goat#usage-limits" style="color:#58a6ff">usage limits</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
-<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> frontier · <span style="color:#3fb950">■ flagship</span> int ≥58 · <span style="color:#58a6ff">■ value</span> $70 credits + high int/$ · <b>Q(Cap)</b>=Capability · <b>P(Succ)</b>=pass rate · <b>Eff c/r</b>=cost per solved task · <b>AVI</b>=ROI · <b>FGI</b>=gate · <b>lev</b>=credits/10.</div>
+<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> frontier · <span style="color:#3fb950">■ flagship</span> int ≥58 · <span style="color:#58a6ff">■ value</span> $70 credits + high int/$ · <b>Q(Cap)</b>=Capability · <b>P(Succ)</b>=pass rate · <b>Eff c/r</b>=cost per solved task · <b>Value</b>=quota utility · <b>AVI</b>=ROI · <b>FGI</b>=gate · <b>lev</b>=credits/10.</div>
 <div class="card">
 <table id="tbl">
 <thead><tr>
-<th>model</th><th>credits/mo</th><th>5h Cap</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>AVI</th><th>FGI</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th>
+<th>model</th><th>credits/mo</th><th>5h Cap</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>Value</th><th>AVI</th><th>FGI</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th>
 </tr></thead>
 <tbody>
 {''.join(trs)}

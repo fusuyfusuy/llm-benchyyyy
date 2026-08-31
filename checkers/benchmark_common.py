@@ -85,7 +85,8 @@ def norm_model_slug(s: str) -> str:
     if not s:
         return ""
     s = s.lower().strip()
-    s = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot)-", "", s)
+    s = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot|tencent)-", "", s)
+    s = re.sub(r"^qwen-(\d)", r"qwen\1", s)
     s = s.replace(".", "-")
     s = re.sub(r"[^a-z0-9\-]", "", s)
     s = re.sub(r"-+", "-", s).strip("-")
@@ -95,7 +96,7 @@ def norm_model_slug(s: str) -> str:
 TIER_TOKENS = frozenset({
     "effort", "max", "xhigh", "high", "medium", "low", "minimal",
     "nothinking", "thinking", "non", "reasoning", "preview", "auto", "base",
-    "none", "standard", "default",
+    "none", "standard", "default", "next",
 })
 
 VARIANT_TOKENS = frozenset({
@@ -277,7 +278,9 @@ def compute_capability_q(cz: float) -> float:
     Compute Normalized Composite Capability Q ∈ [40.0, 99.9].
     Base centered at 78.0 with 8.5 standard deviation scale factor.
     """
-    return round(max(40.0, min(99.9, 78.0 + (cz * 8.5))), 1)
+    if cz is None:
+        return 78.0
+    return round(max(40.0, min(99.9, 78.0 + (float(cz) * 8.5))), 1)
 
 
 def compute_p_success(q_score: float) -> float:
@@ -285,7 +288,9 @@ def compute_p_success(q_score: float) -> float:
     Compute task pass probability P_succ(Q) ∈ (0.0, 100.0)% on non-trivial agentic task.
     Sigmoid model centered at Q=72.0 with slope k=0.12, numerically clamped.
     """
-    exponent = max(-50.0, min(50.0, -0.12 * (q_score - 72.0)))
+    if q_score is None:
+        return 0.0
+    exponent = max(-50.0, min(50.0, -0.12 * (float(q_score) - 72.0)))
     p_succ = 1.0 / (1.0 + math.exp(exponent))
     return round(p_succ * 100.0, 1)
 
@@ -295,14 +300,18 @@ def compute_token_multiplier(p_success_pct: float, alpha: float = 1.2) -> float:
     Compute Token Multiplier T_mult = (1 + α * (1 - P)) / P.
     Accounts for expected retry and debugging token burn on autonomous failures.
     """
-    p_succ = max(0.02, min(1.0, p_success_pct / 100.0))
+    if p_success_pct is None or p_success_pct <= 0.0:
+        return 100.0
+    p_succ = max(0.02, min(1.0, float(p_success_pct) / 100.0))
     t_mult = (1.0 + alpha * (1.0 - p_succ)) / p_succ
     return round(t_mult, 2)
 
 
-def compute_effective_cost(blended_price: float, token_multiplier: float) -> float:
+def compute_effective_cost(blended_price: float, token_multiplier: float) -> float | None:
     """Compute effective cost per verified completed task."""
-    return round(blended_price * token_multiplier, 2)
+    if blended_price is None or token_multiplier is None:
+        return None
+    return round(float(blended_price) * float(token_multiplier), 2)
 
 
 def compute_avi(q_score: float, effective_cost: float) -> float:
@@ -310,7 +319,9 @@ def compute_avi(q_score: float, effective_cost: float) -> float:
     Agentic Value Index (AVI): Super-linear capability vs log effective cost ROI.
     Formula: Q^2.2 / (100 * log10(effective_cost + 1.5))
     """
-    return round((q_score ** 2.2) / (100.0 * math.log10(max(0.0, effective_cost) + 1.5)), 1)
+    if q_score is None or effective_cost is None:
+        return 0.0
+    return round((float(q_score) ** 2.2) / (100.0 * math.log10(max(0.0, float(effective_cost)) + 1.5)), 1)
 
 
 def compute_fgi(q_score: float, p_success_pct: float) -> float:
@@ -318,8 +329,10 @@ def compute_fgi(q_score: float, p_success_pct: float) -> float:
     Frontier Gate Index (FGI): High-difficulty architectural gating index.
     Formula: Q * (P_succ ^ 1.5)
     """
-    p_succ = max(0.0, min(1.0, p_success_pct / 100.0))
-    return round(q_score * (p_succ ** 1.5), 1)
+    if q_score is None or p_success_pct is None:
+        return 0.0
+    p_succ = max(0.0, min(1.0, float(p_success_pct) / 100.0))
+    return round(float(q_score) * (p_succ ** 1.5), 1)
 
 
 def compute_bfi(q_score: float, speed_tps: float, blended_price: float) -> float:
@@ -327,7 +340,21 @@ def compute_bfi(q_score: float, speed_tps: float, blended_price: float) -> float
     Bulk Fill Index (BFI): Throughput and raw cost efficiency on bounded tasks.
     Formula: (Q * speed) / (100 * ((blended_price ^ 0.8) + 0.1))
     """
-    return round((q_score * speed_tps) / (100.0 * ((max(0.0, blended_price) ** 0.8) + 0.1)), 1)
+    if q_score is None or speed_tps is None or blended_price is None:
+        return 0.0
+    return round((float(q_score) * float(speed_tps)) / (100.0 * ((max(0.0, float(blended_price)) ** 0.8) + 0.1)), 1)
+
+
+def compute_qvi(q_score: float, n_eff_tasks: float) -> float:
+    """
+    Quota Value Index (QVI): Total delivered utility under allowed plan quota headroom.
+    Formula: log10(N_eff + 1) * (Q / 70.0)^2.4 * 100
+    """
+    if q_score is None or n_eff_tasks is None or n_eff_tasks <= 0:
+        return 0.0
+    quality_mult = (max(0.0, float(q_score)) / 70.0) ** 2.4
+    task_log = math.log10(max(0.0, float(n_eff_tasks)) + 1.0)
+    return round(task_log * quality_mult * 100.0, 1)
 
 
 def pareto_dominated(a_cost, a_q, candidates, q_tolerance=3.2, cost_tolerance=0.20, cost_epsilon=0.01):
@@ -364,8 +391,8 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
     pareto_set = set()
     for a in models_list:
         a_cost = _row_cost(a)
-        a_q = a.get("capability_q", 0)
-        candidates = [(_row_cost(b), b.get("capability_q", 0)) for b in models_list if b is not a]
+        a_q = a.get("capability_q") or 0.0
+        candidates = [(_row_cost(b), b.get("capability_q") or 0.0) for b in models_list if b is not a]
         if not pareto_dominated(a_cost, a_q, candidates, q_tolerance, cost_tolerance):
             pareto_set.add(a.get("display"))
             if a.get("aa_slug"):
@@ -970,6 +997,21 @@ def score_color_fgi(fgi_val: float | None) -> str:
     return C_GRAY
 
 
+def score_color_qvi(qvi_val: float | None) -> str:
+    """Return color for Quota Value Index (QVI)."""
+    if qvi_val is None:
+        return C_DIM
+    if qvi_val >= 500.0:
+        return C_BOLD + C_GREEN
+    if qvi_val >= 350.0:
+        return C_GREEN
+    if qvi_val >= 200.0:
+        return C_CYAN
+    if qvi_val >= 100.0:
+        return C_YELLOW
+    return C_GRAY
+
+
 def compute_column_medals(models_list, col_keys, id_key="display"):
     """
     Compute top-3 ranks per column to attach 1st/2nd/3rd (superscript ¹²³ via
@@ -1368,7 +1410,7 @@ def compute_role_recommendations(models_list: list[dict], context: str = "bcheck
     z_speed = get_z_scores([f["speed"] for f in feats])
     
     # Invert log cost so lower cost gives higher score
-    inv_log_costs = [-math.log10(max(0.00001, f["eff_cost"])) for f in feats]
+    inv_log_costs = [-math.log10(max(0.00001, f["eff_cost"])) if f["eff_cost"] is not None else None for f in feats]
     z_cost = get_z_scores(inv_log_costs)
     
     # Fill missing coding / reasoning with z_q
