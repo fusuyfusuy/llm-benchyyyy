@@ -1,103 +1,78 @@
 # llm-benchyyyy
 
-Benchmark suite for LLM models, coding agents/harnesses (Claude Code, Codex CLI, Google
-Antigravity CLI, Pi coding agent, OpenCode), and tool-use/agentic behavior — including
-cost/latency. Holds both the design spec (scope, tasks, grading criteria), the
-runner engine (`engine/`) that executes tasks in a Docker sandbox, and analysis checkers (`checkers/`).
+LLM benchmark aggregation, model catalog intelligence, free model ranking, and OpenRouter stealth model detection suite.
 
-## Quickstart
+## Tools & Checkers
 
+The project provides four primary CLI tools under `checkers/`:
+
+### 1. `bcheck` — Multi-Source Benchmark Aggregator
+Aggregates benchmark evaluations from **Artificial Analysis (Quality Index)**, **LiveBench (Reasoning/Coding/Math/Data)**, **LMArena (Coding Arena ELO)**, and **ARC-AGI-1 / ARC-AGI-2**:
 ```bash
-python3 -m pip install -e .
-export ANTHROPIC_API_KEY=...        # needed for the raw-api harness
-docker build -f docker/harness-base.Dockerfile -t llm-bench-harness .
+# Run against cached snapshots
+python3 -m checkers.llm_benchmark_aggregator
 
-python3 -m engine run --task tasks/coding/fix-off-by-one-pagination.md \
-    --harness claude-code --model claude-sonnet-5 --trials 3
+# Or using installed CLI entrypoint
+bcheck
 
-python3 -m engine report
+# Fetch fresh live data and update snapshots
+bcheck --fetch
 ```
 
-`--harness` is one of `raw-api`, `claude-code`, `codex-cli`, `antigravity`, `pi-agent`,
-`opencode` (see `engine/harness/configs.py`). CLI harnesses other than `claude-code`
-authenticate the same way they do on your host — see "Credentials" below.
+### 2. `ocheck` — OpenCode Go Cost-Benefit Analyzer
+Analyzes OpenCode Go provider model pricing, token rates, and intelligence-to-cost tradeoffs:
+```bash
+# Analyze catalog and display CLI comparison table
+ocheck
 
-## Layout
+# Generate standalone HTML visualization report
+ocheck --html docs/reports/ocgo_cost_benefit.html
+```
 
-- `scope.md` — what we're benchmarking, why, and the methodology decisions (and their
-  justification from prior art).
-- `metrics.md` — what's recorded for every run, regardless of task category.
-- `tasks/<category>/*.md` — task definitions. **No expected output or grading criteria
-  lives here.** An agent under test should be able to read a task file and have
-  everything it needs to attempt the task, and nothing that leaks the answer.
-- `expected/<category>/*.md` — one file per task (same filename as its `tasks/` twin),
-  holding the expected output / pass criteria / grading rubric, and (for
-  executable-graded tasks) the `## Check` command the runner actually executes. Kept in
-  a separate directory on purpose — see "Why tasks and expected outputs are split" in
-  `scope.md`.
-- `expected/grading-methodology.md` — cross-cutting rules for how to score a run
-  (repeated trials, deterministic-only grading, layer attribution), not specific to any
-  one task.
-- `engine/` — the execution engine: `task.py`/`markdown.py` parse task/expected files,
-  `sandbox.py` drives the Docker container, `harness/` holds the raw-api adapter and
-  the generic CLI-harness adapter + per-harness configs, `grading/` holds the
-  deterministic graders (executable/unit-test + state-check via `## Check`, exact-match;
-  the judge ensemble was decommissioned, see `.mimori/decisions.md` ADR 2026-08-30),
-  `results.py`/`report.py` log and aggregate runs, `score.py` provides 100-point
-  categorical scoring.
-- `checkers/` — standalone analysis tools, live benchmark aggregators, OpenCode Go cost-benefit
-  analyzers, stealth model detectors, and task checkers.
-- `docker/harness-base.Dockerfile` — one image with all 5 CLI harnesses installed;
-  built once, reused for every run.
-- `results/` — **gitignored.** `runs.jsonl` (raw per-trial log) and `report.md`
-  (aggregated) are generated locally by `engine run` / `engine report` and never
-  committed — see "Secrets & results" below.
+### 3. `fcheck` — Free Model Ranker
+Discovers and ranks zero-cost and free-tier models across OpenCode Zen/Go, Cline, and OpenRouter:
+```bash
+# Rank free models
+fcheck
 
-## Categories
+# Render HTML report
+fcheck --html docs/reports/free_models.html
+```
 
-- `coding/` — real repo/coding tasks (SWE-bench / terminal-bench style: instruction +
-  environment + verifiable success condition).
-- `reasoning/` — general reasoning/QA prompts with a known-good answer or rubric.
-- `agentic/` — multi-turn, tool-using scenarios (terminal, multi-step planning, recovery
-  from a wrong turn).
-- `team-workflows/` — tasks sourced from things this team actually asks these tools to
-  do. Start from `tasks/team-workflows/TEMPLATE.md`.
+### 4. `scheck` — Stealth Model Detector
+Detects and tracks stealth/preview models (`stealth/*` namespace) on OpenRouter:
+```bash
+# Inspect stealth models
+scheck
 
-## Adding a task
+# Render HTML report
+scheck --html docs/reports/stealth_models.html
+```
 
-1. Write `tasks/<category>/<id>.md` — instruction, environment/setup, constraints, and
-   which dimension(s) it's meant to probe (see `scope.md`). A fenced block whose first
-   line is `# path/to/file.ext` gets written verbatim to that path in the sandbox
-   before the run; a `## Setup` bash block runs before the run for anything beyond
-   writing files.
-2. Write `expected/<category>/<id>.md` — the pass criteria, plus a `## Check`
-   bash block (exit code 0 = pass) for executable-graded tasks or a `## Pass criteria`
-   section with the exact expected value for exact-match tasks. Grading is
-   deterministic-only — the runner refuses any `judge` method at parse time (see
-   `.mimori/decisions.md` ADR 2026-08-30). Never restate the task instruction there beyond
-   what's needed to grade it.
-3. Run it: `python3 -m engine run --task tasks/<category>/<id>.md --harness <harness>
-   --model <model> --trials 3`, then `python3 -m engine report`.
+## Repository Structure
 
-## Credentials
+- `checkers/` — Core Python analysis tools and test suite:
+  - `benchmark_common.py` — Shared utilities, variant conflict matchers, Pareto frontiers, atomic JSON storage.
+  - `llm_benchmark_aggregator.py` — Benchmark consolidation (`bcheck`).
+  - `opencode_cost_benefit_analyzer.py` — OpenCode Go cost-benefit analyzer (`ocheck`).
+  - `free_model_ranker.py` — Free model ranker (`fcheck`).
+  - `stealth_model_detector.py` — Stealth model tracker (`scheck`).
+  - `test_*.py` — Unit tests.
+- `docs/` — Datasets, models index, and generated reports:
+  - `docs/data/` — Consolidated JSON databases (`benchmarks.json`, `ocgo_live.json`, `free_models.json`, `stealth_models.json`).
+  - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, ARC-AGI, and OpenRouter.
+  - `docs/reports/` — Exported HTML, JSON, and Markdown reports.
+  - `docs/models.md` — Reference documentation on models.
+- `reviews/` — Architectural reviews and audit reports.
 
-The container authenticates each CLI the same way it does on your host: their config/
-credential directories are bind-mounted read-only into the container rather than the
-runner reimplementing auth. `claude-code` is verified working this way; the mount paths
-for `codex-cli`/`antigravity`/`pi-agent`/`opencode` may need adjusting in
-`engine/sandbox.py` to match where those tools store credentials on your machine. The
-`raw-api` harness calls the Anthropic API directly and only needs `ANTHROPIC_API_KEY`
-exported.
+## Installation & Testing
 
-## Secrets & results
+No third-party dependencies required (pure Python 3.11+ standard library):
 
-- **Never commit `results/`.** It holds raw run transcripts and real cost/token data
-  tied to your API usage; `.gitignore` blanket-excludes the directory (except
-  `.gitkeep`) so this isn't opt-in.
-- **Never commit API keys or credential files** — `ANTHROPIC_API_KEY` and friends must
-  only exist in your shell environment or an untracked `.env`; `.gitignore` excludes
-  `.env`, `*.pem`, `*.key`, and `credentials*` as a backstop, but the actual rule is:
-  keys never go in a file that isn't already gitignored.
-- Before pushing after adding a new task, run `git status` and check nothing under
-  `results/` or matching a secret pattern is staged — `.gitignore` catches the common
-  cases but isn't a substitute for looking.
+```bash
+# Optional editable install for CLI shortcuts
+python3 -m pip install -e .
+
+# Run the full test suite
+python3 -m unittest discover -s checkers -p "test_*.py"
+```
