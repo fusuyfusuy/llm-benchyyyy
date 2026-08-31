@@ -18,6 +18,7 @@ import re
 import shutil
 import statistics
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -144,15 +145,22 @@ def variant_conflict(a_norm: str, b_norm: str) -> bool:
 
 
 def atomic_write_text(path, text: str) -> None:
-    """Write text to path atomically (tmp sibling + fsync + os.replace) — no torn tracked outputs (S1-M2/S2-C3)."""
+    """Write text to path atomically (tmp sibling + fsync + os.replace) — no torn tracked outputs or concurrent collisions."""
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_name(p.name + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, p)
+    tmp = p.with_name(f".{p.name}.{os.getpid()}.{time.time_ns()}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, p)
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
 
 
 def _safe_float(val, default=None):
@@ -757,7 +765,7 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
 
 # Canonical API / Scrape Endpoints
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-LMARENA_URL = "https://arena.ai/leaderboard"
+LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
 OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
@@ -1149,6 +1157,9 @@ def pool_badge(pool: str, color: bool = True) -> str:
     elif p in ("cline", "cln"):
         col = C_CLINE
         tag = "CLN"
+    elif p in ("api", "upstream", "ext"):
+        col = C_CYAN
+        tag = "API"
     elif p in ("stealth", "stl"):
         col = C_MAGENTA
         tag = "STL"

@@ -1,20 +1,20 @@
 {
-  "fetched_at": "2026-08-31T21:32:21.332322+00:00",
+  "fetched_at": "2026-08-31T22:50:28.098280+00:00",
   "usage": {
     "rolling": {
       "status": "ok",
-      "percent": 0,
-      "resetsAt": "2026-08-31T23:19:42.267Z"
+      "percent": 1,
+      "resetsAt": "2026-08-31T23:19:42.036Z"
     },
     "weekly": {
       "status": "ok",
       "percent": 0,
-      "resetsAt": "2026-09-07T00:00:00.267Z"
+      "resetsAt": "2026-09-07T00:00:00.036Z"
     },
     "monthly": {
       "status": "ok",
       "percent": 79,
-      "resetsAt": "2026-09-19T17:43:09.267Z"
+      "resetsAt": "2026-09-19T17:43:09.036Z"
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T22:41:14.559646+00:00",
+  "generated_at": "2026-08-31T22:50:28.618262+00:00",
   "sources": {
     "opencode_docs": "https://opencode.ai/docs/go/",
     "opencode_api": "https://opencode.ai/zen/go/v1/models",
@@ -12,7 +12,7 @@
       "cap_week": 30.0,
       "cap_month": 60.0
     },
-    "usage_source": "cached ocgo_usage_20260901.json",
+    "usage_source": "live (fetched now)",
     "note": "per-model caps = account_cap * usage/60; per-model Usage from docs pricing table"
   },
   "catalog_diff": {
@@ -147,17 +147,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 1353,
+          "rolling": 1340,
           "weekly": 3384,
           "monthly": 1421
         },
         "overall_pct": 21.0,
-        "overall_req": 1353
+        "overall_req": 1340
       },
       "benchmarks": {
         "aa_slug": null,
@@ -236,17 +236,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 5396,
+          "rolling": 5342,
           "weekly": 13489,
           "monthly": 5665
         },
         "overall_pct": 21.0,
-        "overall_req": 5396
+        "overall_req": 5342
       },
       "benchmarks": {
         "aa_slug": "qwen3-8-flash-next",
@@ -346,17 +346,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3779,
+          "rolling": 3741,
           "weekly": 9447,
           "monthly": 3968
         },
         "overall_pct": 21.0,
-        "overall_req": 3779
+        "overall_req": 3741
       },
       "benchmarks": {
         "aa_slug": null,
@@ -454,17 +454,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 45317,
+          "rolling": 44864,
           "weekly": 113293,
           "monthly": 47583
         },
         "overall_pct": 21.0,
-        "overall_req": 45317
+        "overall_req": 44864
       },
       "benchmarks": {
         "aa_slug": null,
@@ -543,17 +543,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 7558,
+          "rolling": 7482,
           "weekly": 18894,
           "monthly": 7936
         },
         "overall_pct": 21.0,
-        "overall_req": 7558
+        "overall_req": 7482
       },
       "benchmarks": {
         "aa_slug": "deepseek-v4-flash",
@@ -653,17 +653,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 1519,
+          "rolling": 1504,
           "weekly": 3797,
           "monthly": 1595
         },
         "overall_pct": 21.0,
-        "overall_req": 1519
+        "overall_req": 1504
       },
       "benchmarks": {
         "aa_slug": "glm-5-3-flash",
@@ -763,17 +763,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 2049,
+          "rolling": 2029,
           "weekly": 5123,
           "monthly": 2152
         },
         "overall_pct": 21.0,
-        "overall_req": 2049
+        "overall_req": 2029
       },
       "benchmarks": {
         "aa_slug": "gpt-5-6-luna",
@@ -873,17 +873,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 4310,
+          "rolling": 4267,
           "weekly": 10776,
           "monthly": 4526
         },
         "overall_pct": 21.0,
-        "overall_req": 4310
+        "overall_req": 4267
       },
       "benchmarks": {
         "aa_slug": null,
@@ -961,17 +961,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 30075,
+          "rolling": 29774,
           "weekly": 75188,
           "monthly": 31579
         },
         "overall_pct": 21.0,
-        "overall_req": 30075
+        "overall_req": 29774
       },
       "benchmarks": {
         "aa_slug": null,
@@ -1050,17 +1050,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 1044,
+          "rolling": 1034,
           "weekly": 2610,
           "monthly": 1096
         },
         "overall_pct": 21.0,
-        "overall_req": 1044
+        "overall_req": 1034
       },
       "benchmarks": {
         "aa_slug": "deepseek-v4-pro",
@@ -1160,17 +1160,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 792,
+          "rolling": 784,
           "weekly": 1979,
           "monthly": 831
         },
         "overall_pct": 21.0,
-        "overall_req": 792
+        "overall_req": 784
       },
       "benchmarks": {
         "aa_slug": "glm-5-2",
@@ -1270,17 +1270,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 198,
+          "rolling": 196,
           "weekly": 495,
           "monthly": 208
         },
         "overall_pct": 21.0,
-        "overall_req": 198
+        "overall_req": 196
       },
       "benchmarks": {
         "aa_slug": "glm-5-3",
@@ -1380,17 +1380,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 30075,
+          "rolling": 29774,
           "weekly": 75188,
           "monthly": 31579
         },
         "overall_pct": 21.0,
-        "overall_req": 30075
+        "overall_req": 29774
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-omni",
@@ -1469,17 +1469,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 30075,
+          "rolling": 29774,
           "weekly": 75188,
           "monthly": 31579
         },
         "overall_pct": 21.0,
-        "overall_req": 30075
+        "overall_req": 29774
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-pro",
@@ -1570,17 +1570,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 169,
+          "rolling": 167,
           "weekly": 423,
           "monthly": 177
         },
         "overall_pct": 21.0,
-        "overall_req": 169
+        "overall_req": 167
       },
       "benchmarks": {
         "aa_slug": "grok-4-6",
@@ -1680,17 +1680,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 4301,
+          "rolling": 4258,
           "weekly": 10753,
           "monthly": 4516
         },
         "overall_pct": 21.0,
-        "overall_req": 4301
+        "overall_req": 4258
       },
       "benchmarks": {
         "aa_slug": "hy3",
@@ -1770,17 +1770,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3258,
+          "rolling": 3226,
           "weekly": 8146,
           "monthly": 3421
         },
         "overall_pct": 21.0,
-        "overall_req": 3258
+        "overall_req": 3226
       },
       "benchmarks": {
         "aa_slug": "mimo-v2-5-pro",
@@ -1860,17 +1860,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3208,
+          "rolling": 3176,
           "weekly": 8019,
           "monthly": 3368
         },
         "overall_pct": 21.0,
-        "overall_req": 3208
+        "overall_req": 3176
       },
       "benchmarks": {
         "aa_slug": "minimax-m3",
@@ -1970,17 +1970,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 162,
+          "rolling": 160,
           "weekly": 405,
           "monthly": 170
         },
         "overall_pct": 21.0,
-        "overall_req": 162
+        "overall_req": 160
       },
       "benchmarks": {
         "aa_slug": "qwen3-8-max",
@@ -2080,17 +2080,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 98,
+          "rolling": 97,
           "weekly": 245,
           "monthly": 103
         },
         "overall_pct": 21.0,
-        "overall_req": 98
+        "overall_req": 97
       },
       "benchmarks": {
         "aa_slug": "kimi-k3",
@@ -2190,17 +2190,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 1151,
+          "rolling": 1139,
           "weekly": 2877,
           "monthly": 1208
         },
         "overall_pct": 21.0,
-        "overall_req": 1151
+        "overall_req": 1139
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-6",
@@ -2300,17 +2300,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3270,
+          "rolling": 3237,
           "weekly": 8174,
           "monthly": 3433
         },
         "overall_pct": 21.0,
-        "overall_req": 3270
+        "overall_req": 3237
       },
       "benchmarks": {
         "aa_slug": "qwen3-6-plus",
@@ -2410,17 +2410,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 994,
+          "rolling": 984,
           "weekly": 2484,
           "monthly": 1043
         },
         "overall_pct": 21.0,
-        "overall_req": 994
+        "overall_req": 984
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-7-code",
@@ -2520,17 +2520,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 4310,
+          "rolling": 4267,
           "weekly": 10776,
           "monthly": 4526
         },
         "overall_pct": 21.0,
-        "overall_req": 4310
+        "overall_req": 4267
       },
       "benchmarks": {
         "aa_slug": "qwen3-7-plus",
@@ -2610,17 +2610,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 120,
+          "rolling": 119,
           "weekly": 300,
           "monthly": 126
         },
         "overall_pct": 21.0,
-        "overall_req": 120
+        "overall_req": 119
       },
       "benchmarks": {
         "aa_slug": "grok-4-5",
@@ -2720,17 +2720,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 338,
+          "rolling": 334,
           "weekly": 844,
           "monthly": 354
         },
         "overall_pct": 21.0,
-        "overall_req": 338
+        "overall_req": 334
       },
       "benchmarks": {
         "aa_slug": "qwen3-7-max",
@@ -2829,17 +2829,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3390,
+          "rolling": 3356,
           "weekly": 8475,
           "monthly": 3559
         },
         "overall_pct": 21.0,
-        "overall_req": 3390
+        "overall_req": 3356
       },
       "benchmarks": {
         "aa_slug": "minimax-m2-7",
@@ -2931,17 +2931,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 792,
+          "rolling": 784,
           "weekly": 1979,
           "monthly": 831
         },
         "overall_pct": 21.0,
-        "overall_req": 792
+        "overall_req": 784
       },
       "benchmarks": {
         "aa_slug": "glm-5-1",
@@ -3033,17 +3033,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 792,
+          "rolling": 784,
           "weekly": 1979,
           "monthly": 831
         },
         "overall_pct": 21.0,
-        "overall_req": 792
+        "overall_req": 784
       },
       "benchmarks": {
         "aa_slug": "glm-5",
@@ -3134,17 +3134,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 11435,
+          "rolling": 11321,
           "weekly": 28588,
           "monthly": 12007
         },
         "overall_pct": 21.0,
-        "overall_req": 11435
+        "overall_req": 11321
       },
       "benchmarks": {
         "aa_slug": "longcat-2-0",
@@ -3223,17 +3223,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 4301,
+          "rolling": 4258,
           "weekly": 10753,
           "monthly": 4516
         },
         "overall_pct": 21.0,
-        "overall_req": 4301
+        "overall_req": 4258
       },
       "benchmarks": {
         "aa_slug": "hy3-preview",
@@ -3311,17 +3311,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 1151,
+          "rolling": 1139,
           "weekly": 2877,
           "monthly": 1208
         },
         "overall_pct": 21.0,
-        "overall_req": 1151
+        "overall_req": 1139
       },
       "benchmarks": {
         "aa_slug": "kimi-k2-5",
@@ -3412,17 +3412,17 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },
         "requests": {
-          "rolling": 3390,
+          "rolling": 3356,
           "weekly": 8475,
           "monthly": 3559
         },
         "overall_pct": 21.0,
-        "overall_req": 3390
+        "overall_req": 3356
       },
       "benchmarks": {
         "aa_slug": "minimax-m2-5",
@@ -3514,7 +3514,7 @@
       },
       "remaining": {
         "percent": {
-          "rolling": 100.0,
+          "rolling": 99.0,
           "weekly": 100.0,
           "monthly": 21.0
         },

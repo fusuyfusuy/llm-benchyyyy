@@ -57,7 +57,7 @@ class TestOcgoCheck(unittest.TestCase):
 
         snap_lm = ogc.pick_latest_raw("lmarena")
         lm_map = ogc.parse_lmarena(snap_lm.read_text(errors="ignore"))
-        self.assertGreater(len(lm_map), 300)
+        self.assertGreater(len(lm_map), 100)
 
         # Cross-matching (P1 1.4): exact-family match must survive the matcher migration.
         glm_aa = ogc.find_aa_for_ocgo("glm-5.3", aa_map)
@@ -65,11 +65,11 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertIn("intelligenceIndex", glm_aa)
         self.assertEqual(glm_aa["slug"], "glm-5-3")
 
-        # LMArena tier linking: glm-5.3 links to top-tier glm-5.3-max (Rank #15, ELO 1484)
+        # LMArena tier linking: glm-5.3 links to top-tier glm-5.3-max (Rank #10, ELO 1608)
         glm_lm = ogc.find_lm_for_ocgo("glm-5.3", lm_map)
         self.assertIsNotNone(glm_lm)
-        self.assertEqual(glm_lm["rank"], 15)
-        self.assertEqual(glm_lm["elo"], 1484.0)
+        self.assertEqual(glm_lm["rank"], 10)
+        self.assertEqual(glm_lm["elo"], 1608.0)
 
     def test_livebench_snapshot(self):
         snap_csv = ogc.RAW / "livebench_20260625.csv"

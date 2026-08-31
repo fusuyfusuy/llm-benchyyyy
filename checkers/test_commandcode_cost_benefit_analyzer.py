@@ -80,14 +80,14 @@ class TestCcCheck(unittest.TestCase):
         self.assertGreater(len(aa_map), 500)
         snap_lm = ccc.pick_latest_raw("lmarena")
         lm_map = ccc.parse_lmarena(snap_lm.read_text(errors="ignore"))
-        self.assertGreater(len(lm_map), 300)
+        self.assertGreater(len(lm_map), 100)
         # Cross-matching via GOAT ids
         glm_aa = ccc.find_aa_for_cc("glm-5.3", aa_map)
         self.assertIsNotNone(glm_aa)
         self.assertEqual(glm_aa["slug"], "glm-5-3")
         glm_lm = ccc.find_lm_for_cc("glm-5.3", lm_map)
         self.assertIsNotNone(glm_lm)
-        self.assertEqual(glm_lm["rank"], 15)
+        self.assertEqual(glm_lm["rank"], 10)
 
     def test_parse_cc_docs_header_matched_tables(self):
         # Catalog first, requests last — header-matched, not positional

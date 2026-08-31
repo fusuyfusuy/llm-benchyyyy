@@ -69,7 +69,7 @@ def is_free_model(rec):
     try:
         prompt = float(p.get("prompt", 0) or 0)
         completion = float(p.get("completion", 0) or 0)
-    except Exception:
+    except (ValueError, TypeError):
         return False
     return prompt == 0.0 and completion == 0.0
 

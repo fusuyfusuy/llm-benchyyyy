@@ -63,8 +63,8 @@ from benchmark_common import (
 CC_DOCS = "https://commandcode.ai/docs/plans/goat"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-LMARENA_URL = "https://arena.ai/leaderboard"
-ARENA_URL = "https://arena.ai/leaderboard/text"
+LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
+ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
 FALLBACK_PRICING = {

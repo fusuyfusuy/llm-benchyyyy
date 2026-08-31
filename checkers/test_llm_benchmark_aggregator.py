@@ -23,7 +23,7 @@ class TestBenchmarksCheck(unittest.TestCase):
         for k, v in bc.MODELS_CATALOG.items():
             self.assertIn("display", v)
             self.assertIn("pool", v)
-            self.assertIn(v["pool"], ["ocgo", "agy", "claude", "frontier"])
+            self.assertIn(v["pool"], ["ocgo", "agy", "claude", "frontier", "api", "cline"])
             self.assertIn("base_metrics", v)
             self.assertIn("price_in", v)
             self.assertIn("price_out", v)
@@ -50,7 +50,7 @@ class TestBenchmarksCheck(unittest.TestCase):
     def test_render_table(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
         models = list(bc.MODELS_CATALOG.values())
-        table = bc.render_cli_table(models)
+        table = bc.render_cli_table(models, top_n=None)
         self.assertIn("Claude Opus 5", table)
         self.assertIn("Claude Fable 5", table)
         self.assertIn("GPT-5.6 Sol", table)
@@ -183,10 +183,10 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         models = list(bc.MODELS_CATALOG.values())
         pareto_ids = bc.compute_pareto_frontier(models)
         self.assertIn("Claude Opus 5 (Thinking)", pareto_ids)
-        self.assertIn("GPT-5.6 Sol (Reasoning Flagship)", pareto_ids)
+        self.assertIn("GPT-5.6 Sol (Reasoning)", pareto_ids)
         self.assertIn("GPT-OSS 120B (Medium)", pareto_ids)
         self.assertIn("Gemini 3.7 Flash (Thinking)", pareto_ids)
-        self.assertIn("GPT 5.6 Luna", pareto_ids)
+        self.assertIn("Muse Spark 1.2 (Contributor)", pareto_ids)
 
     def test_render_podium_table(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -403,6 +403,129 @@ class TestFetchPath(unittest.TestCase):
         self.assertEqual(out, {})
         self.assertIn("LMArena", err.getvalue())
         self.assertIn("simulated outage", err.getvalue())
+
+
+class TestUniversalAggregatorAndDisplay(unittest.TestCase):
+    def test_format_model_display_name(self):
+        disp, prov = bc.format_model_display_name("glm-5.3-flash")
+        self.assertEqual(disp, "GLM-5.3 Flash")
+        self.assertEqual(prov, "Zhipu AI")
+
+        disp, prov = bc.format_model_display_name("deepseek-v4-flash-vision-exp")
+        self.assertEqual(disp, "DeepSeek V4 Flash Vision Exp")
+        self.assertEqual(prov, "DeepSeek")
+
+        disp, prov = bc.format_model_display_name("qwen3.8-flash")
+        self.assertEqual(disp, "Qwen3.8 Flash")
+        self.assertEqual(prov, "Alibaba")
+
+        disp, prov = bc.format_model_display_name("hy4-preview")
+        self.assertEqual(disp, "Hunyuan 4 Preview")
+        self.assertEqual(prov, "Tencent")
+
+        disp, prov = bc.format_model_display_name("minimax-m3")
+        self.assertEqual(disp, "MiniMax M3")
+        self.assertEqual(prov, "MiniMax")
+
+    def test_build_universal_catalog_includes_upstream_models(self):
+        live_map = bc.load_livebench_data(fetch=False)
+        lm_map = bc.load_lmarena_data(fetch=False)
+        aa_map = bc.load_aa_data(fetch=False)
+        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+        self.assertGreater(len(catalog), 500)
+        self.assertTrue(any(m.get("display") == "Hunyuan 4 Preview" for m in catalog.values()))
+        m = next(m for m in catalog.values() if m.get("display") == "Hunyuan 4 Preview")
+        self.assertEqual(m["provider"], "Tencent")
+        self.assertEqual(m["pool"], "api")
+
+    def test_cli_table_top_n_and_all(self):
+        live_map = bc.load_livebench_data(fetch=False)
+        lm_map = bc.load_lmarena_data(fetch=False)
+        aa_map = bc.load_aa_data(fetch=False)
+        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+        bc.calculate_composite_scores(catalog)
+        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+        models.sort(key=lambda m: m.get("composite_score", 0), reverse=True)
+
+        # Default top_n=30
+        table_30 = bc.render_cli_table(models, top_n=30, color=False)
+        self.assertIn("(Top 30 shown)", table_30)
+        self.assertIn("🥇#1", table_30)
+        self.assertIn(" #30", table_30)
+        self.assertNotIn(" #31", table_30)
+
+        # Top_n=5
+        table_5 = bc.render_cli_table(models, top_n=5, color=False)
+        self.assertIn("(Top 5 shown)", table_5)
+        self.assertIn(" #5", table_5)
+        self.assertNotIn(" #6", table_5)
+
+        # Full catalog top_n=None
+        table_all = bc.render_cli_table(models, top_n=None, color=False)
+        self.assertNotIn("Top 30 shown", table_all)
+
+    def test_markdown_and_html_top_n(self):
+        live_map = bc.load_livebench_data(fetch=False)
+        lm_map = bc.load_lmarena_data(fetch=False)
+        aa_map = bc.load_aa_data(fetch=False)
+        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+        bc.calculate_composite_scores(catalog)
+        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+        models.sort(key=lambda m: m.get("composite_score", 0), reverse=True)
+
+        md = bc.render_markdown_report(models, top_n=30)
+        self.assertIn("Showing top 30 of", md)
+
+        html_top30 = bc.render_html_report(models, top_n=30)
+        self.assertIn("Master Leaderboard", html_top30)
+
+    def test_partition_models_by_benchmark_coverage(self):
+        live_map = bc.load_livebench_data(fetch=False)
+        lm_map = bc.load_lmarena_data(fetch=False)
+        aa_map = bc.load_aa_data(fetch=False)
+        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+        bc.calculate_composite_scores(catalog)
+        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+
+        parts = bc.partition_models_by_benchmark_coverage(models)
+        self.assertGreater(len(parts["tri_verified"]), 20)
+        self.assertGreater(len(parts["missing_livebench"]), 10)
+        self.assertGreater(len(parts["missing_lmarena"]), 5)
+        self.assertGreater(len(parts["single_source"]), 100)
+
+        # Every model in tri_verified has all 3 signals
+        for m in parts["tri_verified"]:
+            self.assertIsNotNone(m.get("livebench"))
+            self.assertIsNotNone(m.get("base_metrics", {}).get("lm_elo"))
+            self.assertTrue(m.get("aa_live_quality") is not None or m.get("base_metrics", {}).get("aa_quality") is not None)
+
+    def test_sub_tables_cli_md_html_rendering(self):
+        sample_sub = [
+            {
+                "display": "Sample Partial Model",
+                "pool": "api",
+                "tier": "Benchmark Model",
+                "capability_q": 85.0,
+                "p_success": 82.0,
+                "effective_cost": 2.50,
+                "price_in": 1.0,
+                "price_out": 3.0,
+                "base_metrics": {"lm_elo": 1450},
+                "aa_live_quality": 45.0,
+            }
+        ]
+        cli_sub = bc.render_sub_table_cli(sample_sub, "Test Sub Table", color=False, top_n=10)
+        self.assertIn("Test Sub Table", cli_sub)
+        self.assertIn("Sample Partial Model", cli_sub)
+        self.assertIn("1450", cli_sub)
+
+        md_sub = bc.render_sub_table_md(sample_sub, "Test Markdown Sub", top_n=10)
+        self.assertIn("Test Markdown Sub", md_sub)
+        self.assertIn("Sample Partial Model", md_sub)
+
+        html_sub = bc.render_sub_table_html(sample_sub, "Test HTML Sub", top_n=10)
+        self.assertIn("Test HTML Sub", html_sub)
+        self.assertIn("Sample Partial Model", html_sub)
 
 
 if __name__ == "__main__":

@@ -97,8 +97,8 @@ OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OCGO_USAGE_API = "https://opencode.ai/zen/go/v1/usage"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
-LMARENA_URL = "https://arena.ai/leaderboard"
-ARENA_URL = "https://arena.ai/leaderboard/text"
+LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
+ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
@@ -1609,7 +1609,7 @@ def main():
                             inp = inp if inp is not None else p_prompt
                             outp = outp if outp is not None else p_compl
                             break
-                    except Exception:
+                    except (ValueError, TypeError):
                         pass
 
         est_in, est_ca, est_out = merged_tokens.get(mid, (500, 60000, 200))
@@ -1660,7 +1660,7 @@ def main():
             or_ctx = or_rec.get("context_length")
             try:
                 or_price_prompt = float(or_rec.get("pricing", {}).get("prompt", 0)) * 1_000_000
-            except Exception:
+            except (ValueError, TypeError):
                 pass
 
         # Value metrics
@@ -1683,28 +1683,28 @@ def main():
                     continue
                 try:
                     pct_rem = max(0.0, 100.0 - float(pct_used))
-                except Exception:
+                except (ValueError, TypeError):
                     continue
                 try:
                     remaining[w] = round(pct_rem, 1)
-                except Exception:
+                except (ValueError, TypeError):
                     continue
                 try:
                     rem_usd = cap * pct_rem / 100.0
                     remaining_req[w] = _safe_int_round(rem_usd / cost_req)
-                except Exception:
+                except (ValueError, TypeError):
                     continue
             if remaining:
                 try:
                     overall_remaining_pct = min(remaining.values())  # most restrictive window
-                except Exception:
+                except (ValueError, TypeError):
                     overall_remaining_pct = None
         elif usage_percents and usage is None:
             # free model: no cap, remaining is same % but no request count
             for w, pct_used in usage_percents.items():
                 try:
                     remaining[w] = round(max(0.0, 100.0 - float(pct_used)), 1)
-                except Exception:
+                except (ValueError, TypeError):
                     continue
         elif usage_key_present and not usage_percents:
             # key present but fetch failed — leave empty, UI will show N/A + error

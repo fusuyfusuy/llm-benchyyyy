@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+*.log
 
 # Editor & OS
 .DS_Store
