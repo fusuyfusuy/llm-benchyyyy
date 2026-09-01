@@ -1,4 +1,5 @@
 # Workflow & Communication
+
 - Prefers a plan-first workflow: asks for a written plan before implementation, including for refactors and new systems ("plan.", "plan now", "plan and audit first", "make the output engine coherent for all checkers. plan."). Confidence: 0.9
 - Delegates verification and auditing to subagents rather than doing it inline ("verify and audit using subagent"). Confidence: 0.85
 - Wants landscape research before designing new tools/benchmarks (commissioned research on benchmark/eval methodologies before designing a benchmark system). Confidence: 0.8
@@ -8,3 +9,6 @@
 - Communicates in terse, directive one-liners (repeatedly just says "continue" to resume long builds rather than re-explaining scope; asks abbreviated status questions like "what work is done to do?"). Confidence: 0.75
 - When planning, wants to be "grilled" — asked pointed clarifying questions on the design forks that shape the implementation before a plan is finalized ("plan first, grill"). Confidence: 0.9
 - When grilled with option-style questions, goes with the options marked "Recommended" — so flag a clear recommendation when asking design-fork questions (approved the resulting all-recommendations plan unchanged). Confidence: 0.6
+- Bare audit/review directives ("review checker scripts, audit") expect the full structured audit protocol: partition scopes, launch parallel scoped subagent auditors, personally verify P1 findings against live code/snapshots before reporting, write scoped reports + a master synthesis with health scores and P1/P2/P3 priorities, then halt at an approval gate with zero code changes until the user picks which remediations to run. Confidence: 0.6
+- Iterative audit rounds first verify that prior-round findings were actually remediated (git log + targeted greps) and only then re-audit, so each round focuses on fresh ground instead of re-reporting stale issues. Confidence: 0.55
+- Wants checker verification to include running the actual checker CLIs and inspecting their rendered outputs, not only running automated test suites. Confidence: 0.8

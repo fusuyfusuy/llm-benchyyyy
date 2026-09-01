@@ -65,10 +65,12 @@ def is_free_model(rec):
     oid = rec.get("id", "") or ""
     if oid.endswith(":free"):
         return True
-    p = rec.get("pricing", {}) or {}
+    p = rec.get("pricing")
+    if not isinstance(p, dict) or p.get("prompt") is None or p.get("completion") is None:
+        return False
     try:
-        prompt = float(p.get("prompt", 0) or 0)
-        completion = float(p.get("completion", 0) or 0)
+        prompt = float(p["prompt"])
+        completion = float(p["completion"])
     except (ValueError, TypeError):
         return False
     return prompt == 0.0 and completion == 0.0
@@ -308,6 +310,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         plain_diff_parts=diff_parts,
     ))
 
+    bot_border = ""
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
@@ -491,7 +494,7 @@ def main():  # noqa: PLR0915
 
     # ---- 1. OpenRouter (validation + enrichment only; never listed) ----
     or_json = fetch_or_load_cached_json(OPENROUTER_API, "openrouter_models", fetch=do_fetch, write=do_write, verbose=verbose)
-    or_map = bc.parse_openrouter(or_json, verbose=verbose) if or_json is not None else {}
+    or_map = bc.parse_openrouter(or_json, verbose=verbose) if isinstance(or_json, dict) else {}
     # Rows come exclusively from the OpenCode Zen/Go + Cline sections below; the
     # OR catalog joins on the provider-tolerant _free_key (platform ids lack OR's
     # provider prefix / `:free` suffix, so exact-id gets would never hit).
@@ -499,7 +502,10 @@ def main():  # noqa: PLR0915
     or_free_by_key: dict[str, dict] = {}
     for orid, orrec in or_map.items():
         if is_free_model(orrec):
-            or_free_by_key.setdefault(_free_key(orid), orrec)
+            key = _free_key(orid)
+            current = or_free_by_key.get(key)
+            if current is None or (orid.endswith(":free") and not current["id"].endswith(":free")):
+                or_free_by_key[key] = orrec
     print(f"  OR catalog: {len(or_map)} models loaded, {len(or_free_by_key)} free keys (validation + price/context only — not listed)")
 
     # ---- 1b. OpenCode free models (Zen + Go catalogs) ----

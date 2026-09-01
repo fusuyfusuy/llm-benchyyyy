@@ -106,6 +106,19 @@ class TestOcgoCheck(unittest.TestCase):
         table = ogc.render_cli_table(sample_rows, color=False)
         self.assertIn("RECOMMENDATIONS", table)
         self.assertIn("Architecture", table)
+
+        uncovered = {
+            "model_id": "uncovered",
+            "pricing": {"monthly_usage_limit_usd": None},
+            "caps": {},
+            "cost_per_request_usd": None,
+            "benchmarks": {"capability_q": None, "p_success": None},
+            "value": {"qvi_score": None, "avi_score": None, "fgi_score": None},
+            "requests": {},
+        }
+        uncovered_table = ogc.render_cli_table([uncovered], color=False)
+        self.assertIn("uncovered", uncovered_table)
+        self.assertNotIn("78.0", uncovered_table)
     def test_catalog_diff_logic(self):
         prev_snapshot = {
             "catalog_diff": {"added": [], "removed": []},

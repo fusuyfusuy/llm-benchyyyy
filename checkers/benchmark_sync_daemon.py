@@ -16,7 +16,9 @@ All tools in the suite (bcheck, ccheck, fcheck, scheck, ocheck) read 100% offlin
 Supports manual sync via --sync-now / --fetch at any time.
 """
 import argparse
+from contextlib import contextmanager
 import datetime as dt
+import fcntl
 import glob
 import json
 import os
@@ -40,6 +42,7 @@ for _p in (HERE.parent, HERE.parent.parent, HERE.parent.parent.parent):
 DATA = ROOT / "docs" / "data"
 RAW = DATA / "raw"
 LOGS = DATA / "sync_daemon.log"
+LOCK_PATH = DATA / "sync_daemon.lock"
 
 import benchmark_common as bc
 
@@ -74,8 +77,12 @@ def fetch_url_content(url: str, timeout: int = 20, max_retries: int = 3) -> str 
     for attempt in range(1, max_retries + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
+                text = resp.read().decode("utf-8", errors="replace")
+            normalized = text.strip().lower()
+            if len(text) < 100 or normalized.startswith(("404", "not found", "<h1>404")):
+                raise ValueError(f"invalid response body ({len(text)} bytes)")
+            return text
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as e:
             if attempt < max_retries:
                 backoff = 1.5 ** attempt
                 time.sleep(backoff)
@@ -83,6 +90,19 @@ def fetch_url_content(url: str, timeout: int = 20, max_retries: int = 3) -> str 
                 log(f"  WARN: Failed to fetch {url} after {max_retries} attempts: {e}")
                 return None
     return None
+
+
+@contextmanager
+def sync_lock():
+    LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with LOCK_PATH.open("w", encoding="utf-8") as lock_file:
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as e:
+            raise RuntimeError("benchmark sync is already running") from e
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+        yield
 
 
 def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pathlib.Path | None]:
@@ -252,7 +272,7 @@ def get_cache_status() -> dict:
     """Inspect all cached snapshot files and report their status."""
     today = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d")
     feeds = [
-        ("LiveBench CSV", f"livebench_{today}.csv", "livebench_*.csv"),
+        ("LiveBench CSV", f"livebench_{today}.csv", "livebench_[0-9]*.csv"),
         ("LiveBench Categories", f"livebench_categories_{today}.json", "livebench_categories_*.json"),
         ("LMArena HTML", f"lmarena_{today}.html", "lmarena_*.html"),
         ("Artificial Analysis HTML", f"artificial_analysis_{today}.html", "artificial_analysis_*.html"),
@@ -405,12 +425,16 @@ def main():
         install_cron()
         return
 
-    if args.daemon:
-        run_daemon_loop(target_hour=args.target_hour, target_minute=args.target_minute)
-        return
+    try:
+        with sync_lock():
+            if args.daemon:
+                run_daemon_loop(target_hour=args.target_hour, target_minute=args.target_minute)
+                return
 
-    # Default action or --sync-now: run synchronization
-    sync_all_sources(verbose=True, force=args.force)
+            sync_all_sources(verbose=True, force=args.force)
+    except RuntimeError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        raise SystemExit(1) from e
 
 
 if __name__ == "__main__":

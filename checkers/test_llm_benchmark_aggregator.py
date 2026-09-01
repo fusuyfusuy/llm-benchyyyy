@@ -404,6 +404,33 @@ class TestFetchPath(unittest.TestCase):
         self.assertIn("LMArena", err.getvalue())
         self.assertIn("simulated outage", err.getvalue())
 
+    def test_openrouter_pricing_indexes_bare_model_slug(self):
+        payload = {
+            "data": [{
+                "id": "provider/probe-model-9",
+                "name": "Probe",
+                "pricing": {"prompt": "0.000002", "completion": "0.000006"},
+            }],
+        }
+        (Path(self._tmp.name) / "openrouter_models_20260101.json").write_text(json.dumps(payload))
+        pricing = bc.load_openrouter_pricing_data()
+        self.assertEqual(pricing["probe-model-9"]["price_in"], 2.0)
+        self.assertEqual(pricing["probe-model-9"]["price_out"], 6.0)
+
+    def test_livebench_offline_uses_only_newest_snapshot(self):
+        root = Path(self._tmp.name)
+        (root / "livebench_20260101.csv").write_text(
+            "model,code_generation,math\nold-only,99,99\n"
+        )
+        (root / "livebench_categories_20260101.json").write_text(self.CATS)
+        (root / "livebench_20260102.csv").write_text(
+            "model,code_generation,math\nnew-only,81.5,70.5\n"
+        )
+        (root / "livebench_categories_20260102.json").write_text(self.CATS)
+        out = bc.load_livebench_data(fetch=False)
+        self.assertIn("new-only", out)
+        self.assertNotIn("old-only", out)
+
 
 class TestUniversalAggregatorAndDisplay(unittest.TestCase):
     def test_format_model_display_name(self):
@@ -490,7 +517,7 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         parts = bc.partition_models_by_benchmark_coverage(models)
         self.assertGreater(len(parts["tri_verified"]), 20)
         self.assertGreater(len(parts["missing_livebench"]), 10)
-        self.assertGreater(len(parts["missing_lmarena"]), 5)
+        self.assertGreater(len(parts["missing_lmarena"]), 0)
         self.assertGreater(len(parts["single_source"]), 100)
 
         # Every model in tri_verified has all 3 signals

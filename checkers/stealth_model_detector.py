@@ -170,6 +170,8 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
         plain_title_line=f" STEALTH MODEL RADAR (OpenRouter stealth/ namespace) — Tracked: {total_models} models",
     ))
 
+    # Border templates
+    bot_border = ""
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"

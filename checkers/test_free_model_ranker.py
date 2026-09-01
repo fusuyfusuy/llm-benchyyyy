@@ -17,6 +17,9 @@ class TestFreeModelRanker(unittest.TestCase):
         self.assertTrue(fmr.is_free_model({"id": "meta-llama/llama-3-8b", "pricing": {"prompt": "0", "completion": "0"}}))
         self.assertTrue(fmr.is_free_model({"id": "custom/free-model:free", "pricing": {}}))
         self.assertFalse(fmr.is_free_model({"id": "openai/gpt-4o", "pricing": {"prompt": "2.5", "completion": "10.0"}}))
+        self.assertFalse(fmr.is_free_model({"id": "unknown", "pricing": {}}))
+        self.assertFalse(fmr.is_free_model({"id": "unknown"}))
+        self.assertFalse(fmr.is_free_model({"id": "sentinel", "pricing": {"prompt": "-1", "completion": "-1"}}))
 
     def test_render_cli_table(self):
         dummy_rows = [

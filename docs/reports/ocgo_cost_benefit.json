@@ -1,94 +1,5 @@
 [
   {
-    "model_id": "hy4-preview",
-    "display": "hy4-preview",
-    "pricing": {
-      "input_per_1m": 0.834,
-      "output_per_1m": 2.501,
-      "cached_read_per_1m": 0.042,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 30.0
-    },
-    "caps": {
-      "cap_5h_usd": 6.0,
-      "cap_wk_usd": 15.0,
-      "cap_mo_usd": 30.0
-    },
-    "tokens": {
-      "est_input": 830,
-      "est_cached": 71500,
-      "est_output": 295
-    },
-    "cost_per_request_usd": 0.004433,
-    "requests": {
-      "per_5h_computed": 1353,
-      "per_week_computed": 3384,
-      "per_month_computed": 6767,
-      "per_5h_docs": 1350,
-      "per_week_docs": 3380,
-      "per_month_docs": 6770
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 1340,
-        "weekly": 3384,
-        "monthly": 1421
-      },
-      "overall_pct": 21.0,
-      "overall_req": 1340
-    },
-    "benchmarks": {
-      "aa_slug": null,
-      "aa_intelligence": null,
-      "aa_coding": null,
-      "aa_agentic": null,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 5,
-      "lmarena_elo": 1631.0,
-      "lmarena_votes": 1276,
-      "livebench": null,
-      "openrouter_id": "tencent/hy4-preview",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 99.9,
-      "capability_q": 99.9,
-      "p_success": 96.6,
-      "token_multiplier": 1.08,
-      "blended_price": 1.17,
-      "effective_cost": 1.26,
-      "qvi_score": 727.3,
-      "avi_score": 568.5,
-      "fgi_score": 94.8,
-      "bfi_score": 48.7
-    },
-    "value": {
-      "intelligence_per_dollar": null,
-      "cost_per_intelligence_pt_usd": null,
-      "requests_per_dollar": 225.6,
-      "leverage_vs_10usd_sub": 3.0,
-      "effective_blended_price": 1.26,
-      "effective_cost_per_request": 0.004788,
-      "effective_requests_per_5h": 1250,
-      "effective_requests_per_month": 6269,
-      "qvi_score": 727.3,
-      "value_score": 727.3,
-      "avi_score": 568.5,
-      "fgi_score": 94.8,
-      "bfi_score": 48.7
-    },
-    "coverage": [
-      "LM"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
     "model_id": "qwen3.8-flash",
     "display": "qwen3.8-flash",
     "pricing": {
@@ -162,33 +73,33 @@
         }
       },
       "openrouter_id": "qwen/qwen3.8-flash",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 89.1,
-      "capability_q": 89.1,
-      "p_success": 88.6,
-      "token_multiplier": 1.28,
+      "openrouter_context": 1000000,
+      "openrouter_prompt_per_1m": 0.15,
+      "composite_score": 87.2,
+      "capability_q": 87.2,
+      "p_success": 86.1,
+      "token_multiplier": 1.36,
       "blended_price": 0.21,
-      "effective_cost": 0.27,
-      "qvi_score": 646.9,
-      "avi_score": 785.8,
-      "fgi_score": 74.3,
-      "bfi_score": 136.6
+      "effective_cost": 0.29,
+      "qvi_score": 609.8,
+      "avi_score": 735.0,
+      "fgi_score": 69.7,
+      "bfi_score": 133.7
     },
     "value": {
       "intelligence_per_dollar": 50192.43,
       "cost_per_intelligence_pt_usd": 2e-05,
       "requests_per_dollar": 899.3,
       "leverage_vs_10usd_sub": 3.0,
-      "effective_blended_price": 0.27,
-      "effective_cost_per_request": 0.001423,
-      "effective_requests_per_5h": 4219,
-      "effective_requests_per_month": 21094,
-      "qvi_score": 646.9,
-      "value_score": 646.9,
-      "avi_score": 785.8,
-      "fgi_score": 74.3,
-      "bfi_score": 136.6
+      "effective_blended_price": 0.29,
+      "effective_cost_per_request": 0.001512,
+      "effective_requests_per_5h": 3971,
+      "effective_requests_per_month": 19853,
+      "qvi_score": 609.8,
+      "value_score": 609.8,
+      "avi_score": 735.0,
+      "fgi_score": 69.7,
+      "bfi_score": 133.7
     },
     "coverage": [
       "AA",
@@ -272,18 +183,18 @@
         }
       },
       "openrouter_id": "deepseek/deepseek-v4-flash-vision-exp",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 87.0,
-      "capability_q": 87.0,
-      "p_success": 85.8,
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.22,
+      "composite_score": 87.2,
+      "capability_q": 87.2,
+      "p_success": 86.1,
       "token_multiplier": 1.36,
       "blended_price": 0.31,
       "effective_cost": 0.42,
-      "qvi_score": 580.7,
-      "avi_score": 652.7,
-      "fgi_score": 69.1,
-      "bfi_score": 106.6
+      "qvi_score": 583.9,
+      "avi_score": 656.0,
+      "fgi_score": 69.7,
+      "bfi_score": 106.8
     },
     "value": {
       "intelligence_per_dollar": null,
@@ -294,11 +205,11 @@
       "effective_cost_per_request": 0.00108,
       "effective_requests_per_5h": 2794,
       "effective_requests_per_month": 13897,
-      "qvi_score": 580.7,
-      "value_score": 580.7,
-      "avi_score": 652.7,
-      "fgi_score": 69.1,
-      "bfi_score": 106.6
+      "qvi_score": 583.9,
+      "value_score": 583.9,
+      "avi_score": 656.0,
+      "fgi_score": 69.7,
+      "bfi_score": 106.8
     },
     "coverage": [
       "Live"
@@ -307,33 +218,33 @@
     "is_docs_model": true
   },
   {
-    "model_id": "muse-spark-1.2-contributor",
-    "display": "muse-spark-1.2-contributor",
+    "model_id": "hy4-preview",
+    "display": "hy4-preview",
     "pricing": {
-      "input_per_1m": 0.1,
-      "output_per_1m": 0.2,
-      "cached_read_per_1m": 0.002,
+      "input_per_1m": 0.834,
+      "output_per_1m": 2.501,
+      "cached_read_per_1m": 0.042,
       "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 60.0
+      "monthly_usage_limit_usd": 30.0
     },
     "caps": {
-      "cap_5h_usd": 12.0,
-      "cap_wk_usd": 30.0,
-      "cap_mo_usd": 60.0
+      "cap_5h_usd": 6.0,
+      "cap_wk_usd": 15.0,
+      "cap_mo_usd": 30.0
     },
     "tokens": {
-      "est_input": 620,
-      "est_cached": 71400,
-      "est_output": 300
+      "est_input": 830,
+      "est_cached": 71500,
+      "est_output": 295
     },
-    "cost_per_request_usd": 0.000265,
+    "cost_per_request_usd": 0.004433,
     "requests": {
-      "per_5h_computed": 45317,
-      "per_week_computed": 113293,
-      "per_month_computed": 226586,
-      "per_5h_docs": 45300,
-      "per_week_docs": 113300,
-      "per_month_docs": 226600
+      "per_5h_computed": 1353,
+      "per_week_computed": 3384,
+      "per_month_computed": 6767,
+      "per_5h_docs": 1350,
+      "per_week_docs": 3380,
+      "per_month_docs": 6770
     },
     "remaining": {
       "percent": {
@@ -342,12 +253,12 @@
         "monthly": 21.0
       },
       "requests": {
-        "rolling": 44864,
-        "weekly": 113293,
-        "monthly": 47583
+        "rolling": 1340,
+        "weekly": 3384,
+        "monthly": 1421
       },
       "overall_pct": 21.0,
-      "overall_req": 44864
+      "overall_req": 1340
     },
     "benchmarks": {
       "aa_slug": null,
@@ -356,41 +267,41 @@
       "aa_agentic": null,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": null,
-      "lmarena_elo": null,
-      "lmarena_votes": null,
+      "lmarena_rank": 5,
+      "lmarena_elo": 1631.0,
+      "lmarena_votes": 1276,
       "livebench": null,
-      "openrouter_id": "meta/muse-spark-1.2-contributor",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 78.0,
-      "capability_q": 78.0,
-      "p_success": 67.3,
-      "token_multiplier": 2.07,
-      "blended_price": 0.12,
-      "effective_cost": 0.25,
-      "qvi_score": 562.7,
-      "avi_score": 598.3,
-      "fgi_score": 43.1,
-      "bfi_score": 165.2
+      "openrouter_id": "tencent/hy4-preview",
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.834,
+      "composite_score": 88.8,
+      "capability_q": 88.8,
+      "p_success": 88.2,
+      "token_multiplier": 1.29,
+      "blended_price": 1.17,
+      "effective_cost": 1.51,
+      "qvi_score": 534.6,
+      "avi_score": 404.2,
+      "fgi_score": 73.6,
+      "bfi_score": 43.3
     },
     "value": {
       "intelligence_per_dollar": null,
       "cost_per_intelligence_pt_usd": null,
-      "requests_per_dollar": 3776.4,
-      "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 0.25,
-      "effective_cost_per_request": 0.000549,
-      "effective_requests_per_5h": 21884,
-      "effective_requests_per_month": 109469,
-      "qvi_score": 562.7,
-      "value_score": 562.7,
-      "avi_score": 598.3,
-      "fgi_score": 43.1,
-      "bfi_score": 165.2
+      "requests_per_dollar": 225.6,
+      "leverage_vs_10usd_sub": 3.0,
+      "effective_blended_price": 1.51,
+      "effective_cost_per_request": 0.005719,
+      "effective_requests_per_5h": 1047,
+      "effective_requests_per_month": 5248,
+      "qvi_score": 534.6,
+      "value_score": 534.6,
+      "avi_score": 404.2,
+      "fgi_score": 73.6,
+      "bfi_score": 43.3
     },
     "coverage": [
-      "\u2014"
+      "LM"
     ],
     "is_new": false,
     "is_docs_model": true
@@ -469,33 +380,33 @@
         }
       },
       "openrouter_id": "deepseek/deepseek-v4-flash",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 82.2,
-      "capability_q": 82.2,
-      "p_success": 77.3,
-      "token_multiplier": 1.65,
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.07938,
+      "composite_score": 80.5,
+      "capability_q": 80.5,
+      "p_success": 73.5,
+      "token_multiplier": 1.79,
       "blended_price": 0.31,
-      "effective_cost": 0.51,
-      "qvi_score": 538.7,
-      "avi_score": 538.3,
-      "fgi_score": 55.9,
-      "bfi_score": 100.7
+      "effective_cost": 0.55,
+      "qvi_score": 507.4,
+      "avi_score": 500.0,
+      "fgi_score": 50.7,
+      "bfi_score": 98.6
     },
     "value": {
       "intelligence_per_dollar": 65205.41,
       "cost_per_intelligence_pt_usd": 1.5e-05,
       "requests_per_dollar": 1259.6,
       "leverage_vs_10usd_sub": 3.0,
-      "effective_blended_price": 0.51,
-      "effective_cost_per_request": 0.00131,
-      "effective_requests_per_5h": 4606,
-      "effective_requests_per_month": 22909,
-      "qvi_score": 538.7,
-      "value_score": 538.7,
-      "avi_score": 538.3,
-      "fgi_score": 55.9,
-      "bfi_score": 100.7
+      "effective_blended_price": 0.55,
+      "effective_cost_per_request": 0.001421,
+      "effective_requests_per_5h": 4246,
+      "effective_requests_per_month": 21117,
+      "qvi_score": 507.4,
+      "value_score": 507.4,
+      "avi_score": 500.0,
+      "fgi_score": 50.7,
+      "bfi_score": 98.6
     },
     "coverage": [
       "AA",
@@ -555,9 +466,9 @@
       "aa_agentic": 58.1561649484536,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 38,
-      "lmarena_elo": 1469.0,
-      "lmarena_votes": 2424,
+      "lmarena_rank": 11,
+      "lmarena_elo": 1606.0,
+      "lmarena_votes": 1593,
       "livebench": {
         "model": "glm-5.3-flash",
         "overall": 71.14,
@@ -579,33 +490,33 @@
         }
       },
       "openrouter_id": "z-ai/glm-5.3-flash",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 84.1,
-      "capability_q": 84.1,
-      "p_success": 81.0,
-      "token_multiplier": 1.52,
+      "openrouter_context": 1310720,
+      "openrouter_prompt_per_1m": 0.075,
+      "composite_score": 85.5,
+      "capability_q": 85.5,
+      "p_success": 83.5,
+      "token_multiplier": 1.43,
       "blended_price": 0.22,
-      "effective_cost": 0.33,
-      "qvi_score": 468.7,
-      "avi_score": 653.9,
-      "fgi_score": 61.3,
-      "bfi_score": 126.8
+      "effective_cost": 0.31,
+      "qvi_score": 491.9,
+      "avi_score": 690.6,
+      "fgi_score": 65.2,
+      "bfi_score": 129.0
     },
     "value": {
       "intelligence_per_dollar": 29093.27,
       "cost_per_intelligence_pt_usd": 3.4e-05,
       "requests_per_dollar": 506.3,
       "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 0.33,
-      "effective_cost_per_request": 0.003002,
-      "effective_requests_per_5h": 1039,
-      "effective_requests_per_month": 5197,
-      "qvi_score": 468.7,
-      "value_score": 468.7,
-      "avi_score": 653.9,
-      "fgi_score": 61.3,
-      "bfi_score": 126.8
+      "effective_blended_price": 0.31,
+      "effective_cost_per_request": 0.002824,
+      "effective_requests_per_5h": 1105,
+      "effective_requests_per_month": 5524,
+      "qvi_score": 491.9,
+      "value_score": 491.9,
+      "avi_score": 690.6,
+      "fgi_score": 65.2,
+      "bfi_score": 129.0
     },
     "coverage": [
       "AA",
@@ -665,9 +576,9 @@
       "aa_agentic": 46.9033402061856,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 63,
-      "lmarena_elo": 1452.0,
-      "lmarena_votes": 22852,
+      "lmarena_rank": 31,
+      "lmarena_elo": 1518.0,
+      "lmarena_votes": 6567,
       "livebench": {
         "model": "gpt-5.6-luna-max",
         "overall": 73.69,
@@ -689,320 +600,33 @@
         }
       },
       "openrouter_id": "openai/gpt-5.6-luna",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 81.9,
-      "capability_q": 81.9,
-      "p_success": 76.6,
-      "token_multiplier": 1.67,
+      "openrouter_context": 1050000,
+      "openrouter_prompt_per_1m": 0.19999999999999998,
+      "composite_score": 82.3,
+      "capability_q": 82.3,
+      "p_success": 77.5,
+      "token_multiplier": 1.64,
       "blended_price": 0.4,
-      "effective_cost": 0.67,
-      "qvi_score": 450.3,
-      "avi_score": 481.2,
-      "fgi_score": 54.9,
-      "bfi_score": 84.7
+      "effective_cost": 0.66,
+      "qvi_score": 456.8,
+      "avi_score": 489.3,
+      "fgi_score": 56.2,
+      "bfi_score": 85.1
     },
     "value": {
       "intelligence_per_dollar": 35736.4,
       "cost_per_intelligence_pt_usd": 2.8e-05,
       "requests_per_dollar": 683.1,
       "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 0.67,
-      "effective_cost_per_request": 0.002445,
-      "effective_requests_per_5h": 1228,
-      "effective_requests_per_month": 6138,
-      "qvi_score": 450.3,
-      "value_score": 450.3,
-      "avi_score": 481.2,
-      "fgi_score": 54.9,
-      "bfi_score": 84.7
-    },
-    "coverage": [
-      "AA",
-      "LM",
-      "Live"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "qwen3.5-plus",
-    "display": "qwen3.5-plus",
-    "pricing": {
-      "input_per_1m": 0.4,
-      "output_per_1m": 1.6,
-      "cached_read_per_1m": 0.04,
-      "cached_write_per_1m": 0.5,
-      "monthly_usage_limit_usd": 60
-    },
-    "caps": {
-      "cap_5h_usd": 12.0,
-      "cap_wk_usd": 30.0,
-      "cap_mo_usd": 60.0
-    },
-    "tokens": {
-      "est_input": 500,
-      "est_cached": 57000,
-      "est_output": 190
-    },
-    "cost_per_request_usd": 0.002784,
-    "requests": {
-      "per_5h_computed": 4310,
-      "per_week_computed": 10776,
-      "per_month_computed": 21552,
-      "per_5h_docs": null,
-      "per_week_docs": null,
-      "per_month_docs": null
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 4267,
-        "weekly": 10776,
-        "monthly": 4526
-      },
-      "overall_pct": 21.0,
-      "overall_req": 4267
-    },
-    "benchmarks": {
-      "aa_slug": null,
-      "aa_intelligence": null,
-      "aa_coding": null,
-      "aa_agentic": null,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": null,
-      "lmarena_elo": null,
-      "lmarena_votes": null,
-      "livebench": null,
-      "openrouter_id": null,
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": null,
-      "composite_score": 78.0,
-      "capability_q": 78.0,
-      "p_success": 67.3,
-      "token_multiplier": 2.07,
-      "blended_price": 0.64,
-      "effective_cost": 1.32,
-      "qvi_score": 430.3,
-      "avi_score": 323.0,
-      "fgi_score": 43.1,
-      "bfi_score": 58.5
-    },
-    "value": {
-      "intelligence_per_dollar": null,
-      "cost_per_intelligence_pt_usd": null,
-      "requests_per_dollar": 359.2,
-      "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 1.32,
-      "effective_cost_per_request": 0.005763,
-      "effective_requests_per_5h": 2082,
-      "effective_requests_per_month": 10412,
-      "qvi_score": 430.3,
-      "value_score": 430.3,
-      "avi_score": 323.0,
-      "fgi_score": 43.1,
-      "bfi_score": 58.5
-    },
-    "coverage": [
-      "\u2014"
-    ],
-    "is_new": false
-  },
-  {
-    "model_id": "mimo-v2.5",
-    "display": "mimo-v2.5",
-    "pricing": {
-      "input_per_1m": 0.14,
-      "output_per_1m": 0.28,
-      "cached_read_per_1m": 0.0028,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 60.0
-    },
-    "caps": {
-      "cap_5h_usd": 12.0,
-      "cap_wk_usd": 30.0,
-      "cap_mo_usd": 60.0
-    },
-    "tokens": {
-      "est_input": 830,
-      "est_cached": 71500,
-      "est_output": 295
-    },
-    "cost_per_request_usd": 0.000399,
-    "requests": {
-      "per_5h_computed": 30075,
-      "per_week_computed": 75188,
-      "per_month_computed": 150376,
-      "per_5h_docs": 30100,
-      "per_week_docs": 75200,
-      "per_month_docs": 150400
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 29774,
-        "weekly": 75188,
-        "monthly": 31579
-      },
-      "overall_pct": 21.0,
-      "overall_req": 29774
-    },
-    "benchmarks": {
-      "aa_slug": null,
-      "aa_intelligence": null,
-      "aa_coding": null,
-      "aa_agentic": null,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 92,
-      "lmarena_elo": 1434.0,
-      "lmarena_votes": 44515,
-      "livebench": null,
-      "openrouter_id": "xiaomi/mimo-v2.5",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 72.0,
-      "capability_q": 72.0,
-      "p_success": 50.0,
-      "token_multiplier": 3.2,
-      "blended_price": 0.17,
-      "effective_cost": 0.54,
-      "qvi_score": 425.1,
-      "avi_score": 393.8,
-      "fgi_score": 25.5,
-      "bfi_score": 127.1
-    },
-    "value": {
-      "intelligence_per_dollar": null,
-      "cost_per_intelligence_pt_usd": null,
-      "requests_per_dollar": 2506.3,
-      "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 0.54,
-      "effective_cost_per_request": 0.001277,
-      "effective_requests_per_5h": 9406,
-      "effective_requests_per_month": 47000,
-      "qvi_score": 425.1,
-      "value_score": 425.1,
-      "avi_score": 393.8,
-      "fgi_score": 25.5,
-      "bfi_score": 127.1
-    },
-    "coverage": [
-      "LM"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "deepseek-v4-pro",
-    "display": "deepseek-v4-pro",
-    "pricing": {
-      "input_per_1m": 0.66,
-      "output_per_1m": 1.98,
-      "cached_read_per_1m": 0.022,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 15.0
-    },
-    "caps": {
-      "cap_5h_usd": 3.0,
-      "cap_wk_usd": 7.5,
-      "cap_mo_usd": 15.0
-    },
-    "tokens": {
-      "est_input": 750,
-      "est_cached": 82000,
-      "est_output": 290
-    },
-    "cost_per_request_usd": 0.002873,
-    "requests": {
-      "per_5h_computed": 1044,
-      "per_week_computed": 2610,
-      "per_month_computed": 5221,
-      "per_5h_docs": 1050,
-      "per_week_docs": 2600,
-      "per_month_docs": 5200
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 1034,
-        "weekly": 2610,
-        "monthly": 1096
-      },
-      "overall_pct": 21.0,
-      "overall_req": 1034
-    },
-    "benchmarks": {
-      "aa_slug": "deepseek-v4-pro",
-      "aa_intelligence": 53.1976849297815,
-      "aa_coding": 68.8310618671105,
-      "aa_agentic": 49.5628762886598,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 54,
-      "lmarena_elo": 1458.0,
-      "lmarena_votes": 54214,
-      "livebench": {
-        "model": "deepseek-v4-pro",
-        "overall": 72.55,
-        "coding": 69.99,
-        "agentic_coding": 42.63,
-        "reasoning": 82.69,
-        "math": 90.68,
-        "data_analysis": 74.54,
-        "language": 78.13,
-        "instruction_following": 62.35,
-        "categories": {
-          "Reasoning": 82.69,
-          "Coding": 69.99,
-          "Agentic Coding": 42.63,
-          "Mathematics": 90.68,
-          "Data Analysis": 74.54,
-          "Language": 78.13,
-          "IF": 62.35
-        }
-      },
-      "openrouter_id": "deepseek/deepseek-v4-pro",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 81.7,
-      "capability_q": 81.7,
-      "p_success": 76.2,
-      "token_multiplier": 1.69,
-      "blended_price": 0.92,
-      "effective_cost": 1.56,
-      "qvi_score": 404.8,
-      "avi_score": 331.5,
-      "fgi_score": 54.3,
-      "bfi_score": 47.2
-    },
-    "value": {
-      "intelligence_per_dollar": 18515.13,
-      "cost_per_intelligence_pt_usd": 5.4e-05,
-      "requests_per_dollar": 348.0,
-      "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 1.56,
-      "effective_cost_per_request": 0.004855,
-      "effective_requests_per_5h": 621,
-      "effective_requests_per_month": 3077,
-      "qvi_score": 404.8,
-      "value_score": 404.8,
-      "avi_score": 331.5,
-      "fgi_score": 54.3,
-      "bfi_score": 47.2
+      "effective_blended_price": 0.66,
+      "effective_cost_per_request": 0.002401,
+      "effective_requests_per_5h": 1250,
+      "effective_requests_per_month": 6250,
+      "qvi_score": 456.8,
+      "value_score": 456.8,
+      "avi_score": 489.3,
+      "fgi_score": 56.2,
+      "bfi_score": 85.1
     },
     "coverage": [
       "AA",
@@ -1062,9 +686,9 @@
       "aa_agentic": 45.6673917525773,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 33,
-      "lmarena_elo": 1472.0,
-      "lmarena_votes": 32495,
+      "lmarena_rank": 14,
+      "lmarena_elo": 1585.0,
+      "lmarena_votes": 9494,
       "livebench": {
         "model": "glm-5.2",
         "overall": 73.36,
@@ -1086,33 +710,253 @@
         }
       },
       "openrouter_id": "z-ai/glm-5.2",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 81.7,
-      "capability_q": 81.7,
-      "p_success": 76.2,
-      "token_multiplier": 1.69,
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 1.19,
+      "composite_score": 82.7,
+      "capability_q": 82.7,
+      "p_success": 78.3,
+      "token_multiplier": 1.61,
       "blended_price": 2.0,
-      "effective_cost": 3.38,
-      "qvi_score": 393.8,
-      "avi_score": 233.9,
-      "fgi_score": 54.3,
-      "bfi_score": 26.6
+      "effective_cost": 3.22,
+      "qvi_score": 408.6,
+      "avi_score": 245.4,
+      "fgi_score": 57.3,
+      "bfi_score": 27.0
     },
     "value": {
       "intelligence_per_dollar": 3472.36,
       "cost_per_intelligence_pt_usd": 0.000288,
       "requests_per_dollar": 66.0,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 3.38,
-      "effective_cost_per_request": 0.02562,
-      "effective_requests_per_5h": 521,
-      "effective_requests_per_month": 2544,
-      "qvi_score": 393.8,
-      "value_score": 393.8,
-      "avi_score": 233.9,
-      "fgi_score": 54.3,
-      "bfi_score": 26.6
+      "effective_blended_price": 3.22,
+      "effective_cost_per_request": 0.024408,
+      "effective_requests_per_5h": 547,
+      "effective_requests_per_month": 2671,
+      "qvi_score": 408.6,
+      "value_score": 408.6,
+      "avi_score": 245.4,
+      "fgi_score": 57.3,
+      "bfi_score": 27.0
+    },
+    "coverage": [
+      "AA",
+      "LM",
+      "Live"
+    ],
+    "is_new": false,
+    "is_docs_model": true
+  },
+  {
+    "model_id": "deepseek-v4-pro",
+    "display": "deepseek-v4-pro",
+    "pricing": {
+      "input_per_1m": 0.66,
+      "output_per_1m": 1.98,
+      "cached_read_per_1m": 0.022,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 15.0
+    },
+    "caps": {
+      "cap_5h_usd": 3.0,
+      "cap_wk_usd": 7.5,
+      "cap_mo_usd": 15.0
+    },
+    "tokens": {
+      "est_input": 750,
+      "est_cached": 82000,
+      "est_output": 290
+    },
+    "cost_per_request_usd": 0.002873,
+    "requests": {
+      "per_5h_computed": 1044,
+      "per_week_computed": 2610,
+      "per_month_computed": 5221,
+      "per_5h_docs": 1050,
+      "per_week_docs": 2600,
+      "per_month_docs": 5200
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 1034,
+        "weekly": 2610,
+        "monthly": 1096
+      },
+      "overall_pct": 21.0,
+      "overall_req": 1034
+    },
+    "benchmarks": {
+      "aa_slug": "deepseek-v4-pro",
+      "aa_intelligence": 53.1976849297815,
+      "aa_coding": 68.8310618671105,
+      "aa_agentic": 49.5628762886598,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 46,
+      "lmarena_elo": 1464.0,
+      "lmarena_votes": 12422,
+      "livebench": {
+        "model": "deepseek-v4-pro",
+        "overall": 72.55,
+        "coding": 69.99,
+        "agentic_coding": 42.63,
+        "reasoning": 82.69,
+        "math": 90.68,
+        "data_analysis": 74.54,
+        "language": 78.13,
+        "instruction_following": 62.35,
+        "categories": {
+          "Reasoning": 82.69,
+          "Coding": 69.99,
+          "Agentic Coding": 42.63,
+          "Mathematics": 90.68,
+          "Data Analysis": 74.54,
+          "Language": 78.13,
+          "IF": 62.35
+        }
+      },
+      "openrouter_id": "deepseek/deepseek-v4-pro",
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.87,
+      "composite_score": 81.2,
+      "capability_q": 81.2,
+      "p_success": 75.1,
+      "token_multiplier": 1.73,
+      "blended_price": 0.92,
+      "effective_cost": 1.6,
+      "qvi_score": 397.5,
+      "avi_score": 323.3,
+      "fgi_score": 52.8,
+      "bfi_score": 46.9
+    },
+    "value": {
+      "intelligence_per_dollar": 18515.13,
+      "cost_per_intelligence_pt_usd": 5.4e-05,
+      "requests_per_dollar": 348.0,
+      "leverage_vs_10usd_sub": 1.5,
+      "effective_blended_price": 1.6,
+      "effective_cost_per_request": 0.00497,
+      "effective_requests_per_5h": 607,
+      "effective_requests_per_month": 3006,
+      "qvi_score": 397.5,
+      "value_score": 397.5,
+      "avi_score": 323.3,
+      "fgi_score": 52.8,
+      "bfi_score": 46.9
+    },
+    "coverage": [
+      "AA",
+      "LM",
+      "Live"
+    ],
+    "is_new": false,
+    "is_docs_model": true
+  },
+  {
+    "model_id": "grok-4.6",
+    "display": "grok-4.6",
+    "pricing": {
+      "input_per_1m": 2.0,
+      "output_per_1m": 6.0,
+      "cached_read_per_1m": 0.5,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 15.0
+    },
+    "caps": {
+      "cap_5h_usd": 3.0,
+      "cap_wk_usd": 7.5,
+      "cap_mo_usd": 15.0
+    },
+    "tokens": {
+      "est_input": 390,
+      "est_cached": 32500,
+      "est_output": 120
+    },
+    "cost_per_request_usd": 0.01775,
+    "requests": {
+      "per_5h_computed": 169,
+      "per_week_computed": 423,
+      "per_month_computed": 845,
+      "per_5h_docs": 169,
+      "per_week_docs": 423,
+      "per_month_docs": 845
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 167,
+        "weekly": 423,
+        "monthly": 177
+      },
+      "overall_pct": 21.0,
+      "overall_req": 167
+    },
+    "benchmarks": {
+      "aa_slug": "grok-4-6",
+      "aa_intelligence": 60.92297113115,
+      "aa_coding": 76.7889963933971,
+      "aa_agentic": 58.6762164948454,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 6,
+      "lmarena_elo": 1629.0,
+      "lmarena_votes": 1532,
+      "livebench": {
+        "model": "grok-4.6",
+        "overall": 79.0,
+        "coding": 76.78,
+        "agentic_coding": 57.02,
+        "reasoning": 90.51,
+        "math": 92.57,
+        "data_analysis": 73.86,
+        "language": 83.7,
+        "instruction_following": 71.87,
+        "categories": {
+          "Reasoning": 90.51,
+          "Coding": 76.78,
+          "Agentic Coding": 57.02,
+          "Mathematics": 92.57,
+          "Data Analysis": 73.86,
+          "Language": 83.7,
+          "IF": 71.87
+        }
+      },
+      "openrouter_id": "x-ai/grok-4.6",
+      "openrouter_context": 500000,
+      "openrouter_prompt_per_1m": 2.0,
+      "composite_score": 90.3,
+      "capability_q": 90.3,
+      "p_success": 90.0,
+      "token_multiplier": 1.24,
+      "blended_price": 2.8,
+      "effective_cost": 3.47,
+      "qvi_score": 393.7,
+      "avi_score": 288.2,
+      "fgi_score": 77.1,
+      "bfi_score": 22.8
+    },
+    "value": {
+      "intelligence_per_dollar": 3432.28,
+      "cost_per_intelligence_pt_usd": 0.000291,
+      "requests_per_dollar": 56.3,
+      "leverage_vs_10usd_sub": 1.5,
+      "effective_blended_price": 3.47,
+      "effective_cost_per_request": 0.02201,
+      "effective_requests_per_5h": 136,
+      "effective_requests_per_month": 681,
+      "qvi_score": 393.7,
+      "value_score": 393.7,
+      "avi_score": 288.2,
+      "fgi_score": 77.1,
+      "bfi_score": 22.8
     },
     "coverage": [
       "AA",
@@ -1172,9 +1016,9 @@
       "aa_agentic": 59.1017594501718,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 15,
-      "lmarena_elo": 1484.0,
-      "lmarena_votes": 5820,
+      "lmarena_rank": 10,
+      "lmarena_elo": 1608.0,
+      "lmarena_votes": 2560,
       "livebench": {
         "model": "glm-5.3",
         "overall": 76.65,
@@ -1196,33 +1040,33 @@
         }
       },
       "openrouter_id": "z-ai/glm-5.3",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 87.3,
-      "capability_q": 87.3,
-      "p_success": 86.2,
-      "token_multiplier": 1.35,
+      "openrouter_context": 1310720,
+      "openrouter_prompt_per_1m": 1.4,
+      "composite_score": 88.5,
+      "capability_q": 88.5,
+      "p_success": 87.9,
+      "token_multiplier": 1.3,
       "blended_price": 2.0,
-      "effective_cost": 2.7,
-      "qvi_score": 376.3,
-      "avi_score": 298.9,
-      "fgi_score": 69.9,
-      "bfi_score": 28.5
+      "effective_cost": 2.6,
+      "qvi_score": 391.6,
+      "avi_score": 313.3,
+      "fgi_score": 72.9,
+      "bfi_score": 28.8
     },
     "value": {
       "intelligence_per_dollar": 3925.69,
       "cost_per_intelligence_pt_usd": 0.000255,
       "requests_per_dollar": 66.0,
       "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 2.7,
-      "effective_cost_per_request": 0.020466,
-      "effective_requests_per_5h": 163,
-      "effective_requests_per_month": 800,
-      "qvi_score": 376.3,
-      "value_score": 376.3,
-      "avi_score": 298.9,
-      "fgi_score": 69.9,
-      "bfi_score": 28.5
+      "effective_blended_price": 2.6,
+      "effective_cost_per_request": 0.019708,
+      "effective_requests_per_5h": 169,
+      "effective_requests_per_month": 831,
+      "qvi_score": 391.6,
+      "value_score": 391.6,
+      "avi_score": 313.3,
+      "fgi_score": 72.9,
+      "bfi_score": 28.8
     },
     "coverage": [
       "AA",
@@ -1233,14 +1077,14 @@
     "is_docs_model": true
   },
   {
-    "model_id": "mimo-v2-omni",
-    "display": "mimo-v2-omni",
+    "model_id": "mimo-v2.5",
+    "display": "mimo-v2.5",
     "pricing": {
       "input_per_1m": 0.14,
       "output_per_1m": 0.28,
       "cached_read_per_1m": 0.0028,
       "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 60
+      "monthly_usage_limit_usd": 60.0
     },
     "caps": {
       "cap_5h_usd": 12.0,
@@ -1257,9 +1101,9 @@
       "per_5h_computed": 30075,
       "per_week_computed": 75188,
       "per_month_computed": 150376,
-      "per_5h_docs": null,
-      "per_week_docs": null,
-      "per_month_docs": null
+      "per_5h_docs": 30100,
+      "per_week_docs": 75200,
+      "per_month_docs": 150400
     },
     "remaining": {
       "percent": {
@@ -1276,160 +1120,59 @@
       "overall_req": 29774
     },
     "benchmarks": {
-      "aa_slug": "mimo-v2-omni",
-      "aa_intelligence": 35.86618615317448,
+      "aa_slug": null,
+      "aa_intelligence": null,
       "aa_coding": null,
       "aa_agentic": null,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 97,
-      "lmarena_elo": 1430.0,
-      "lmarena_votes": 19421,
+      "lmarena_rank": 56,
+      "lmarena_elo": 1438.0,
+      "lmarena_votes": 13659,
       "livebench": null,
-      "openrouter_id": null,
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": null,
-      "composite_score": 69.0,
-      "capability_q": 69.0,
-      "p_success": 41.1,
-      "token_multiplier": 4.15,
+      "openrouter_id": "xiaomi/mimo-v2.5",
+      "openrouter_context": 1050000,
+      "openrouter_prompt_per_1m": 0.14,
+      "composite_score": 69.4,
+      "capability_q": 69.4,
+      "p_success": 42.3,
+      "token_multiplier": 4.0,
       "blended_price": 0.17,
-      "effective_cost": 0.7,
-      "qvi_score": 372.9,
-      "avi_score": 324.3,
-      "fgi_score": 18.2,
-      "bfi_score": 121.8
+      "effective_cost": 0.67,
+      "qvi_score": 379.7,
+      "avi_score": 334.2,
+      "fgi_score": 19.1,
+      "bfi_score": 122.5
     },
     "value": {
-      "intelligence_per_dollar": 89890.19,
-      "cost_per_intelligence_pt_usd": 1.1e-05,
+      "intelligence_per_dollar": null,
+      "cost_per_intelligence_pt_usd": null,
       "requests_per_dollar": 2506.3,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 0.7,
-      "effective_cost_per_request": 0.001656,
-      "effective_requests_per_5h": 7247,
-      "effective_requests_per_month": 36235,
-      "qvi_score": 372.9,
-      "value_score": 372.9,
-      "avi_score": 324.3,
-      "fgi_score": 18.2,
-      "bfi_score": 121.8
+      "effective_blended_price": 0.67,
+      "effective_cost_per_request": 0.001596,
+      "effective_requests_per_5h": 7525,
+      "effective_requests_per_month": 37600,
+      "qvi_score": 379.7,
+      "value_score": 379.7,
+      "avi_score": 334.2,
+      "fgi_score": 19.1,
+      "bfi_score": 122.5
     },
     "coverage": [
-      "AA",
       "LM"
     ],
-    "is_new": false
+    "is_new": false,
+    "is_docs_model": true
   },
   {
-    "model_id": "mimo-v2-pro",
-    "display": "mimo-v2-pro",
-    "pricing": {
-      "input_per_1m": 0.14,
-      "output_per_1m": 0.28,
-      "cached_read_per_1m": 0.0028,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 60
-    },
-    "caps": {
-      "cap_5h_usd": 12.0,
-      "cap_wk_usd": 30.0,
-      "cap_mo_usd": 60.0
-    },
-    "tokens": {
-      "est_input": 830,
-      "est_cached": 71500,
-      "est_output": 295
-    },
-    "cost_per_request_usd": 0.000399,
-    "requests": {
-      "per_5h_computed": 30075,
-      "per_week_computed": 75188,
-      "per_month_computed": 150376,
-      "per_5h_docs": null,
-      "per_week_docs": null,
-      "per_month_docs": null
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 29774,
-        "weekly": 75188,
-        "monthly": 31579
-      },
-      "overall_pct": 21.0,
-      "overall_req": 29774
-    },
-    "benchmarks": {
-      "aa_slug": "mimo-v2-pro",
-      "aa_intelligence": 41.373858592944195,
-      "aa_coding": null,
-      "aa_agentic": null,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 69,
-      "lmarena_elo": 1448.0,
-      "lmarena_votes": 24399,
-      "livebench": {
-        "model": "mimo-v2-pro",
-        "overall": 58.35,
-        "coding": null,
-        "agentic_coding": null,
-        "reasoning": null,
-        "math": null,
-        "data_analysis": null,
-        "language": null,
-        "instruction_following": null,
-        "categories": {}
-      },
-      "openrouter_id": null,
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": null,
-      "composite_score": 68.9,
-      "capability_q": 68.9,
-      "p_success": 40.8,
-      "token_multiplier": 4.19,
-      "blended_price": 0.17,
-      "effective_cost": 0.7,
-      "qvi_score": 371.2,
-      "avi_score": 323.2,
-      "fgi_score": 18.0,
-      "bfi_score": 121.6
-    },
-    "value": {
-      "intelligence_per_dollar": 103693.88,
-      "cost_per_intelligence_pt_usd": 1e-05,
-      "requests_per_dollar": 2506.3,
-      "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 0.7,
-      "effective_cost_per_request": 0.001672,
-      "effective_requests_per_5h": 7178,
-      "effective_requests_per_month": 35889,
-      "qvi_score": 371.2,
-      "value_score": 371.2,
-      "avi_score": 323.2,
-      "fgi_score": 18.0,
-      "bfi_score": 121.6
-    },
-    "coverage": [
-      "AA",
-      "LM",
-      "Live"
-    ],
-    "is_new": false
-  },
-  {
-    "model_id": "grok-4.6",
-    "display": "grok-4.6",
+    "model_id": "qwen3.8-max",
+    "display": "qwen3.8-max",
     "pricing": {
       "input_per_1m": 2.0,
       "output_per_1m": 6.0,
-      "cached_read_per_1m": 0.5,
-      "cached_write_per_1m": null,
+      "cached_read_per_1m": 0.25,
+      "cached_write_per_1m": 2.5,
       "monthly_usage_limit_usd": 15.0
     },
     "caps": {
@@ -1438,18 +1181,18 @@
       "cap_mo_usd": 15.0
     },
     "tokens": {
-      "est_input": 390,
-      "est_cached": 32500,
-      "est_output": 120
+      "est_input": 420,
+      "est_cached": 66000,
+      "est_output": 200
     },
-    "cost_per_request_usd": 0.01775,
+    "cost_per_request_usd": 0.01854,
     "requests": {
-      "per_5h_computed": 169,
-      "per_week_computed": 423,
-      "per_month_computed": 845,
-      "per_5h_docs": 169,
-      "per_week_docs": 423,
-      "per_month_docs": 845
+      "per_5h_computed": 162,
+      "per_week_computed": 405,
+      "per_month_computed": 809,
+      "per_5h_docs": 160,
+      "per_week_docs": 400,
+      "per_month_docs": 810
     },
     "remaining": {
       "percent": {
@@ -1458,71 +1201,71 @@
         "monthly": 21.0
       },
       "requests": {
-        "rolling": 167,
-        "weekly": 423,
-        "monthly": 177
+        "rolling": 160,
+        "weekly": 405,
+        "monthly": 170
       },
       "overall_pct": 21.0,
-      "overall_req": 167
+      "overall_req": 160
     },
     "benchmarks": {
-      "aa_slug": "grok-4-6",
-      "aa_intelligence": 60.92297113115,
-      "aa_coding": 76.7889963933971,
-      "aa_agentic": 58.6762164948454,
+      "aa_slug": "qwen3-8-max",
+      "aa_intelligence": 58.0774404479668,
+      "aa_coding": 71.8134449993064,
+      "aa_agentic": 58.4030687285223,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 48,
-      "lmarena_elo": 1461.0,
-      "lmarena_votes": 3471,
+      "lmarena_rank": 3,
+      "lmarena_elo": 1669.0,
+      "lmarena_votes": 3219,
       "livebench": {
-        "model": "grok-4.6",
-        "overall": 79.0,
-        "coding": 76.78,
-        "agentic_coding": 57.02,
-        "reasoning": 90.51,
-        "math": 92.57,
-        "data_analysis": 73.86,
-        "language": 83.7,
-        "instruction_following": 71.87,
+        "model": "qwen3.8-max",
+        "overall": 79.5,
+        "coding": 72.87,
+        "agentic_coding": 64.65,
+        "reasoning": 88.21,
+        "math": 91.31,
+        "data_analysis": 78.41,
+        "language": 79.69,
+        "instruction_following": 74.08,
         "categories": {
-          "Reasoning": 90.51,
-          "Coding": 76.78,
-          "Agentic Coding": 57.02,
-          "Mathematics": 92.57,
-          "Data Analysis": 73.86,
-          "Language": 83.7,
-          "IF": 71.87
+          "Reasoning": 88.21,
+          "Coding": 72.87,
+          "Agentic Coding": 64.65,
+          "Mathematics": 91.31,
+          "Data Analysis": 78.41,
+          "Language": 79.69,
+          "IF": 74.08
         }
       },
-      "openrouter_id": "x-ai/grok-4.6",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 88.2,
-      "capability_q": 88.2,
-      "p_success": 87.5,
-      "token_multiplier": 1.31,
+      "openrouter_id": "qwen/qwen3.8-max",
+      "openrouter_context": 1000000,
+      "openrouter_prompt_per_1m": 2.0,
+      "composite_score": 89.2,
+      "capability_q": 89.2,
+      "p_success": 88.7,
+      "token_multiplier": 1.28,
       "blended_price": 2.8,
-      "effective_cost": 3.67,
-      "qvi_score": 368.1,
-      "avi_score": 267.1,
-      "fgi_score": 72.2,
-      "bfi_score": 22.2
+      "effective_cost": 3.58,
+      "qvi_score": 375.8,
+      "avi_score": 276.7,
+      "fgi_score": 74.5,
+      "bfi_score": 22.5
     },
     "value": {
-      "intelligence_per_dollar": 3432.28,
-      "cost_per_intelligence_pt_usd": 0.000291,
-      "requests_per_dollar": 56.3,
+      "intelligence_per_dollar": 3132.55,
+      "cost_per_intelligence_pt_usd": 0.000319,
+      "requests_per_dollar": 53.9,
       "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 3.67,
-      "effective_cost_per_request": 0.023252,
-      "effective_requests_per_5h": 129,
-      "effective_requests_per_month": 645,
-      "qvi_score": 368.1,
-      "value_score": 368.1,
-      "avi_score": 267.1,
-      "fgi_score": 72.2,
-      "bfi_score": 22.2
+      "effective_blended_price": 3.58,
+      "effective_cost_per_request": 0.023731,
+      "effective_requests_per_5h": 125,
+      "effective_requests_per_month": 633,
+      "qvi_score": 375.8,
+      "value_score": 375.8,
+      "avi_score": 276.7,
+      "fgi_score": 74.5,
+      "bfi_score": 22.5
     },
     "coverage": [
       "AA",
@@ -1582,128 +1325,38 @@
       "aa_agentic": 31.4171993127148,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 59,
-      "lmarena_elo": 1456.0,
-      "lmarena_votes": 6466,
+      "lmarena_rank": 33,
+      "lmarena_elo": 1513.0,
+      "lmarena_votes": 3025,
       "livebench": null,
       "openrouter_id": "tencent/hy3",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 73.8,
-      "capability_q": 73.8,
-      "p_success": 55.4,
-      "token_multiplier": 2.77,
+      "openrouter_context": 262144,
+      "openrouter_prompt_per_1m": 0.0825,
+      "composite_score": 74.0,
+      "capability_q": 74.0,
+      "p_success": 56.0,
+      "token_multiplier": 2.73,
       "blended_price": 0.23,
-      "effective_cost": 0.63,
-      "qvi_score": 362.3,
-      "avi_score": 392.1,
-      "fgi_score": 30.4,
-      "bfi_score": 108.9
+      "effective_cost": 0.62,
+      "qvi_score": 365.4,
+      "avi_score": 396.9,
+      "fgi_score": 31.0,
+      "bfi_score": 109.2
     },
     "value": {
       "intelligence_per_dollar": 15131.37,
       "cost_per_intelligence_pt_usd": 6.6e-05,
       "requests_per_dollar": 358.4,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 0.63,
-      "effective_cost_per_request": 0.007728,
-      "effective_requests_per_5h": 1552,
-      "effective_requests_per_month": 7762,
-      "qvi_score": 362.3,
-      "value_score": 362.3,
-      "avi_score": 392.1,
-      "fgi_score": 30.4,
-      "bfi_score": 108.9
-    },
-    "coverage": [
-      "AA",
-      "LM"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "mimo-v2.5-pro",
-    "display": "mimo-v2.5-pro",
-    "pricing": {
-      "input_per_1m": 0.435,
-      "output_per_1m": 0.87,
-      "cached_read_per_1m": 0.003625,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 15.0
-    },
-    "caps": {
-      "cap_5h_usd": 3.0,
-      "cap_wk_usd": 7.5,
-      "cap_mo_usd": 15.0
-    },
-    "tokens": {
-      "est_input": 790,
-      "est_cached": 86000,
-      "est_output": 305
-    },
-    "cost_per_request_usd": 0.000921,
-    "requests": {
-      "per_5h_computed": 3258,
-      "per_week_computed": 8146,
-      "per_month_computed": 16291,
-      "per_5h_docs": 3250,
-      "per_week_docs": 8150,
-      "per_month_docs": 16300
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 3226,
-        "weekly": 8146,
-        "monthly": 3421
-      },
-      "overall_pct": 21.0,
-      "overall_req": 3226
-    },
-    "benchmarks": {
-      "aa_slug": "mimo-v2-5-pro",
-      "aa_intelligence": 42.8796821546836,
-      "aa_coding": 60.189520044389,
-      "aa_agentic": 29.5249690721649,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 40,
-      "lmarena_elo": 1468.0,
-      "lmarena_votes": 56020,
-      "livebench": null,
-      "openrouter_id": "xiaomi/mimo-v2.5-pro",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 74.5,
-      "capability_q": 74.5,
-      "p_success": 57.4,
-      "token_multiplier": 2.63,
-      "blended_price": 0.52,
-      "effective_cost": 1.37,
-      "qvi_score": 359.1,
-      "avi_score": 287.1,
-      "fgi_score": 32.4,
-      "bfi_score": 64.4
-    },
-    "value": {
-      "intelligence_per_dollar": 46570.39,
-      "cost_per_intelligence_pt_usd": 2.1e-05,
-      "requests_per_dollar": 1086.1,
-      "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 1.37,
-      "effective_cost_per_request": 0.002422,
-      "effective_requests_per_5h": 1236,
-      "effective_requests_per_month": 6198,
-      "qvi_score": 359.1,
-      "value_score": 359.1,
-      "avi_score": 287.1,
-      "fgi_score": 32.4,
-      "bfi_score": 64.4
+      "effective_blended_price": 0.62,
+      "effective_cost_per_request": 0.007617,
+      "effective_requests_per_5h": 1575,
+      "effective_requests_per_month": 7875,
+      "qvi_score": 365.4,
+      "value_score": 365.4,
+      "avi_score": 396.9,
+      "fgi_score": 31.0,
+      "bfi_score": 109.2
     },
     "coverage": [
       "AA",
@@ -1762,9 +1415,9 @@
       "aa_agentic": 36.1195773195876,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 78,
-      "lmarena_elo": 1442.0,
-      "lmarena_votes": 42988,
+      "lmarena_rank": 40,
+      "lmarena_elo": 1487.0,
+      "lmarena_votes": 11481,
       "livebench": {
         "model": "minimax-m3",
         "overall": 67.53,
@@ -1786,17 +1439,17 @@
         }
       },
       "openrouter_id": "minimax/minimax-m3",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 74.5,
-      "capability_q": 74.5,
-      "p_success": 57.4,
-      "token_multiplier": 2.63,
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.3,
+      "composite_score": 74.6,
+      "capability_q": 74.6,
+      "p_success": 57.7,
+      "token_multiplier": 2.61,
       "blended_price": 0.48,
-      "effective_cost": 1.26,
-      "qvi_score": 358.3,
-      "avi_score": 298.1,
-      "fgi_score": 32.4,
+      "effective_cost": 1.25,
+      "qvi_score": 359.9,
+      "avi_score": 300.1,
+      "fgi_score": 32.7,
       "bfi_score": 68.2
     },
     "value": {
@@ -1804,125 +1457,15 @@
       "cost_per_intelligence_pt_usd": 8.2e-05,
       "requests_per_dollar": 267.3,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 1.26,
-      "effective_cost_per_request": 0.009839,
-      "effective_requests_per_5h": 1217,
-      "effective_requests_per_month": 6084,
-      "qvi_score": 358.3,
-      "value_score": 358.3,
-      "avi_score": 298.1,
-      "fgi_score": 32.4,
+      "effective_blended_price": 1.25,
+      "effective_cost_per_request": 0.009764,
+      "effective_requests_per_5h": 1226,
+      "effective_requests_per_month": 6130,
+      "qvi_score": 359.9,
+      "value_score": 359.9,
+      "avi_score": 300.1,
+      "fgi_score": 32.7,
       "bfi_score": 68.2
-    },
-    "coverage": [
-      "AA",
-      "LM",
-      "Live"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "qwen3.8-max",
-    "display": "qwen3.8-max",
-    "pricing": {
-      "input_per_1m": 2.0,
-      "output_per_1m": 6.0,
-      "cached_read_per_1m": 0.25,
-      "cached_write_per_1m": 2.5,
-      "monthly_usage_limit_usd": 15.0
-    },
-    "caps": {
-      "cap_5h_usd": 3.0,
-      "cap_wk_usd": 7.5,
-      "cap_mo_usd": 15.0
-    },
-    "tokens": {
-      "est_input": 420,
-      "est_cached": 66000,
-      "est_output": 200
-    },
-    "cost_per_request_usd": 0.01854,
-    "requests": {
-      "per_5h_computed": 162,
-      "per_week_computed": 405,
-      "per_month_computed": 809,
-      "per_5h_docs": 160,
-      "per_week_docs": 400,
-      "per_month_docs": 810
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 160,
-        "weekly": 405,
-        "monthly": 170
-      },
-      "overall_pct": 21.0,
-      "overall_req": 160
-    },
-    "benchmarks": {
-      "aa_slug": "qwen3-8-max",
-      "aa_intelligence": 58.0774404479668,
-      "aa_coding": 71.8134449993064,
-      "aa_agentic": 58.4030687285223,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 20,
-      "lmarena_elo": 1479.0,
-      "lmarena_votes": 11780,
-      "livebench": {
-        "model": "qwen3.8-max",
-        "overall": 79.5,
-        "coding": 72.87,
-        "agentic_coding": 64.65,
-        "reasoning": 88.21,
-        "math": 91.31,
-        "data_analysis": 78.41,
-        "language": 79.69,
-        "instruction_following": 74.08,
-        "categories": {
-          "Reasoning": 88.21,
-          "Coding": 72.87,
-          "Agentic Coding": 64.65,
-          "Mathematics": 91.31,
-          "Data Analysis": 78.41,
-          "Language": 79.69,
-          "IF": 74.08
-        }
-      },
-      "openrouter_id": "qwen/qwen3.8-max",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 87.0,
-      "capability_q": 87.0,
-      "p_success": 85.8,
-      "token_multiplier": 1.36,
-      "blended_price": 2.8,
-      "effective_cost": 3.81,
-      "qvi_score": 349.7,
-      "avi_score": 255.0,
-      "fgi_score": 69.1,
-      "bfi_score": 21.9
-    },
-    "value": {
-      "intelligence_per_dollar": 3132.55,
-      "cost_per_intelligence_pt_usd": 0.000319,
-      "requests_per_dollar": 53.9,
-      "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 3.81,
-      "effective_cost_per_request": 0.025214,
-      "effective_requests_per_5h": 118,
-      "effective_requests_per_month": 596,
-      "qvi_score": 349.7,
-      "value_score": 349.7,
-      "avi_score": 255.0,
-      "fgi_score": 69.1,
-      "bfi_score": 21.9
     },
     "coverage": [
       "AA",
@@ -1982,9 +1525,9 @@
       "aa_agentic": 54.2624604810997,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 10,
-      "lmarena_elo": 1489.0,
-      "lmarena_votes": 16586,
+      "lmarena_rank": 2,
+      "lmarena_elo": 1674.0,
+      "lmarena_votes": 4546,
       "livebench": {
         "model": "kimi-k3",
         "overall": 79.48,
@@ -2006,38 +1549,317 @@
         }
       },
       "openrouter_id": "moonshotai/kimi-k3",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 88.1,
-      "capability_q": 88.1,
-      "p_success": 87.3,
-      "token_multiplier": 1.32,
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 3.0,
+      "composite_score": 90.2,
+      "capability_q": 90.2,
+      "p_success": 89.9,
+      "token_multiplier": 1.25,
       "blended_price": 5.4,
-      "effective_cost": 7.13,
-      "qvi_score": 334.2,
-      "avi_score": 203.1,
-      "fgi_score": 71.9,
-      "bfi_score": 13.4
+      "effective_cost": 6.75,
+      "qvi_score": 358.2,
+      "avi_score": 218.4,
+      "fgi_score": 76.9,
+      "bfi_score": 13.7
     },
     "value": {
       "intelligence_per_dollar": 1950.96,
       "cost_per_intelligence_pt_usd": 0.000513,
       "requests_per_dollar": 32.7,
       "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 7.13,
-      "effective_cost_per_request": 0.040392,
-      "effective_requests_per_5h": 83,
-      "effective_requests_per_month": 371,
-      "qvi_score": 334.2,
-      "value_score": 334.2,
-      "avi_score": 203.1,
-      "fgi_score": 71.9,
-      "bfi_score": 13.4
+      "effective_blended_price": 6.75,
+      "effective_cost_per_request": 0.03825,
+      "effective_requests_per_5h": 88,
+      "effective_requests_per_month": 392,
+      "qvi_score": 358.2,
+      "value_score": 358.2,
+      "avi_score": 218.4,
+      "fgi_score": 76.9,
+      "bfi_score": 13.7
     },
     "coverage": [
       "AA",
       "LM",
       "Live"
+    ],
+    "is_new": false,
+    "is_docs_model": true
+  },
+  {
+    "model_id": "mimo-v2-omni",
+    "display": "mimo-v2-omni",
+    "pricing": {
+      "input_per_1m": 0.14,
+      "output_per_1m": 0.28,
+      "cached_read_per_1m": 0.0028,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 60
+    },
+    "caps": {
+      "cap_5h_usd": 12.0,
+      "cap_wk_usd": 30.0,
+      "cap_mo_usd": 60.0
+    },
+    "tokens": {
+      "est_input": 830,
+      "est_cached": 71500,
+      "est_output": 295
+    },
+    "cost_per_request_usd": 0.000399,
+    "requests": {
+      "per_5h_computed": 30075,
+      "per_week_computed": 75188,
+      "per_month_computed": 150376,
+      "per_5h_docs": null,
+      "per_week_docs": null,
+      "per_month_docs": null
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 29774,
+        "weekly": 75188,
+        "monthly": 31579
+      },
+      "overall_pct": 21.0,
+      "overall_req": 29774
+    },
+    "benchmarks": {
+      "aa_slug": "mimo-v2-omni",
+      "aa_intelligence": 35.86618615317448,
+      "aa_coding": null,
+      "aa_agentic": null,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": null,
+      "lmarena_elo": null,
+      "lmarena_votes": null,
+      "livebench": null,
+      "openrouter_id": null,
+      "openrouter_context": null,
+      "openrouter_prompt_per_1m": null,
+      "composite_score": 67.6,
+      "capability_q": 67.6,
+      "p_success": 37.1,
+      "token_multiplier": 4.73,
+      "blended_price": 0.17,
+      "effective_cost": 0.79,
+      "qvi_score": 349.8,
+      "avi_score": 295.0,
+      "fgi_score": 15.3,
+      "bfi_score": 119.3
+    },
+    "value": {
+      "intelligence_per_dollar": 89890.19,
+      "cost_per_intelligence_pt_usd": 1.1e-05,
+      "requests_per_dollar": 2506.3,
+      "leverage_vs_10usd_sub": 6.0,
+      "effective_blended_price": 0.79,
+      "effective_cost_per_request": 0.001887,
+      "effective_requests_per_5h": 6358,
+      "effective_requests_per_month": 31792,
+      "qvi_score": 349.8,
+      "value_score": 349.8,
+      "avi_score": 295.0,
+      "fgi_score": 15.3,
+      "bfi_score": 119.3
+    },
+    "coverage": [
+      "AA"
+    ],
+    "is_new": false
+  },
+  {
+    "model_id": "mimo-v2-pro",
+    "display": "mimo-v2-pro",
+    "pricing": {
+      "input_per_1m": 0.14,
+      "output_per_1m": 0.28,
+      "cached_read_per_1m": 0.0028,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 60
+    },
+    "caps": {
+      "cap_5h_usd": 12.0,
+      "cap_wk_usd": 30.0,
+      "cap_mo_usd": 60.0
+    },
+    "tokens": {
+      "est_input": 830,
+      "est_cached": 71500,
+      "est_output": 295
+    },
+    "cost_per_request_usd": 0.000399,
+    "requests": {
+      "per_5h_computed": 30075,
+      "per_week_computed": 75188,
+      "per_month_computed": 150376,
+      "per_5h_docs": null,
+      "per_week_docs": null,
+      "per_month_docs": null
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 29774,
+        "weekly": 75188,
+        "monthly": 31579
+      },
+      "overall_pct": 21.0,
+      "overall_req": 29774
+    },
+    "benchmarks": {
+      "aa_slug": "mimo-v2-pro",
+      "aa_intelligence": 41.373858592944195,
+      "aa_coding": null,
+      "aa_agentic": null,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 60,
+      "lmarena_elo": 1433.0,
+      "lmarena_votes": 6984,
+      "livebench": {
+        "model": "mimo-v2-pro",
+        "overall": 58.35,
+        "coding": null,
+        "agentic_coding": null,
+        "reasoning": null,
+        "math": null,
+        "data_analysis": null,
+        "language": null,
+        "instruction_following": null,
+        "categories": {}
+      },
+      "openrouter_id": null,
+      "openrouter_context": null,
+      "openrouter_prompt_per_1m": null,
+      "composite_score": 67.5,
+      "capability_q": 67.5,
+      "p_success": 36.8,
+      "token_multiplier": 4.78,
+      "blended_price": 0.17,
+      "effective_cost": 0.8,
+      "qvi_score": 348.1,
+      "avi_score": 292.5,
+      "fgi_score": 15.1,
+      "bfi_score": 119.1
+    },
+    "value": {
+      "intelligence_per_dollar": 103693.88,
+      "cost_per_intelligence_pt_usd": 1e-05,
+      "requests_per_dollar": 2506.3,
+      "leverage_vs_10usd_sub": 6.0,
+      "effective_blended_price": 0.8,
+      "effective_cost_per_request": 0.001907,
+      "effective_requests_per_5h": 6292,
+      "effective_requests_per_month": 31459,
+      "qvi_score": 348.1,
+      "value_score": 348.1,
+      "avi_score": 292.5,
+      "fgi_score": 15.1,
+      "bfi_score": 119.1
+    },
+    "coverage": [
+      "AA",
+      "LM",
+      "Live"
+    ],
+    "is_new": false
+  },
+  {
+    "model_id": "mimo-v2.5-pro",
+    "display": "mimo-v2.5-pro",
+    "pricing": {
+      "input_per_1m": 0.435,
+      "output_per_1m": 0.87,
+      "cached_read_per_1m": 0.003625,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 15.0
+    },
+    "caps": {
+      "cap_5h_usd": 3.0,
+      "cap_wk_usd": 7.5,
+      "cap_mo_usd": 15.0
+    },
+    "tokens": {
+      "est_input": 790,
+      "est_cached": 86000,
+      "est_output": 305
+    },
+    "cost_per_request_usd": 0.000921,
+    "requests": {
+      "per_5h_computed": 3258,
+      "per_week_computed": 8146,
+      "per_month_computed": 16291,
+      "per_5h_docs": 3250,
+      "per_week_docs": 8150,
+      "per_month_docs": 16300
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 3226,
+        "weekly": 8146,
+        "monthly": 3421
+      },
+      "overall_pct": 21.0,
+      "overall_req": 3226
+    },
+    "benchmarks": {
+      "aa_slug": "mimo-v2-5-pro",
+      "aa_intelligence": 42.8796821546836,
+      "aa_coding": 60.189520044389,
+      "aa_agentic": 29.5249690721649,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 43,
+      "lmarena_elo": 1476.0,
+      "lmarena_votes": 14728,
+      "livebench": null,
+      "openrouter_id": "xiaomi/mimo-v2.5-pro",
+      "openrouter_context": 1050000,
+      "openrouter_prompt_per_1m": 0.435,
+      "composite_score": 73.6,
+      "capability_q": 73.6,
+      "p_success": 54.8,
+      "token_multiplier": 2.81,
+      "blended_price": 0.52,
+      "effective_cost": 1.47,
+      "qvi_score": 345.6,
+      "avi_score": 270.7,
+      "fgi_score": 29.9,
+      "bfi_score": 63.6
+    },
+    "value": {
+      "intelligence_per_dollar": 46570.39,
+      "cost_per_intelligence_pt_usd": 2.1e-05,
+      "requests_per_dollar": 1086.1,
+      "leverage_vs_10usd_sub": 1.5,
+      "effective_blended_price": 1.47,
+      "effective_cost_per_request": 0.002588,
+      "effective_requests_per_5h": 1157,
+      "effective_requests_per_month": 5801,
+      "qvi_score": 345.6,
+      "value_score": 345.6,
+      "avi_score": 270.7,
+      "fgi_score": 29.9,
+      "bfi_score": 63.6
+    },
+    "coverage": [
+      "AA",
+      "LM"
     ],
     "is_new": false,
     "is_docs_model": true
@@ -2092,9 +1914,9 @@
       "aa_agentic": 31.1619896907216,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 49,
-      "lmarena_elo": 1461.0,
-      "lmarena_votes": 37545,
+      "lmarena_rank": 35,
+      "lmarena_elo": 1509.0,
+      "lmarena_votes": 9595,
       "livebench": {
         "model": "kimi-k2.6-thinking",
         "overall": 70.9,
@@ -2116,8 +1938,8 @@
         }
       },
       "openrouter_id": "moonshotai/kimi-k2.6",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
+      "openrouter_context": 262144,
+      "openrouter_prompt_per_1m": 0.95,
       "composite_score": 75.9,
       "capability_q": 75.9,
       "p_success": 61.5,
@@ -2202,9 +2024,9 @@
       "aa_agentic": 28.9955807560137,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 75,
-      "lmarena_elo": 1444.0,
-      "lmarena_votes": 45356,
+      "lmarena_rank": 48,
+      "lmarena_elo": 1460.0,
+      "lmarena_votes": 17107,
       "livebench": {
         "model": "qwen3.6-plus",
         "overall": 68.99,
@@ -2226,33 +2048,143 @@
         }
       },
       "openrouter_id": "qwen/qwen3.6-plus",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 72.1,
-      "capability_q": 72.1,
-      "p_success": 50.3,
-      "token_multiplier": 3.17,
+      "openrouter_context": 1000000,
+      "openrouter_prompt_per_1m": 0.325,
+      "composite_score": 71.7,
+      "capability_q": 71.7,
+      "p_success": 49.1,
+      "token_multiplier": 3.28,
       "blended_price": 1.0,
-      "effective_cost": 3.17,
-      "qvi_score": 324.0,
-      "avi_score": 182.7,
-      "fgi_score": 25.7,
-      "bfi_score": 39.3
+      "effective_cost": 3.28,
+      "qvi_score": 318.1,
+      "avi_score": 177.8,
+      "fgi_score": 24.7,
+      "bfi_score": 39.1
     },
     "value": {
       "intelligence_per_dollar": 11032.17,
       "cost_per_intelligence_pt_usd": 9.1e-05,
       "requests_per_dollar": 272.5,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 3.17,
-      "effective_cost_per_request": 0.011634,
-      "effective_requests_per_5h": 1041,
-      "effective_requests_per_month": 5142,
-      "qvi_score": 324.0,
-      "value_score": 324.0,
-      "avi_score": 182.7,
-      "fgi_score": 25.7,
-      "bfi_score": 39.3
+      "effective_blended_price": 3.28,
+      "effective_cost_per_request": 0.012038,
+      "effective_requests_per_5h": 1006,
+      "effective_requests_per_month": 4970,
+      "qvi_score": 318.1,
+      "value_score": 318.1,
+      "avi_score": 177.8,
+      "fgi_score": 24.7,
+      "bfi_score": 39.1
+    },
+    "coverage": [
+      "AA",
+      "LM",
+      "Live"
+    ],
+    "is_new": false,
+    "is_docs_model": true
+  },
+  {
+    "model_id": "grok-4.5",
+    "display": "grok-4.5",
+    "pricing": {
+      "input_per_1m": 2.0,
+      "output_per_1m": 6.0,
+      "cached_read_per_1m": 0.3,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 15
+    },
+    "caps": {
+      "cap_5h_usd": 3.0,
+      "cap_wk_usd": 7.5,
+      "cap_mo_usd": 15.0
+    },
+    "tokens": {
+      "est_input": 1100,
+      "est_cached": 71500,
+      "est_output": 220
+    },
+    "cost_per_request_usd": 0.02497,
+    "requests": {
+      "per_5h_computed": 120,
+      "per_week_computed": 300,
+      "per_month_computed": 601,
+      "per_5h_docs": null,
+      "per_week_docs": null,
+      "per_month_docs": null
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 119,
+        "weekly": 300,
+        "monthly": 126
+      },
+      "overall_pct": 21.0,
+      "overall_req": 119
+    },
+    "benchmarks": {
+      "aa_slug": "grok-4-5",
+      "aa_intelligence": 55.7588993916902,
+      "aa_coding": 72.4489353585796,
+      "aa_agentic": 48.851618556701,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 20,
+      "lmarena_elo": 1556.0,
+      "lmarena_votes": 7058,
+      "livebench": {
+        "model": "grok-4.5",
+        "overall": 77.05,
+        "coding": 68.59,
+        "agentic_coding": 56.46,
+        "reasoning": 87.17,
+        "math": 90.82,
+        "data_analysis": 73.04,
+        "language": 82.8,
+        "instruction_following": 71.53,
+        "categories": {
+          "Reasoning": 87.17,
+          "Coding": 68.59,
+          "Agentic Coding": 56.46,
+          "Mathematics": 90.82,
+          "Data Analysis": 73.04,
+          "Language": 82.8,
+          "IF": 71.53
+        }
+      },
+      "openrouter_id": "x-ai/grok-4.5",
+      "openrouter_context": 500000,
+      "openrouter_prompt_per_1m": 2.0,
+      "composite_score": 85.3,
+      "capability_q": 85.3,
+      "p_success": 83.1,
+      "token_multiplier": 1.45,
+      "blended_price": 2.8,
+      "effective_cost": 4.06,
+      "qvi_score": 309.3,
+      "avi_score": 237.6,
+      "fgi_score": 64.6,
+      "bfi_score": 21.5
+    },
+    "value": {
+      "intelligence_per_dollar": 2233.04,
+      "cost_per_intelligence_pt_usd": 0.000448,
+      "requests_per_dollar": 40.0,
+      "leverage_vs_10usd_sub": 1.5,
+      "effective_blended_price": 4.06,
+      "effective_cost_per_request": 0.036206,
+      "effective_requests_per_5h": 83,
+      "effective_requests_per_month": 414,
+      "qvi_score": 309.3,
+      "value_score": 309.3,
+      "avi_score": 237.6,
+      "fgi_score": 64.6,
+      "bfi_score": 21.5
     },
     "coverage": [
       "AA",
@@ -2336,33 +2268,33 @@
         }
       },
       "openrouter_id": "moonshotai/kimi-k2.7-code",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 74.7,
-      "capability_q": 74.7,
-      "p_success": 58.0,
-      "token_multiplier": 2.59,
+      "openrouter_context": 262144,
+      "openrouter_prompt_per_1m": 0.66,
+      "composite_score": 73.9,
+      "capability_q": 73.9,
+      "p_success": 55.7,
+      "token_multiplier": 2.75,
       "blended_price": 1.56,
-      "effective_cost": 4.04,
-      "qvi_score": 317.6,
-      "avi_score": 177.8,
-      "fgi_score": 33.0,
-      "bfi_score": 29.3
+      "effective_cost": 4.29,
+      "qvi_score": 306.6,
+      "avi_score": 169.3,
+      "fgi_score": 30.7,
+      "bfi_score": 29.0
     },
     "value": {
       "intelligence_per_dollar": 3562.66,
       "cost_per_intelligence_pt_usd": 0.000281,
       "requests_per_dollar": 82.8,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 4.04,
-      "effective_cost_per_request": 0.031277,
-      "effective_requests_per_5h": 521,
-      "effective_requests_per_month": 2606,
-      "qvi_score": 317.6,
-      "value_score": 317.6,
-      "avi_score": 177.8,
-      "fgi_score": 33.0,
-      "bfi_score": 29.3
+      "effective_blended_price": 4.29,
+      "effective_cost_per_request": 0.033209,
+      "effective_requests_per_5h": 491,
+      "effective_requests_per_month": 2455,
+      "qvi_score": 306.6,
+      "value_score": 306.6,
+      "avi_score": 169.3,
+      "fgi_score": 30.7,
+      "bfi_score": 29.0
     },
     "coverage": [
       "AA",
@@ -2422,152 +2354,41 @@
       "aa_agentic": 20.6909243986254,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 56,
-      "lmarena_elo": 1456.0,
-      "lmarena_votes": 36304,
+      "lmarena_rank": null,
+      "lmarena_elo": null,
+      "lmarena_votes": null,
       "livebench": null,
       "openrouter_id": "qwen/qwen3.7-plus",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 70.8,
-      "capability_q": 70.8,
-      "p_success": 46.4,
-      "token_multiplier": 3.54,
+      "openrouter_context": 1000000,
+      "openrouter_prompt_per_1m": 0.32,
+      "composite_score": 69.6,
+      "capability_q": 69.6,
+      "p_success": 42.8,
+      "token_multiplier": 3.94,
       "blended_price": 0.64,
-      "effective_cost": 2.27,
-      "qvi_score": 317.0,
-      "avi_score": 203.9,
-      "fgi_score": 22.4,
-      "bfi_score": 53.1
+      "effective_cost": 2.52,
+      "qvi_score": 299.7,
+      "avi_score": 187.3,
+      "fgi_score": 19.5,
+      "bfi_score": 52.2
     },
     "value": {
       "intelligence_per_dollar": 14143.18,
       "cost_per_intelligence_pt_usd": 7.1e-05,
       "requests_per_dollar": 359.2,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 2.27,
-      "effective_cost_per_request": 0.009855,
-      "effective_requests_per_5h": 1215,
-      "effective_requests_per_month": 6102,
-      "qvi_score": 317.0,
-      "value_score": 317.0,
-      "avi_score": 203.9,
-      "fgi_score": 22.4,
-      "bfi_score": 53.1
+      "effective_blended_price": 2.52,
+      "effective_cost_per_request": 0.010969,
+      "effective_requests_per_5h": 1091,
+      "effective_requests_per_month": 5482,
+      "qvi_score": 299.7,
+      "value_score": 299.7,
+      "avi_score": 187.3,
+      "fgi_score": 19.5,
+      "bfi_score": 52.2
     },
     "coverage": [
-      "AA",
-      "LM"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "grok-4.5",
-    "display": "grok-4.5",
-    "pricing": {
-      "input_per_1m": 2.0,
-      "output_per_1m": 6.0,
-      "cached_read_per_1m": 0.3,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 15
-    },
-    "caps": {
-      "cap_5h_usd": 3.0,
-      "cap_wk_usd": 7.5,
-      "cap_mo_usd": 15.0
-    },
-    "tokens": {
-      "est_input": 1100,
-      "est_cached": 71500,
-      "est_output": 220
-    },
-    "cost_per_request_usd": 0.02497,
-    "requests": {
-      "per_5h_computed": 120,
-      "per_week_computed": 300,
-      "per_month_computed": 601,
-      "per_5h_docs": null,
-      "per_week_docs": null,
-      "per_month_docs": null
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 119,
-        "weekly": 300,
-        "monthly": 126
-      },
-      "overall_pct": 21.0,
-      "overall_req": 119
-    },
-    "benchmarks": {
-      "aa_slug": "grok-4-5",
-      "aa_intelligence": 55.7588993916902,
-      "aa_coding": 72.4489353585796,
-      "aa_agentic": 48.851618556701,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 36,
-      "lmarena_elo": 1470.0,
-      "lmarena_votes": 24152,
-      "livebench": {
-        "model": "grok-4.5",
-        "overall": 77.05,
-        "coding": 68.59,
-        "agentic_coding": 56.46,
-        "reasoning": 87.17,
-        "math": 90.82,
-        "data_analysis": 73.04,
-        "language": 82.8,
-        "instruction_following": 71.53,
-        "categories": {
-          "Reasoning": 87.17,
-          "Coding": 68.59,
-          "Agentic Coding": 56.46,
-          "Mathematics": 90.82,
-          "Data Analysis": 73.04,
-          "Language": 82.8,
-          "IF": 71.53
-        }
-      },
-      "openrouter_id": "x-ai/grok-4.5",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 84.6,
-      "capability_q": 84.6,
-      "p_success": 81.9,
-      "token_multiplier": 1.49,
-      "blended_price": 2.8,
-      "effective_cost": 4.17,
-      "qvi_score": 301.5,
-      "avi_score": 230.7,
-      "fgi_score": 62.7,
-      "bfi_score": 21.3
-    },
-    "value": {
-      "intelligence_per_dollar": 2233.04,
-      "cost_per_intelligence_pt_usd": 0.000448,
-      "requests_per_dollar": 40.0,
-      "leverage_vs_10usd_sub": 1.5,
-      "effective_blended_price": 4.17,
-      "effective_cost_per_request": 0.037205,
-      "effective_requests_per_5h": 81,
-      "effective_requests_per_month": 403,
-      "qvi_score": 301.5,
-      "value_score": 301.5,
-      "avi_score": 230.7,
-      "fgi_score": 62.7,
-      "bfi_score": 21.3
-    },
-    "coverage": [
-      "AA",
-      "LM",
-      "Live"
+      "AA"
     ],
     "is_new": false,
     "is_docs_model": true
@@ -2646,8 +2467,8 @@
         }
       },
       "openrouter_id": "qwen/qwen3.7-max",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
+      "openrouter_context": 1000000,
+      "openrouter_prompt_per_1m": 1.475,
       "composite_score": 78.4,
       "capability_q": 78.4,
       "p_success": 68.3,
@@ -2676,108 +2497,6 @@
     },
     "coverage": [
       "AA",
-      "Live"
-    ],
-    "is_new": false,
-    "is_docs_model": true
-  },
-  {
-    "model_id": "minimax-m2.7",
-    "display": "minimax-m2.7",
-    "pricing": {
-      "input_per_1m": 0.3,
-      "output_per_1m": 1.2,
-      "cached_read_per_1m": 0.06,
-      "cached_write_per_1m": 0.375,
-      "monthly_usage_limit_usd": 60.0
-    },
-    "caps": {
-      "cap_5h_usd": 12.0,
-      "cap_wk_usd": 30.0,
-      "cap_mo_usd": 60.0
-    },
-    "tokens": {
-      "est_input": 300,
-      "est_cached": 55000,
-      "est_output": 125
-    },
-    "cost_per_request_usd": 0.00354,
-    "requests": {
-      "per_5h_computed": 3390,
-      "per_week_computed": 8475,
-      "per_month_computed": 16949,
-      "per_5h_docs": 3400,
-      "per_week_docs": 8500,
-      "per_month_docs": 17000
-    },
-    "remaining": {
-      "percent": {
-        "rolling": 99.0,
-        "weekly": 100.0,
-        "monthly": 21.0
-      },
-      "requests": {
-        "rolling": 3356,
-        "weekly": 8475,
-        "monthly": 3559
-      },
-      "overall_pct": 21.0,
-      "overall_req": 3356
-    },
-    "benchmarks": {
-      "aa_slug": "minimax-m2-7",
-      "aa_intelligence": 38.8713536464198,
-      "aa_coding": 52.6173879872382,
-      "aa_agentic": 25.9196357388316,
-      "aa_median_tps": null,
-      "aa_context": null,
-      "lmarena_rank": 121,
-      "lmarena_elo": 1417.0,
-      "lmarena_votes": 63907,
-      "livebench": {
-        "model": "minimax-m2.7",
-        "overall": 65.0,
-        "coding": null,
-        "agentic_coding": null,
-        "reasoning": null,
-        "math": null,
-        "data_analysis": null,
-        "language": null,
-        "instruction_following": null,
-        "categories": {}
-      },
-      "openrouter_id": "minimax/minimax-m2.7",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 69.2,
-      "capability_q": 69.2,
-      "p_success": 41.7,
-      "token_multiplier": 4.08,
-      "blended_price": 0.48,
-      "effective_cost": 1.96,
-      "qvi_score": 284.2,
-      "avi_score": 207.3,
-      "fgi_score": 18.6,
-      "bfi_score": 63.3
-    },
-    "value": {
-      "intelligence_per_dollar": 10980.61,
-      "cost_per_intelligence_pt_usd": 9.1e-05,
-      "requests_per_dollar": 282.5,
-      "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 1.96,
-      "effective_cost_per_request": 0.014443,
-      "effective_requests_per_5h": 833,
-      "effective_requests_per_month": 4167,
-      "qvi_score": 284.2,
-      "value_score": 284.2,
-      "avi_score": 207.3,
-      "fgi_score": 18.6,
-      "bfi_score": 63.3
-    },
-    "coverage": [
-      "AA",
-      "LM",
       "Live"
     ],
     "is_new": false,
@@ -2833,9 +2552,9 @@
       "aa_agentic": 30.5607491408935,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 41,
-      "lmarena_elo": 1466.0,
-      "lmarena_votes": 44023,
+      "lmarena_rank": 36,
+      "lmarena_elo": 1509.0,
+      "lmarena_votes": 9828,
       "livebench": {
         "model": "glm-5.1",
         "overall": 70.62,
@@ -2849,33 +2568,33 @@
         "categories": {}
       },
       "openrouter_id": "z-ai/glm-5.1",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 73.6,
-      "capability_q": 73.6,
-      "p_success": 54.8,
-      "token_multiplier": 2.81,
+      "openrouter_context": 204800,
+      "openrouter_prompt_per_1m": 0.966,
+      "composite_score": 73.4,
+      "capability_q": 73.4,
+      "p_success": 54.2,
+      "token_multiplier": 2.86,
       "blended_price": 2.0,
-      "effective_cost": 5.62,
-      "qvi_score": 281.6,
-      "avi_score": 150.1,
-      "fgi_score": 29.9,
-      "bfi_score": 24.0
+      "effective_cost": 5.72,
+      "qvi_score": 279.0,
+      "avi_score": 148.2,
+      "fgi_score": 29.3,
+      "bfi_score": 23.9
     },
     "value": {
       "intelligence_per_dollar": 2702.34,
       "cost_per_intelligence_pt_usd": 0.00037,
       "requests_per_dollar": 66.0,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 5.62,
-      "effective_cost_per_request": 0.0426,
-      "effective_requests_per_5h": 313,
-      "effective_requests_per_month": 1530,
-      "qvi_score": 281.6,
-      "value_score": 281.6,
-      "avi_score": 150.1,
-      "fgi_score": 29.9,
-      "bfi_score": 24.0
+      "effective_blended_price": 5.72,
+      "effective_cost_per_request": 0.043358,
+      "effective_requests_per_5h": 308,
+      "effective_requests_per_month": 1503,
+      "qvi_score": 279.0,
+      "value_score": 279.0,
+      "avi_score": 148.2,
+      "fgi_score": 29.3,
+      "bfi_score": 23.9
     },
     "coverage": [
       "AA",
@@ -2886,14 +2605,14 @@
     "is_docs_model": true
   },
   {
-    "model_id": "glm-5",
-    "display": "glm-5",
+    "model_id": "minimax-m2.7",
+    "display": "minimax-m2.7",
     "pricing": {
-      "input_per_1m": 1.4,
-      "output_per_1m": 4.4,
-      "cached_read_per_1m": 0.26,
-      "cached_write_per_1m": null,
-      "monthly_usage_limit_usd": 60
+      "input_per_1m": 0.3,
+      "output_per_1m": 1.2,
+      "cached_read_per_1m": 0.06,
+      "cached_write_per_1m": 0.375,
+      "monthly_usage_limit_usd": 60.0
     },
     "caps": {
       "cap_5h_usd": 12.0,
@@ -2901,18 +2620,18 @@
       "cap_mo_usd": 60.0
     },
     "tokens": {
-      "est_input": 700,
-      "est_cached": 52000,
-      "est_output": 150
+      "est_input": 300,
+      "est_cached": 55000,
+      "est_output": 125
     },
-    "cost_per_request_usd": 0.01516,
+    "cost_per_request_usd": 0.00354,
     "requests": {
-      "per_5h_computed": 792,
-      "per_week_computed": 1979,
-      "per_month_computed": 3958,
-      "per_5h_docs": null,
-      "per_week_docs": null,
-      "per_month_docs": null
+      "per_5h_computed": 3390,
+      "per_week_computed": 8475,
+      "per_month_computed": 16949,
+      "per_5h_docs": 3400,
+      "per_week_docs": 8500,
+      "per_month_docs": 17000
     },
     "remaining": {
       "percent": {
@@ -2921,26 +2640,26 @@
         "monthly": 21.0
       },
       "requests": {
-        "rolling": 784,
-        "weekly": 1979,
-        "monthly": 831
+        "rolling": 3356,
+        "weekly": 8475,
+        "monthly": 3559
       },
       "overall_pct": 21.0,
-      "overall_req": 784
+      "overall_req": 3356
     },
     "benchmarks": {
-      "aa_slug": "glm-5",
-      "aa_intelligence": 40.55415,
-      "aa_coding": null,
-      "aa_agentic": null,
+      "aa_slug": "minimax-m2-7",
+      "aa_intelligence": 38.8713536464198,
+      "aa_coding": 52.6173879872382,
+      "aa_agentic": 25.9196357388316,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 53,
-      "lmarena_elo": 1458.0,
-      "lmarena_votes": 27649,
+      "lmarena_rank": 69,
+      "lmarena_elo": 1399.0,
+      "lmarena_votes": 14810,
       "livebench": {
-        "model": "glm-5",
-        "overall": 68.7,
+        "model": "minimax-m2.7",
+        "overall": 65.0,
         "coding": null,
         "agentic_coding": null,
         "reasoning": null,
@@ -2950,41 +2669,42 @@
         "instruction_following": null,
         "categories": {}
       },
-      "openrouter_id": "z-ai/glm-5",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 73.6,
-      "capability_q": 73.6,
-      "p_success": 54.8,
-      "token_multiplier": 2.81,
-      "blended_price": 2.0,
-      "effective_cost": 5.62,
-      "qvi_score": 276.5,
-      "avi_score": 150.1,
-      "fgi_score": 29.9,
-      "bfi_score": 24.0
+      "openrouter_id": "minimax/minimax-m2.7",
+      "openrouter_context": 204800,
+      "openrouter_prompt_per_1m": 0.3,
+      "composite_score": 68.4,
+      "capability_q": 68.4,
+      "p_success": 39.4,
+      "token_multiplier": 4.38,
+      "blended_price": 0.48,
+      "effective_cost": 2.1,
+      "qvi_score": 273.4,
+      "avi_score": 195.8,
+      "fgi_score": 16.9,
+      "bfi_score": 62.6
     },
     "value": {
-      "intelligence_per_dollar": 2675.08,
-      "cost_per_intelligence_pt_usd": 0.000374,
-      "requests_per_dollar": 66.0,
+      "intelligence_per_dollar": 10980.61,
+      "cost_per_intelligence_pt_usd": 9.1e-05,
+      "requests_per_dollar": 282.5,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 5.62,
-      "effective_cost_per_request": 0.0426,
-      "effective_requests_per_5h": 282,
-      "effective_requests_per_month": 1409,
-      "qvi_score": 276.5,
-      "value_score": 276.5,
-      "avi_score": 150.1,
-      "fgi_score": 29.9,
-      "bfi_score": 24.0
+      "effective_blended_price": 2.1,
+      "effective_cost_per_request": 0.015505,
+      "effective_requests_per_5h": 776,
+      "effective_requests_per_month": 3881,
+      "qvi_score": 273.4,
+      "value_score": 273.4,
+      "avi_score": 195.8,
+      "fgi_score": 16.9,
+      "bfi_score": 62.6
     },
     "coverage": [
       "AA",
       "LM",
       "Live"
     ],
-    "is_new": false
+    "is_new": false,
+    "is_docs_model": true
   },
   {
     "model_id": "longcat-2.0",
@@ -3041,39 +2761,140 @@
       "lmarena_votes": null,
       "livebench": null,
       "openrouter_id": "meituan/longcat-2.0",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 64.6,
-      "capability_q": 64.6,
-      "p_success": 29.2,
-      "token_multiplier": 6.33,
+      "openrouter_context": 1048756,
+      "openrouter_prompt_per_1m": 0.3,
+      "composite_score": 64.3,
+      "capability_q": 64.3,
+      "p_success": 28.4,
+      "token_multiplier": 6.55,
       "blended_price": 0.48,
-      "effective_cost": 3.04,
-      "qvi_score": 268.5,
-      "avi_score": 146.2,
-      "fgi_score": 10.2,
-      "bfi_score": 59.1
+      "effective_cost": 3.14,
+      "qvi_score": 264.3,
+      "avi_score": 142.6,
+      "fgi_score": 9.7,
+      "bfi_score": 58.8
     },
     "value": {
       "intelligence_per_dollar": 32370.17,
       "cost_per_intelligence_pt_usd": 3.1e-05,
       "requests_per_dollar": 952.9,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 3.04,
-      "effective_cost_per_request": 0.00664,
-      "effective_requests_per_5h": 1801,
-      "effective_requests_per_month": 9036,
-      "qvi_score": 268.5,
-      "value_score": 268.5,
-      "avi_score": 146.2,
-      "fgi_score": 10.2,
-      "bfi_score": 59.1
+      "effective_blended_price": 3.14,
+      "effective_cost_per_request": 0.006871,
+      "effective_requests_per_5h": 1740,
+      "effective_requests_per_month": 8733,
+      "qvi_score": 264.3,
+      "value_score": 264.3,
+      "avi_score": 142.6,
+      "fgi_score": 9.7,
+      "bfi_score": 58.8
     },
     "coverage": [
       "AA"
     ],
     "is_new": false,
     "is_docs_model": true
+  },
+  {
+    "model_id": "glm-5",
+    "display": "glm-5",
+    "pricing": {
+      "input_per_1m": 1.4,
+      "output_per_1m": 4.4,
+      "cached_read_per_1m": 0.26,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 60
+    },
+    "caps": {
+      "cap_5h_usd": 12.0,
+      "cap_wk_usd": 30.0,
+      "cap_mo_usd": 60.0
+    },
+    "tokens": {
+      "est_input": 700,
+      "est_cached": 52000,
+      "est_output": 150
+    },
+    "cost_per_request_usd": 0.01516,
+    "requests": {
+      "per_5h_computed": 792,
+      "per_week_computed": 1979,
+      "per_month_computed": 3958,
+      "per_5h_docs": null,
+      "per_week_docs": null,
+      "per_month_docs": null
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 784,
+        "weekly": 1979,
+        "monthly": 831
+      },
+      "overall_pct": 21.0,
+      "overall_req": 784
+    },
+    "benchmarks": {
+      "aa_slug": "glm-5",
+      "aa_intelligence": 40.55415,
+      "aa_coding": null,
+      "aa_agentic": null,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": 58,
+      "lmarena_elo": 1436.0,
+      "lmarena_votes": 7063,
+      "livebench": {
+        "model": "glm-5",
+        "overall": 68.7,
+        "coding": null,
+        "agentic_coding": null,
+        "reasoning": null,
+        "math": null,
+        "data_analysis": null,
+        "language": null,
+        "instruction_following": null,
+        "categories": {}
+      },
+      "openrouter_id": "z-ai/glm-5",
+      "openrouter_context": 204800,
+      "openrouter_prompt_per_1m": 0.6,
+      "composite_score": 72.0,
+      "capability_q": 72.0,
+      "p_success": 50.0,
+      "token_multiplier": 3.2,
+      "blended_price": 2.0,
+      "effective_cost": 6.4,
+      "qvi_score": 256.4,
+      "avi_score": 135.8,
+      "fgi_score": 25.5,
+      "bfi_score": 23.5
+    },
+    "value": {
+      "intelligence_per_dollar": 2675.08,
+      "cost_per_intelligence_pt_usd": 0.000374,
+      "requests_per_dollar": 66.0,
+      "leverage_vs_10usd_sub": 6.0,
+      "effective_blended_price": 6.4,
+      "effective_cost_per_request": 0.048512,
+      "effective_requests_per_5h": 248,
+      "effective_requests_per_month": 1237,
+      "qvi_score": 256.4,
+      "value_score": 256.4,
+      "avi_score": 135.8,
+      "fgi_score": 25.5,
+      "bfi_score": 23.5
+    },
+    "coverage": [
+      "AA",
+      "LM",
+      "Live"
+    ],
+    "is_new": false
   },
   {
     "model_id": "hy3-preview",
@@ -3130,33 +2951,33 @@
       "lmarena_votes": null,
       "livebench": null,
       "openrouter_id": "tencent/hy3-preview",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 66.4,
-      "capability_q": 66.4,
-      "p_success": 33.8,
-      "token_multiplier": 5.31,
+      "openrouter_context": 262144,
+      "openrouter_prompt_per_1m": 0.18,
+      "composite_score": 66.2,
+      "capability_q": 66.2,
+      "p_success": 33.3,
+      "token_multiplier": 5.41,
       "blended_price": 0.23,
-      "effective_cost": 1.21,
-      "qvi_score": 256.3,
-      "avi_score": 235.7,
-      "fgi_score": 13.0,
-      "bfi_score": 98.0
+      "effective_cost": 1.23,
+      "qvi_score": 253.7,
+      "avi_score": 232.4,
+      "fgi_score": 12.7,
+      "bfi_score": 97.7
     },
     "value": {
       "intelligence_per_dollar": 12329.89,
       "cost_per_intelligence_pt_usd": 8.1e-05,
       "requests_per_dollar": 358.4,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 1.21,
-      "effective_cost_per_request": 0.014815,
-      "effective_requests_per_5h": 810,
-      "effective_requests_per_month": 4050,
-      "qvi_score": 256.3,
-      "value_score": 256.3,
-      "avi_score": 235.7,
-      "fgi_score": 13.0,
-      "bfi_score": 98.0
+      "effective_blended_price": 1.23,
+      "effective_cost_per_request": 0.015094,
+      "effective_requests_per_5h": 795,
+      "effective_requests_per_month": 3975,
+      "qvi_score": 253.7,
+      "value_score": 253.7,
+      "avi_score": 232.4,
+      "fgi_score": 12.7,
+      "bfi_score": 97.7
     },
     "coverage": [
       "AA"
@@ -3213,9 +3034,9 @@
       "aa_agentic": 21.6932680412371,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 65,
-      "lmarena_elo": 1450.0,
-      "lmarena_votes": 70610,
+      "lmarena_rank": 57,
+      "lmarena_elo": 1436.0,
+      "lmarena_votes": 19044,
       "livebench": {
         "model": "kimi-k2.5-thinking",
         "overall": 69.16,
@@ -3229,33 +3050,33 @@
         "categories": {}
       },
       "openrouter_id": "moonshotai/kimi-k2.5",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 68.9,
-      "capability_q": 68.9,
-      "p_success": 40.8,
-      "token_multiplier": 4.19,
+      "openrouter_context": 262144,
+      "openrouter_prompt_per_1m": 0.44999999999999996,
+      "composite_score": 67.9,
+      "capability_q": 67.9,
+      "p_success": 37.9,
+      "token_multiplier": 4.6,
       "blended_price": 1.56,
-      "effective_cost": 6.54,
-      "qvi_score": 235.0,
-      "avi_score": 122.3,
-      "fgi_score": 18.0,
-      "bfi_score": 27.1
+      "effective_cost": 7.18,
+      "qvi_score": 223.1,
+      "avi_score": 114.2,
+      "fgi_score": 15.8,
+      "bfi_score": 26.7
     },
     "value": {
       "intelligence_per_dollar": 3454.92,
       "cost_per_intelligence_pt_usd": 0.000289,
       "requests_per_dollar": 95.9,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 6.54,
-      "effective_cost_per_request": 0.043689,
-      "effective_requests_per_5h": 275,
-      "effective_requests_per_month": 1374,
-      "qvi_score": 235.0,
-      "value_score": 235.0,
-      "avi_score": 122.3,
-      "fgi_score": 18.0,
-      "bfi_score": 27.1
+      "effective_blended_price": 7.18,
+      "effective_cost_per_request": 0.047964,
+      "effective_requests_per_5h": 250,
+      "effective_requests_per_month": 1251,
+      "qvi_score": 223.1,
+      "value_score": 223.1,
+      "avi_score": 114.2,
+      "fgi_score": 15.8,
+      "bfi_score": 26.7
     },
     "coverage": [
       "AA",
@@ -3314,9 +3135,9 @@
       "aa_agentic": null,
       "aa_median_tps": null,
       "aa_context": null,
-      "lmarena_rank": 157,
-      "lmarena_elo": 1390.0,
-      "lmarena_votes": 40887,
+      "lmarena_rank": 78,
+      "lmarena_elo": 1384.0,
+      "lmarena_votes": 7211,
       "livebench": {
         "model": "minimax-m2.5",
         "overall": 60.27,
@@ -3330,38 +3151,124 @@
         "categories": {}
       },
       "openrouter_id": "minimax/minimax-m2.5",
-      "openrouter_context": null,
-      "openrouter_prompt_per_1m": 0.0,
-      "composite_score": 64.6,
-      "capability_q": 64.6,
-      "p_success": 29.2,
-      "token_multiplier": 6.33,
+      "openrouter_context": 204800,
+      "openrouter_prompt_per_1m": 0.27,
+      "composite_score": 64.1,
+      "capability_q": 64.1,
+      "p_success": 27.9,
+      "token_multiplier": 6.69,
       "blended_price": 0.48,
-      "effective_cost": 3.04,
-      "qvi_score": 225.2,
-      "avi_score": 146.2,
-      "fgi_score": 10.2,
-      "bfi_score": 59.1
+      "effective_cost": 3.21,
+      "qvi_score": 219.0,
+      "avi_score": 140.3,
+      "fgi_score": 9.4,
+      "bfi_score": 58.6
     },
     "value": {
       "intelligence_per_dollar": 9738.44,
       "cost_per_intelligence_pt_usd": 0.000103,
       "requests_per_dollar": 282.5,
       "leverage_vs_10usd_sub": 6.0,
-      "effective_blended_price": 3.04,
-      "effective_cost_per_request": 0.022408,
-      "effective_requests_per_5h": 536,
-      "effective_requests_per_month": 2678,
-      "qvi_score": 225.2,
-      "value_score": 225.2,
-      "avi_score": 146.2,
-      "fgi_score": 10.2,
-      "bfi_score": 59.1
+      "effective_blended_price": 3.21,
+      "effective_cost_per_request": 0.023683,
+      "effective_requests_per_5h": 507,
+      "effective_requests_per_month": 2533,
+      "qvi_score": 219.0,
+      "value_score": 219.0,
+      "avi_score": 140.3,
+      "fgi_score": 9.4,
+      "bfi_score": 58.6
     },
     "coverage": [
       "AA",
       "LM",
       "Live"
+    ],
+    "is_new": false,
+    "is_docs_model": true
+  },
+  {
+    "model_id": "muse-spark-1.2-contributor",
+    "display": "muse-spark-1.2-contributor",
+    "pricing": {
+      "input_per_1m": 0.1,
+      "output_per_1m": 0.2,
+      "cached_read_per_1m": 0.002,
+      "cached_write_per_1m": null,
+      "monthly_usage_limit_usd": 60.0
+    },
+    "caps": {
+      "cap_5h_usd": 12.0,
+      "cap_wk_usd": 30.0,
+      "cap_mo_usd": 60.0
+    },
+    "tokens": {
+      "est_input": 620,
+      "est_cached": 71400,
+      "est_output": 300
+    },
+    "cost_per_request_usd": 0.000265,
+    "requests": {
+      "per_5h_computed": 45317,
+      "per_week_computed": 113293,
+      "per_month_computed": 226586,
+      "per_5h_docs": 45300,
+      "per_week_docs": 113300,
+      "per_month_docs": 226600
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 44864,
+        "weekly": 113293,
+        "monthly": 47583
+      },
+      "overall_pct": 21.0,
+      "overall_req": 44864
+    },
+    "benchmarks": {
+      "aa_slug": null,
+      "aa_intelligence": null,
+      "aa_coding": null,
+      "aa_agentic": null,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": null,
+      "lmarena_elo": null,
+      "lmarena_votes": null,
+      "livebench": null,
+      "openrouter_id": "meta/muse-spark-1.2-contributor",
+      "openrouter_context": 1048576,
+      "openrouter_prompt_per_1m": 0.09999999999999999,
+      "composite_score": null,
+      "capability_q": null,
+      "p_success": null,
+      "token_multiplier": null,
+      "qvi_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
+    },
+    "value": {
+      "intelligence_per_dollar": null,
+      "cost_per_intelligence_pt_usd": null,
+      "requests_per_dollar": 3776.4,
+      "leverage_vs_10usd_sub": 6.0,
+      "effective_cost_per_request": null,
+      "effective_requests_per_5h": null,
+      "effective_requests_per_month": null,
+      "qvi_score": null,
+      "value_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
+    },
+    "coverage": [
+      "\u2014"
     ],
     "is_new": false,
     "is_docs_model": true
@@ -3419,36 +3326,118 @@
       "openrouter_id": null,
       "openrouter_context": null,
       "openrouter_prompt_per_1m": null,
-      "composite_score": 78.0,
-      "capability_q": 78.0,
-      "p_success": 67.3,
-      "token_multiplier": 2.07,
-      "blended_price": 0.0,
-      "effective_cost": 0.0,
-      "qvi_score": 0.0,
-      "avi_score": 825.8,
-      "fgi_score": 43.1,
-      "bfi_score": 468.0
+      "composite_score": null,
+      "capability_q": null,
+      "p_success": null,
+      "token_multiplier": null,
+      "qvi_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
     },
     "value": {
       "intelligence_per_dollar": null,
       "cost_per_intelligence_pt_usd": null,
       "requests_per_dollar": null,
       "leverage_vs_10usd_sub": null,
-      "effective_blended_price": 0.0,
       "effective_cost_per_request": null,
       "effective_requests_per_5h": null,
       "effective_requests_per_month": null,
-      "qvi_score": 0.0,
-      "value_score": 0.0,
-      "avi_score": 825.8,
-      "fgi_score": 43.1,
-      "bfi_score": 468.0
+      "qvi_score": null,
+      "value_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
     },
     "coverage": [
       "\u2014"
     ],
     "is_new": false,
     "is_docs_model": true
+  },
+  {
+    "model_id": "qwen3.5-plus",
+    "display": "qwen3.5-plus",
+    "pricing": {
+      "input_per_1m": 0.4,
+      "output_per_1m": 1.6,
+      "cached_read_per_1m": 0.04,
+      "cached_write_per_1m": 0.5,
+      "monthly_usage_limit_usd": 60
+    },
+    "caps": {
+      "cap_5h_usd": 12.0,
+      "cap_wk_usd": 30.0,
+      "cap_mo_usd": 60.0
+    },
+    "tokens": {
+      "est_input": 500,
+      "est_cached": 57000,
+      "est_output": 190
+    },
+    "cost_per_request_usd": 0.002784,
+    "requests": {
+      "per_5h_computed": 4310,
+      "per_week_computed": 10776,
+      "per_month_computed": 21552,
+      "per_5h_docs": null,
+      "per_week_docs": null,
+      "per_month_docs": null
+    },
+    "remaining": {
+      "percent": {
+        "rolling": 99.0,
+        "weekly": 100.0,
+        "monthly": 21.0
+      },
+      "requests": {
+        "rolling": 4267,
+        "weekly": 10776,
+        "monthly": 4526
+      },
+      "overall_pct": 21.0,
+      "overall_req": 4267
+    },
+    "benchmarks": {
+      "aa_slug": null,
+      "aa_intelligence": null,
+      "aa_coding": null,
+      "aa_agentic": null,
+      "aa_median_tps": null,
+      "aa_context": null,
+      "lmarena_rank": null,
+      "lmarena_elo": null,
+      "lmarena_votes": null,
+      "livebench": null,
+      "openrouter_id": null,
+      "openrouter_context": null,
+      "openrouter_prompt_per_1m": null,
+      "composite_score": null,
+      "capability_q": null,
+      "p_success": null,
+      "token_multiplier": null,
+      "qvi_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
+    },
+    "value": {
+      "intelligence_per_dollar": null,
+      "cost_per_intelligence_pt_usd": null,
+      "requests_per_dollar": 359.2,
+      "leverage_vs_10usd_sub": 6.0,
+      "effective_cost_per_request": null,
+      "effective_requests_per_5h": null,
+      "effective_requests_per_month": null,
+      "qvi_score": null,
+      "value_score": null,
+      "avi_score": null,
+      "fgi_score": null,
+      "bfi_score": null
+    },
+    "coverage": [
+      "\u2014"
+    ],
+    "is_new": false
   }
 ]

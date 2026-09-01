@@ -13,3 +13,8 @@ ccheck = "checkers.commandcode_cost_benefit_analyzer:main"
 fcheck = "checkers.free_model_ranker:main"
 scheck = "checkers.stealth_model_detector:main"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+

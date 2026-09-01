@@ -270,18 +270,24 @@ def pick_latest_raw(raw_dir: pathlib.Path, name_part: str) -> pathlib.Path | Non
 # 3. STATISTICAL & COMPOSITE SCORING FORMULAS
 # ==============================================================================
 def get_z_scores(values: list) -> list[float]:
-    """Compute z-scores for a list of values (ignoring None / non-numeric entries)."""
+    """Compute z-scores for a list of values (ignoring None / non-numeric entries).
+
+    Uses population standard deviation (pstdev): z-scoring a complete cohort
+    (the full model list) treats the values as the population, matching
+    compute_meanfill_composite and the aggregator's z-scores. Constant or
+    single-value cohorts fall back to zero z-scores.
+    """
     valid = [v for v in values if isinstance(v, (int, float))]
     if len(valid) < 2:
         return [0.0] * len(values)
     mean_val = statistics.mean(valid)
-    std_val = statistics.stdev(valid) if len(valid) > 1 else 1.0
+    std_val = statistics.pstdev(valid) if len(valid) > 1 else 1.0
     if std_val == 0.0:
         std_val = 1.0
     return [(v - mean_val) / std_val if isinstance(v, (int, float)) else 0.0 for v in values]
 
 
-def compute_capability_q(cz: float) -> float:
+def compute_capability_q(cz: float | None) -> float:
     """
     Compute Normalized Composite Capability Q ∈ [40.0, 99.9].
     Base centered at 78.0 with 8.5 standard deviation scale factor.
@@ -291,7 +297,7 @@ def compute_capability_q(cz: float) -> float:
     return round(max(40.0, min(99.9, 78.0 + (float(cz) * 8.5))), 1)
 
 
-def compute_p_success(q_score: float) -> float:
+def compute_p_success(q_score: float | None) -> float:
     """
     Compute task pass probability P_succ(Q) ∈ (0.0, 100.0)% on non-trivial agentic task.
     Sigmoid model centered at Q=72.0 with slope k=0.12, numerically clamped.
@@ -303,7 +309,7 @@ def compute_p_success(q_score: float) -> float:
     return round(p_succ * 100.0, 1)
 
 
-def compute_token_multiplier(p_success_pct: float, alpha: float = 1.2) -> float:
+def compute_token_multiplier(p_success_pct: float | None, alpha: float = 1.2) -> float:
     """
     Compute Token Multiplier T_mult = (1 + α * (1 - P)) / P.
     Accounts for expected retry and debugging token burn on autonomous failures.
@@ -315,14 +321,14 @@ def compute_token_multiplier(p_success_pct: float, alpha: float = 1.2) -> float:
     return round(t_mult, 2)
 
 
-def compute_effective_cost(blended_price: float, token_multiplier: float) -> float | None:
+def compute_effective_cost(blended_price: float | None, token_multiplier: float | None) -> float | None:
     """Compute effective cost per verified completed task."""
     if blended_price is None or token_multiplier is None:
         return None
     return round(float(blended_price) * float(token_multiplier), 2)
 
 
-def compute_avi(q_score: float, effective_cost: float) -> float:
+def compute_avi(q_score: float | None, effective_cost: float | None) -> float:
     """
     Agentic Value Index (AVI): Super-linear capability vs log effective cost ROI.
     Formula: Q^2.2 / (100 * log10(effective_cost + 1.5))
@@ -332,7 +338,7 @@ def compute_avi(q_score: float, effective_cost: float) -> float:
     return round((float(q_score) ** 2.2) / (100.0 * math.log10(max(0.0, float(effective_cost)) + 1.5)), 1)
 
 
-def compute_fgi(q_score: float, p_success_pct: float) -> float:
+def compute_fgi(q_score: float | None, p_success_pct: float | None) -> float:
     """
     Frontier Gate Index (FGI): High-difficulty architectural gating index.
     Formula: Q * (P_succ ^ 1.5)
@@ -343,7 +349,7 @@ def compute_fgi(q_score: float, p_success_pct: float) -> float:
     return round(float(q_score) * (p_succ ** 1.5), 1)
 
 
-def compute_bfi(q_score: float, speed_tps: float, blended_price: float) -> float:
+def compute_bfi(q_score: float | None, speed_tps: float | None, blended_price: float | None) -> float:
     """
     Bulk Fill Index (BFI): Throughput and raw cost efficiency on bounded tasks.
     Formula: (Q * speed) / (100 * ((blended_price ^ 0.8) + 0.1))
@@ -353,7 +359,7 @@ def compute_bfi(q_score: float, speed_tps: float, blended_price: float) -> float
     return round((float(q_score) * float(speed_tps)) / (100.0 * ((max(0.0, float(blended_price)) ** 0.8) + 0.1)), 1)
 
 
-def compute_qvi(q_score: float, n_eff_tasks: float) -> float:
+def compute_qvi(q_score: float | None, n_eff_tasks: float | None) -> float:
     """
     Quota Value Index (QVI): Total delivered utility under allowed plan quota headroom.
     Formula: log10(N_eff + 1) * (Q / 70.0)^2.4 * 100
@@ -519,7 +525,7 @@ def parse_livebench(csv_text: str, categories_json: str | dict | None = None, ve
 
         if cats:
             for cat_name, tasks in cats.items():
-                t_scores = [_safe_float(row.get(t)) for t in tasks if _safe_float(row.get(t)) is not None]
+                t_scores = [s for s in (_safe_float(row.get(t)) for t in tasks) if s is not None]
                 if t_scores:
                     cat_scores[cat_name] = round(sum(t_scores) / len(t_scores), 2)
 
@@ -751,7 +757,11 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
         out[oid] = {
             "id": oid,
             "name": rec.get("name") or oid,
+            "description": rec.get("description"),
             "context": ctx,
+            "context_length": ctx,
+            "pricing": pricing,
+            "architecture": rec.get("architecture") or {},
             "prompt_price_1m": (p_prompt * 1_000_000.0) if p_prompt is not None else None,
             "completion_price_1m": (p_comp * 1_000_000.0) if p_comp is not None else None,
             "is_free": is_free,

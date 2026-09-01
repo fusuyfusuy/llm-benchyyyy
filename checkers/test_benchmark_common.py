@@ -148,13 +148,17 @@ class TestBenchmarkCommon(unittest.TestCase):
         # Test OpenRouter
         sample_or = {
             "data": [
-                {"id": "anthropic/claude-3.7-sonnet", "name": "Claude 3.7", "pricing": {"prompt": "0.000003", "completion": "0.000015"}, "context_length": 200000},
+                {"id": "anthropic/claude-3.7-sonnet", "name": "Claude 3.7", "pricing": {"prompt": "0.000003", "completion": "0.000015"}, "context_length": 200000, "architecture": {"modality": "text->text"}},
                 {"id": "meta/llama-3-8b:free", "name": "Llama 3 8B Free", "pricing": {"prompt": "0", "completion": "0"}, "context_length": 8000}
             ]
         }
         or_map = bc.parse_openrouter(sample_or)
         self.assertIn("anthropic/claude-3.7-sonnet", or_map)
-        self.assertFalse(or_map["anthropic/claude-3.7-sonnet"]["is_free"])
+        claude = or_map["anthropic/claude-3.7-sonnet"]
+        self.assertFalse(claude["is_free"])
+        self.assertEqual(claude["pricing"]["prompt"], "0.000003")
+        self.assertEqual(claude["context_length"], 200000)
+        self.assertEqual(claude["architecture"]["modality"], "text->text")
         self.assertTrue(or_map["meta/llama-3-8b:free"]["is_free"])
 
     def test_role_recommendations_calculation(self):

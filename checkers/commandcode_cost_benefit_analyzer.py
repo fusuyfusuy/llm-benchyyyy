@@ -439,7 +439,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         {
             "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
             "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
-            "value": (lambda r: r["value"].get("qvi_score") or r["value"].get("value_score") or 0, True, None),
+            "value": (lambda r: r["value"].get("qvi_score") or 0, True, None),
             "avi": (lambda r: r["value"].get("avi_score") or 0, True, None),
             "fgi": (lambda r: r["value"].get("fgi_score") or 0, True, None),
         },
@@ -469,6 +469,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         plain_title_line=" COMMAND CODE GOAT — COST/BENEFIT & AGENTIC RADAR — Caps: $14/5h · $35/wk · $70/mo · credits $20-$70",
         plain_diff_parts=diff_parts,
     ))
+    bot_border = ""
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
@@ -509,7 +510,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         p_val = r["benchmarks"].get("p_success")
         eff_c_val = r["value"].get("effective_cost_per_request")
         eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
-        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
+        qvi_val = r["value"].get("qvi_score")
         avi_val = r["value"].get("avi_score")
         fgi_val = r["value"].get("fgi_score")
         q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color) if q_val is not None else "—"
@@ -605,7 +606,7 @@ def build_sort_key(sort_mode, eff_cost_fn):
     def _avi(r):
         return r["value"]["avi_score"] or -1
     def _qvi(r):
-        return r["value"].get("qvi_score") or r["value"].get("value_score") or -1
+        return r["value"].get("qvi_score") or -1
 
     if sort_mode in ("value", "qvi"):
         return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
@@ -989,7 +990,7 @@ def main():
                 "account_caps": {"cap_5h": ACC_5H, "cap_week": ACC_WK, "cap_month": ACC_MO},
                 "note": "per-model caps = $14*credits/70 (5h), $35*credits/70 (wk), credits (mo); credits from GOAT pricing tables; --fetch saves cc_goat_docs snapshot"
             },
-            "catalog_diff": {"added": sorted(list(added_ids)), "removed": sorted(list(removed_ids)), "total_current": len(docs_rows), "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (prev_snapshot and "models" in prev_snapshot) else len(docs_rows))},
+            "catalog_diff": {"added": sorted(list(added_ids)), "removed": sorted(list(removed_ids)), "total_current": len(docs_rows), "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (isinstance(prev_snapshot, dict) and "models" in prev_snapshot) else len(docs_rows))},
             "role_recommendations": role_recs_export,
             "models": rows_sorted,
         }
@@ -1053,7 +1054,7 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
         p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
         eff_c = r["value"].get("effective_cost_per_request")
         eff_c_s = f"${eff_c:.5f}" if isinstance(eff_c, float) else "—"
-        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
+        qvi_val = r["value"].get("qvi_score")
         qvi_s = f"{qvi_val:.1f}" if isinstance(qvi_val, (int, float)) else "—"
         avi_val = r["value"].get("avi_score")
         avi_s = f"{avi_val:.1f}" if isinstance(avi_val, (int, float)) else "—"

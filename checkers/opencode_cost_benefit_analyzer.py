@@ -687,9 +687,16 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         ]
 
     total_models = len(models_list)
-    top_val = max(models_list, key=lambda m: m["value"].get("qvi_score", 0)) if models_list else None
-    top_frontier = max(models_list, key=lambda m: m["value"].get("fgi_score", 0)) if models_list else None
-    top_avi = max(models_list, key=lambda m: m["value"].get("avi_score", 0)) if models_list else None
+    top_val = max(
+        (m for m in models_list if m["value"].get("qvi_score") is not None),
+        key=lambda m: m["value"]["qvi_score"],
+        default=None,
+    )
+    top_frontier = max(
+        (m for m in models_list if m["value"].get("fgi_score") is not None),
+        key=lambda m: m["value"]["fgi_score"],
+        default=None,
+    )
     top_req = max(models_list, key=lambda m: (m["requests"].get("per_5h_docs") or m["requests"].get("per_5h_computed") or 0)) if models_list else None
 
     col_medals = bc.compute_column_medals(
@@ -697,7 +704,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         {
             "q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None),
             "psucc": (lambda r: r["benchmarks"].get("p_success") or 0, True, None),
-            "value": (lambda r: r["value"].get("qvi_score") or r["value"].get("value_score") or 0, True, None),
+            "value": (lambda r: r["value"].get("qvi_score") or 0, True, None),
             "avi": (lambda r: r["value"].get("avi_score") or 0, True, None),
             "fgi": (lambda r: r["value"].get("fgi_score") or 0, True, None),
         },
@@ -738,6 +745,8 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         plain_diff_parts=diff_parts,
     ))
 
+    # Border templates
+    bot_border = ""
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
@@ -782,18 +791,18 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         req5_str = format_compact_num(req5_val)
 
         meds = col_medals.get(r["model_id"], {})
-        q_val = r["benchmarks"].get("capability_q", 0)
-        p_val = r["benchmarks"].get("p_success", 0)
+        q_val = r["benchmarks"].get("capability_q")
+        p_val = r["benchmarks"].get("p_success")
         eff_c_val = r["value"].get("effective_cost_per_request")
         eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
-        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
-        avi_val = r["value"].get("avi_score", 0)
-        fgi_val = r["value"].get("fgi_score", 0)
-        q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color)
-        p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color)
+        qvi_val = r["value"].get("qvi_score")
+        avi_val = r["value"].get("avi_score")
+        fgi_val = r["value"].get("fgi_score")
+        q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color) if q_val is not None else "—"
+        p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color) if p_val is not None else "—"
         qvi_disp = f"{qvi_val:.1f}" + bc.medal_badge(meds.get("value"), color=color) if qvi_val is not None else "—"
-        avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color)
-        fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color)
+        avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color) if avi_val is not None else "—"
+        fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color) if fgi_val is not None else "—"
 
         rem = r.get("remaining", {})
         overall = rem.get("overall_pct")
@@ -1274,7 +1283,7 @@ def build_sort_key(sort_mode, eff_cost_fn):
         return r["value"]["avi_score"] or -1
 
     def _qvi(r):
-        return r["value"].get("qvi_score") or r["value"].get("value_score") or -1
+        return r["value"].get("qvi_score") or -1
 
     if sort_mode in ("value", "qvi"):
         return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
@@ -1795,9 +1804,27 @@ def main():
             weights.append(0.15); z_parts.append(0.15 * z_elo[i])
         if b.get("livebench") and b["livebench"].get("overall") is not None:
             weights.append(0.20); z_parts.append(0.20 * z_live[i])
+        if not weights:
+            b["composite_score"] = None
+            b["capability_q"] = None
+            b["p_success"] = None
+            b["token_multiplier"] = None
+            v["effective_cost_per_request"] = None
+            v["effective_requests_per_5h"] = None
+            v["effective_requests_per_month"] = None
+            v["qvi_score"] = None
+            v["value_score"] = None
+            v["avi_score"] = None
+            v["fgi_score"] = None
+            v["bfi_score"] = None
+            b["qvi_score"] = None
+            b["avi_score"] = None
+            b["fgi_score"] = None
+            b["bfi_score"] = None
+            continue
 
-        tot_w = sum(weights) or 1.0
-        cz = sum(z_parts) / tot_w if weights else 0.0
+        tot_w = sum(weights)
+        cz = sum(z_parts) / tot_w
         q_score = compute_capability_q(cz)
         b["composite_score"] = q_score
         b["capability_q"] = q_score
@@ -1956,7 +1983,7 @@ def main():
                 "total_current": len(docs_rows),
                 # S1-M1: compare like with like — total_previous counted the FULL
                 # baseline (incl. non-docs rows) against the docs-only current set.
-                "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (prev_snapshot and "models" in prev_snapshot) else len(docs_rows)),
+                "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (isinstance(prev_snapshot, dict) and "models" in prev_snapshot) else len(docs_rows)),
             },
             "role_recommendations": role_recs_export,
             "models": rows_sorted,
@@ -2026,7 +2053,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
         p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
         eff_c = r["value"].get("effective_cost_per_request")
         eff_c_s = f"${eff_c:.5f}" if isinstance(eff_c, float) else "—"
-        qvi_val = r["value"].get("qvi_score") or r["value"].get("value_score")
+        qvi_val = r["value"].get("qvi_score")
         qvi_s = f"{qvi_val:.1f}" if isinstance(qvi_val, (int, float)) else "—"
         avi_val = r["value"].get("avi_score")
         avi_s = f"{avi_val:.1f}" if isinstance(avi_val, (int, float)) else "—"

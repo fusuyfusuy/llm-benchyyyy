@@ -900,11 +900,14 @@ def load_openrouter_pricing_data():
                 pr = item.get("pricing", {})
                 pin = float(pr.get("prompt", 0)) * 1_000_000
                 pout = float(pr.get("completion", 0)) * 1_000_000
-                or_pricing[bc.norm_id(mid)] = {
+                pricing = {
                     "price_in": pin,
                     "price_out": pout,
                     "name": item.get("name") or mid,
                 }
+                or_pricing[bc.norm_id(mid)] = pricing
+                bare_id = mid.split("/", 1)[-1].split(":", 1)[0]
+                or_pricing.setdefault(bc.norm_id(bare_id), pricing)
         except Exception:
             pass
     return or_pricing
@@ -1259,10 +1262,11 @@ def load_livebench_data(verbose=False, fetch=False):
     today's snapshot already exists).
     """
     out = {}
-    csv_matches = sorted(glob.glob(str(RAW / "*livebench*20*.csv")))
-    for p_csv in csv_matches:
-        if "cost" in p_csv:
-            continue
+    csv_matches = [
+        p for p in sorted(glob.glob(str(RAW / "*livebench*20*.csv")))
+        if "cost" not in pathlib.Path(p).name
+    ]
+    for p_csv in csv_matches[-1:]:
         try:
             p = pathlib.Path(p_csv)
             date_part = "".join(filter(str.isdigit, p.stem))
@@ -1621,7 +1625,7 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
     return "\n".join(out)
 
 
-def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n=30):
+def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30):
     """Render structured TUI table with adaptive terminal width, tri-verified main table, and missing-benchmark sub-tables."""
     if color is None:
         color = not os.getenv("NO_COLOR")
@@ -1726,6 +1730,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     ))
 
     # Border templates
+    bot_border = ""
     if color:
         top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
         mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
@@ -2084,7 +2089,7 @@ def render_sub_table_html(sub_models, title, top_n=10):
     """
 
 
-def render_markdown_report(models_list, title=None, pareto_ids=None, top_n=30):
+def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int | None = 30):
     """Render detailed Markdown report with tri-verified master leaderboard and partial benchmark sub-tables."""
     if pareto_ids is None:
         pareto_ids = compute_pareto_frontier(models_list)
@@ -2213,7 +2218,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n=30):
     return "\n".join(lines)
 
 
-def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n=30):
+def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30):
     """Render standalone HTML dashboard with tri-verified table and sub-tables."""
     if pareto_ids is None:
         pareto_ids = compute_pareto_frontier(models_list)

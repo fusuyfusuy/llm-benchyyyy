@@ -16,6 +16,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import benchmark_sync_daemon as bsd
+import llm_benchmark_aggregator as lba
 
 
 class TestBenchmarkSyncDaemon(unittest.TestCase):
@@ -59,7 +60,7 @@ class TestBenchmarkSyncDaemon(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_raw = pathlib.Path(tmpdir) / "raw"
             tmp_data = pathlib.Path(tmpdir)
-            with patch.object(bsd, "RAW", tmp_raw), patch.object(bsd, "DATA", tmp_data):
+            with patch.object(bsd, "RAW", tmp_raw), patch.object(bsd, "DATA", tmp_data), patch.object(lba, "DATA", tmp_data):
                 with patch.object(bsd, "fetch_url_content", return_value="<mock content>"):
                     with patch("llm_benchmark_aggregator.load_livebench_data", return_value={}):
                         with patch("llm_benchmark_aggregator.load_lmarena_data", return_value={}):
@@ -71,6 +72,33 @@ class TestBenchmarkSyncDaemon(unittest.TestCase):
                                 self.assertIn("openrouter", res)
                                 self.assertIn("commandcode_goat", res)
                                 self.assertIn("cline_models", res)
+                                self.assertTrue((tmp_data / "benchmarks.json").exists())
+
+    def test_fetch_rejects_tiny_error_body(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b"404 Not Found"
+        with patch("urllib.request.urlopen", return_value=response), patch.object(bsd, "log"):
+            self.assertIsNone(bsd.fetch_url_content("https://example.test/feed", max_retries=1))
+
+    def test_sync_lock_rejects_concurrent_process(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = pathlib.Path(tmpdir) / "sync.lock"
+            with patch.object(bsd, "LOCK_PATH", lock_path), patch("fcntl.flock", side_effect=BlockingIOError):
+                with self.assertRaisesRegex(RuntimeError, "already running"):
+                    with bsd.sync_lock():
+                        pass
+
+    def test_status_ignores_livebench_cost_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data = pathlib.Path(tmpdir)
+            raw = data / "raw"
+            raw.mkdir()
+            (raw / "livebench_20260101.csv").write_text("valid")
+            (raw / "livebench_cost_20990101.csv").write_text("wrong")
+            with patch.object(bsd, "RAW", raw), patch.object(bsd, "DATA", data):
+                status = bsd.get_cache_status()
+            livebench = next(row for row in status["status_report"] if row["feed"] == "LiveBench CSV")
+            self.assertEqual(livebench["latest_file"], "livebench_20260101.csv")
 
     def test_install_cron_output(self):
         with patch("sys.stdout", new_callable=io.StringIO) as out:
