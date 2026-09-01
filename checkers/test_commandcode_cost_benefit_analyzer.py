@@ -99,18 +99,70 @@ class TestCcCheck(unittest.TestCase):
         <table><thead><tr><th>Model</th><th>requests / 5 hours</th><th>requests / week</th><th>requests / month</th></tr></thead>
         <tbody><tr><td>Grok 4.6</td><td>144</td><td>360</td><td>719</td></tr></tbody></table>
         """
-        pricing, requests = ccc.parse_cc_docs(html)
+        pricing, requests, intel = ccc.parse_cc_docs(html)
         self.assertIn("grok-4.6", pricing)
         self.assertEqual(pricing["grok-4.6"]["input"], 2.0)
         self.assertEqual(pricing["grok-4.6"]["credits"], 20.0)
         self.assertIn("grok-4.6", requests)
         self.assertEqual(requests["grok-4.6"], {"per_5h": 144, "per_week": 360, "per_month": 719})
 
-    def test_render_cli_table_diff_colors(self):
+    def test_parse_cc_docs_intel_rsc_payload(self):
+        # The GOAT docs embed the official intelligence catalog as an RSC
+        # "models":[...] payload with intelligenceIndex/codingIndex/TPS.
+        html = (
+            '<div>intro text</div>'
+            '<script>self.__next_f.push([1,"12:[\"$\",\"$L40\",null,{\"models\":['
+            '{\"slug\":\"glm-5-3-flash\",\"id\":\"z-ai/glm-5.3-flash\",\"name\":\"GLM-5.3 Flash\",'
+            '\"intelligenceIndex\":57.5,\"codingIndex\":71.5,\"outputTokensPerSec\":41.8,'
+            '\"contextWindow\":1048576,\"minPlanName\":\"Go\"},'
+            '{\"slug\":\"grok-4-6\",\"id\":\"xai/grok-4.6\",\"name\":\"Grok 4.6\",'
+            '\"intelligenceIndex\":60.9,\"codingIndex\":76.8,\"outputTokensPerSec\":60.8,'
+            '\"contextWindow\":1000000,\"minPlanName\":\"GOAT\"}'
+            ']}]\n"])</script>'
+            '<table><thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache Read</th><th>Cache Write</th><th>Monthly credits</th></tr></thead><tbody></tbody></table>'
+        )
+        _, _, intel = ccc.parse_cc_docs(html)
+        self.assertIn("glm-5.3-flash", intel)
+        self.assertEqual(intel["glm-5.3-flash"]["intelligenceIndex"], 57.5)
+        self.assertEqual(intel["glm-5.3-flash"]["codingIndex"], 71.5)
+        self.assertEqual(intel["glm-5.3-flash"]["outputTokensPerSec"], 41.8)
+        self.assertIn("grok-4.6", intel)
+        self.assertEqual(intel["grok-4.6"]["intelligenceIndex"], 60.9)
+        # No models array -> empty intel dict
+        _, _, intel2 = ccc.parse_cc_docs("<table><tr><td>x</td></tr></table>")
+        self.assertEqual(intel2, {})
+
+    def test_build_sort_key_intel_cc(self):
         rows = [
-            {"model_id": "glm-5.3", "pricing": {"monthly_credits": 20}, "caps": {"cap_5h_usd": 4.0}, "cost_per_request_usd": 0.014, "benchmarks": {"capability_q": 88.0, "fgi_score": 70.0, "avi_score": 300.0, "p_success": 86.0}, "value": {"fgi_score": 70.0, "avi_score": 300.0, "effective_cost_per_request": 0.02, "leverage_vs_10usd_sub": 2.0}, "requests": {"per_5h_docs": 271}},
-            {"model_id": "grok-4.6", "pricing": {"monthly_credits": 20}, "caps": {"cap_5h_usd": 4.0}, "cost_per_request_usd": 0.036, "benchmarks": {"capability_q": 87.5, "fgi_score": 70.0, "avi_score": 260.0, "p_success": 86.0}, "value": {"fgi_score": 70.0, "avi_score": 260.0, "effective_cost_per_request": 0.036, "leverage_vs_10usd_sub": 2.0}, "requests": {"per_5h_docs": 144}},
+            {"model_id": "a", "benchmarks": {"capability_q": 80.0, "cc_intelligence": 50.0}, "value": {"avi_score": 100.0}},
+            {"model_id": "b", "benchmarks": {"capability_q": 85.0, "cc_intelligence": 60.0}, "value": {"avi_score": 200.0}},
+            {"model_id": "c", "benchmarks": {"capability_q": 90.0}, "value": {"avi_score": 300.0}},
         ]
+        key = ccc.build_sort_key("intel-cc", lambda r: 1.0)
+        sorted_rows = sorted(rows, key=key)
+        self.assertEqual(sorted_rows[0]["model_id"], "b")  # highest cc_intelligence first
+        self.assertEqual(sorted_rows[1]["model_id"], "a")
+        self.assertEqual(sorted_rows[2]["model_id"], "c")  # None last
+
+    def test_render_cli_table_cc_intel_column(self):
+        rows = [
+            {"model_id": "glm-5.3-flash", "pricing": {"monthly_credits": 20}, "caps": {"cap_5h_usd": 4.0}, "cost_per_request_usd": 0.014, "benchmarks": {"capability_q": 88.0, "fgi_score": 70.0, "avi_score": 300.0, "p_success": 86.0, "cc_intelligence": 57.5}, "value": {"fgi_score": 70.0, "avi_score": 300.0, "effective_cost_per_request": 0.02, "leverage_vs_10usd_sub": 2.0}, "requests": {"per_5h_docs": 271}},
+        ]
+        plain = ccc.render_cli_table(rows, color=False, wide=True)
+        self.assertIn("CC-Int", plain)
+        self.assertIn("57.5", plain)
+
+    def test_render_html_cc_intel_columns(self):
+        rows = [
+            {"model_id": "grok-4.6", "pricing": {"monthly_credits": 20}, "caps": {"cap_5h_usd": 4.0}, "cost_per_request_usd": 0.036, "benchmarks": {"capability_q": 87.5, "fgi_score": 70.0, "avi_score": 260.0, "p_success": 86.0, "aa_intelligence": 60.9, "aa_coding": 76.0, "aa_agentic": 58.0, "aa_slug": "grok-4-6", "cc_intelligence": 60.9, "cc_coding": 76.8, "cc_tps": 60.8}, "value": {"fgi_score": 70.0, "avi_score": 260.0, "effective_cost_per_request": 0.036, "leverage_vs_10usd_sub": 2.0, "intelligence_per_dollar": 100.0, "cost_per_intelligence_pt_usd": 0.0006, "requests_per_dollar": 27.0}, "requests": {"per_5h_docs": 144, "per_week_docs": 360, "per_month_docs": 719}},
+        ]
+        html_out = ccc.render_html(rows, data_note="test")
+        self.assertIn("CC intel", html_out)
+        self.assertIn("CC cod", html_out)
+        self.assertIn("CC TPS", html_out)
+        self.assertIn("60.9", html_out)  # CC intel value
+        self.assertIn("76.8", html_out)  # CC coding value
+        self.assertIn(">61<", html_out)  # CC TPS rounded to int
         removed = [{"model_id": "legacy-v1", "pricing": {"monthly_credits": 70}, "value": {"fgi_score": 35.0, "avi_score": 150.0}}]
         colored = ccc.render_cli_table(rows, added_ids={"grok-4.6"}, removed_models=removed, color=True)
         self.assertIn("\033[38;5;48m", colored)

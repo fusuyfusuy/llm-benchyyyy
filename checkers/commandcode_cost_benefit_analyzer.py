@@ -192,9 +192,71 @@ def _norm_cc_id(raw: str) -> str | None:
 def parse_cc_docs(html, verbose=False):
     pricing = {}
     requests = {}
+    intel = {}
     tables = re.findall(r"<table.*?</table>", html, flags=re.S)
     if verbose:
         print(f"  docs: found {len(tables)} tables")
+
+    # Command Code's own intelligence catalog is embedded in the Next.js RSC
+    # payload as a `"models":[{...}]` array (same transport as AA's page):
+    # each entry carries official intelligenceIndex / codingIndex /
+    # outputTokensPerSec alongside id/slug. Parse it the same way parse_aa does.
+    unescaped = html.replace('\\"', '"').replace("\\/", "/")
+    idxs = []
+    pos = 0
+    while True:
+        idx = unescaped.find('"models":[', pos)
+        if idx == -1:
+            break
+        idxs.append(idx)
+        pos = idx + 1
+    best_idx, best_end = -1, -1
+    for idx in idxs:
+        if "intelligenceIndex" not in unescaped[idx: idx + 3000]:
+            continue
+        start = idx + len('"models":[')
+        depth, p, in_str, esc = 1, start, False, False
+        while p < len(unescaped) and depth > 0:
+            c = unescaped[p]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
+            else:
+                if c == '"':
+                    in_str = True
+                elif c == "[":
+                    depth += 1
+                elif c == "]":
+                    depth -= 1
+            p += 1
+        if (p - idx) > (best_end - best_idx) if best_idx != -1 else (p - idx) > 0:
+            best_idx, best_end = idx, p
+    if best_idx != -1:
+        try:
+            seg = unescaped[best_idx:best_end]
+            models = json.loads("{" + seg + "}")["models"]
+            for m in models:
+                cc_id = _norm_cc_id(m.get("name") or m.get("slug") or "")
+                if not cc_id:
+                    continue
+                intel[cc_id] = {
+                    "intelligenceIndex": _safe_float(m.get("intelligenceIndex")),
+                    "codingIndex": _safe_float(m.get("codingIndex")),
+                    "outputTokensPerSec": _safe_float(m.get("outputTokensPerSec")),
+                    "contextWindow": m.get("contextWindow"),
+                    "minPlanName": m.get("minPlanName"),
+                    "name": m.get("name"),
+                    "slug": m.get("slug"),
+                }
+            if verbose:
+                print(f"  docs intel: {len(intel)} models")
+        except Exception as e:
+            if verbose:
+                print(f"  WARN docs intel parse: {e}", file=sys.stderr)
 
     def _table_with(header_phrase: str):
         for t in tables:
@@ -313,7 +375,7 @@ def parse_cc_docs(html, verbose=False):
                 continue
             requests[mid] = {"per_5h": r5, "per_week": rw, "per_month": rm}
 
-    return pricing, requests
+    return pricing, requests, intel
 
 
 norm_id = bc.norm_id
@@ -426,7 +488,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
     else:
         headers = [
             ("Rank", 4, "^"), ("Model", 22, "<"), ("Credits", 8, "^"), ("5h Cap", 7, ">"), ("Req/5h", 7, ">"),
-            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"), ("Lev", 5, ">"),
+            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"), ("CC-Int", 6, ">"), ("Lev", 5, ">"),
         ]
     total_models = len(models_list)
     scored = [m for m in models_list if m["benchmarks"].get("capability_q") is not None]
@@ -520,6 +582,8 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color) if fgi_val is not None else "—"
         lev_val = r["value"].get("leverage_vs_10usd_sub")
         lev_str = f"{lev_val:.1f}x" if lev_val else "—"
+        cc_int_val = r["benchmarks"].get("cc_intelligence")
+        cc_int_str = f"{cc_int_val:.1f}" if cc_int_val is not None else "—"
         if color:
             if credits is None:
                 limit_color = C_GRAY
@@ -557,10 +621,13 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
                 color_cell(qvi_disp, qvi_color, width=5, align=">", bg=bg),
                 color_cell(avi_disp, avi_color, width=5, align=">", bg=bg),
-                color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg),
             ])
             if not is_slim:
+                row_cells.append(color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg))
+                row_cells.append(color_cell(cc_int_str, C_DIM if cc_int_val is None else C_CYAN, width=6, align=">", bg=bg))
                 row_cells.append(color_cell(lev_str, C_DIM, width=5, align=">", bg=bg))
+            else:
+                row_cells.append(color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg))
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
             row_items = [f"{rank_str:^4}", f"{mid_display:<{m_name_w}}", f"{credits_str:^8}"]
@@ -568,7 +635,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
                 row_items.append(f"{cap_5h_str:>7}")
             row_items.extend([f"{req5_str:>{7 if not is_slim else 6}}", f"{q_disp:>6}", f"{p_disp:>7}", f"{eff_c_str:>7}", f"{qvi_disp:>5}", f"{avi_disp:>5}", f"{fgi_disp:>4}"])
             if not is_slim:
-                row_items.append(f"{lev_str:>5}")
+                row_items.extend([f"{cc_int_str:>6}", f"{lev_str:>5}"])
             out.append(" ".join(row_items))
     if color:
         out.append(f"{C_DIM}{bot_border}{C_RESET}")
@@ -626,6 +693,9 @@ def build_sort_key(sort_mode, eff_cost_fn):
         return lambda r: (eff_cost_fn(r), -_cq(r), r["model_id"])
     if sort_mode == "intel":
         return lambda r: (-(r["value"]["intelligence_per_dollar"] or -1), -_cq(r), r["model_id"])
+    if sort_mode == "intel-cc":
+        # Command Code's official intelligenceIndex (from GOAT docs), then capability_q
+        return lambda r: (-(r["benchmarks"].get("cc_intelligence") or -1), -_cq(r), r["model_id"])
     if sort_mode == "avi":
         return lambda r: (-_avi(r), -_cq(r), r["model_id"])
     raise ValueError(f"unknown sort mode: {sort_mode}")
@@ -642,7 +712,7 @@ def main():
     ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors")
     ap.add_argument("--slim", action="store_true", help="Force compact table layout")
     ap.add_argument("--wide", action="store_true", help="Force full table layout")
-    ap.add_argument("--sort", choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"], default="value", help="Sort order (default: value)")
+    ap.add_argument("--sort", choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel", "intel-cc"], default="value", help="Sort order (default: value)")
     args = ap.parse_args()
     verbose = args.verbose
     do_fetch = bool(args.fetch)
@@ -657,6 +727,7 @@ def main():
 
     pricing_live = {}
     requests_live = {}
+    intel_live = {}
     cc_ids = []
 
     if do_fetch:
@@ -667,13 +738,16 @@ def main():
                 snap = RAW / f"cc_goat_docs_{dt.date.today().isoformat().replace('-','')}.html"
                 bc.atomic_write_text(snap, html)
                 print(f"  saved GOAT docs -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
-            pl, rl = parse_cc_docs(html, verbose=verbose)
+            pl, rl, il = parse_cc_docs(html, verbose=verbose)
             if pl:
                 pricing_live = pl
                 print(f"  docs pricing: {len(pl)} models")
             if rl:
                 requests_live = rl
                 print(f"  docs requests: {len(rl)} models")
+            if il:
+                intel_live = il
+                print(f"  docs intel: {len(il)} models")
         else:
             print("  WARN GOAT docs fetch failed, trying snapshot/fallback", file=sys.stderr)
 
@@ -690,12 +764,14 @@ def main():
         if snap_docs:
             try:
                 html = snap_docs.read_text(errors="ignore")
-                pl, rl = parse_cc_docs(html, verbose=verbose)
+                pl, rl, il = parse_cc_docs(html, verbose=verbose)
                 if pl:
                     pricing_live = pl
                     print(f"  offline GOAT docs: {len(pl)} models ({snap_docs.name})")
                 if rl:
                     requests_live = rl
+                if il:
+                    intel_live = il
             except Exception as e:
                 print(f"  WARN offline GOAT docs parse: {e}", file=sys.stderr)
 
@@ -822,6 +898,11 @@ def main():
         cost_per_intel = (cost_req / aa_int) if (aa_int and cost_req) else None
         req_per_dollar = (1 / cost_req) if cost_req else None
         leverage = (credits / 10.0) if credits else None
+        # Command Code's own official intelligence catalog (from GOAT docs RSC payload)
+        cc_rec = intel_live.get(mid) or {}
+        cc_int = _safe_float(cc_rec.get("intelligenceIndex")) if cc_rec else None
+        cc_cod = _safe_float(cc_rec.get("codingIndex")) if cc_rec else None
+        cc_tps = _safe_float(cc_rec.get("outputTokensPerSec")) if cc_rec else None
         rows.append({
             "model_id": mid,
             "display": mid,
@@ -843,6 +924,7 @@ def main():
                 "lmarena_rank": lm_rank, "lmarena_elo": lm_elo, "lmarena_votes": lm_votes,
                 "livebench": live_rec, "openrouter_id": or_oid, "openrouter_context": or_ctx,
                 "openrouter_prompt_per_1m": or_price_prompt,
+                "cc_intelligence": cc_int, "cc_coding": cc_cod, "cc_tps": cc_tps,
             },
             "value": {
                 "intelligence_per_dollar": round(intel_per_dollar, 2) if intel_per_dollar else None,
@@ -988,7 +1070,7 @@ def main():
                 "artificial_analysis": AA_URL, "lmarena": LMARENA_URL,
                 "usage_limits": "https://commandcode.ai/docs/plans/goat#usage-limits",
                 "account_caps": {"cap_5h": ACC_5H, "cap_week": ACC_WK, "cap_month": ACC_MO},
-                "note": "per-model caps = $14*credits/70 (5h), $35*credits/70 (wk), credits (mo); credits from GOAT pricing tables; --fetch saves cc_goat_docs snapshot"
+                "note": "per-model caps = $14*credits/70 (5h), $35*credits/70 (wk), credits (mo); credits from GOAT pricing tables; --fetch saves cc_goat_docs snapshot; cc_intelligence/cc_coding/cc_tps = Command Code's official scores from the same GOAT docs page"
             },
             "catalog_diff": {"added": sorted(list(added_ids)), "removed": sorted(list(removed_ids)), "total_current": len(docs_rows), "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (isinstance(prev_snapshot, dict) and "models" in prev_snapshot) else len(docs_rows))},
             "role_recommendations": role_recs_export,
@@ -1066,6 +1148,12 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
         aa_int_s = f"{aa_int:.1f}" if isinstance(aa_int, (int, float)) else "—"
         aa_cod = b_bm.get("aa_coding")
         aa_cod_s = f"{aa_cod:.1f}" if isinstance(aa_cod, (int, float)) else "—"
+        cc_int = b_bm.get("cc_intelligence")
+        cc_int_s = f"{cc_int:.1f}" if isinstance(cc_int, (int, float)) else "—"
+        cc_cod = b_bm.get("cc_coding")
+        cc_cod_s = f"{cc_cod:.1f}" if isinstance(cc_cod, (int, float)) else "—"
+        cc_tps = b_bm.get("cc_tps")
+        cc_tps_s = f"{cc_tps:.0f}" if isinstance(cc_tps, (int, float)) else "—"
         aa_age = b_bm.get("aa_agentic")
         aa_age_s = f"{aa_age:.1f}" if isinstance(aa_age, (int, float)) else "—"
         lm_r = b_bm.get("lmarena_rank")
@@ -1105,6 +1193,9 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
             f'<td class="n" style="font-weight:700; color:#8b5cf6;">{fgi_s}</td>'
             f'<td class="n">{aa_int_s}<span class="mid">{aa_slug}</span></td>'
             f'<td class="n">{aa_cod_s}</td>'
+            f'<td class="n" style="font-weight:700; color:#c084fc;">{cc_int_s}</td>'
+            f'<td class="n">{cc_cod_s}</td>'
+            f'<td class="n">{cc_tps_s}</td>'
             f'<td class="n">{lm_s}<span class="mid">{elo_s}</span></td>'
             f'<td class="n">{ipd_s}</td><td class="n">{cpi_s}</td><td class="n">{lev_s}</td>'
             f'</tr>'
@@ -1135,13 +1226,13 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
 <div class="card">
 <table id="tbl">
 <thead><tr>
-<th>model</th><th>credits/mo</th><th>5h Cap</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>Value</th><th>AVI</th><th>FGI</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th>
+<th>model</th><th>credits/mo</th><th>5h Cap</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>Value</th><th>AVI</th><th>FGI</th><th>AA intel</th><th>AA cod</th><th>CC intel</th><th>CC cod</th><th>CC TPS</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th>
 </tr></thead>
 <tbody>
 {''.join(trs)}
 </tbody>
 </table>
-<div class="legend">Click headers to sort. "—" = not benchmarked / free. AA/LMArena from shared snapshots; pricing from commandcode.ai/docs/plans/goat. Cross-source scores incomparable.</div>
+<div class="legend">Click headers to sort. "—" = not benchmarked / free. AA/LMArena from shared snapshots; CC intel/cod/TPS are Command Code's official scores from commandcode.ai/docs/plans/goat; pricing from the same page. Cross-source scores incomparable.</div>
 </div>
 {removed_html}
 {role_recs_html}
