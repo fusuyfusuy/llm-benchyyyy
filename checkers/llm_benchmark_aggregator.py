@@ -283,6 +283,29 @@ MODELS_CATALOG = {
             "speed_tps": 135.0,
         },
     },
+    "gemini-3.8-flash": {
+        "display": "Gemini 3.8 Flash",
+        "provider": "Google",
+        "pool": "agy",
+        "tier": "Next-Gen Workhorse / Agentic Coding",
+        "sub_cost": "AGY Sub (1B tokens/wk + 300M/5h)",
+        "price_in": 0.75,
+        "price_out": 3.75,
+        "live_aliases": ["gemini-3.8-flash-high", "gemini-3-8-flash-high", "gemini-3.8-flash", "gemini-3-8-flash", "gemini-3.8-flash-thinking"],
+        "lm_aliases": ["gemini-3.8-flash", "gemini-3-8-flash", "gemini 3.8 flash"],
+        "aa_aliases": ["gemini-3-8-flash", "gemini-3.8-flash", "gemini-3-8-flash-thinking"],
+        "livebench": {
+            "overall": 80.8,
+            "coding": 81.5,
+            "reasoning": 82.2,
+        },
+        "base_metrics": {
+            "lm_elo": 1515,
+            "lm_coding": 1490,
+            "lm_hard": 1475,
+            "speed_tps": 140.0,
+        },
+    },
     "gemini-3.1-flash-lite": {
         "display": "Gemini 3.1 Flash Lite",
         "provider": "Google",
@@ -930,105 +953,6 @@ def livebench_base_name(s):
     return "-".join(toks)
 
 
-def find_livebench(model_id_or_dict, live_map):
-    """Version-safe matching for LiveBench models."""
-    if not live_map:
-        return None
-    if isinstance(model_id_or_dict, dict):
-        cands = [
-            model_id_or_dict.get("lm_slug"),
-            model_id_or_dict.get("aa_slug"),
-            model_id_or_dict.get("or_slug"),
-            model_id_or_dict.get("display"),
-        ]
-    else:
-        cands = [model_id_or_dict]
-
-    exact_map = {norm_model_slug(k): v for k, v in live_map.items()}
-    base_map = {}
-    for k, v in live_map.items():
-        kb = norm_model_slug(livebench_base_name(k))
-        if kb and v.get("overall") is not None:
-            cur = base_map.get(kb)
-            if cur is None or v["overall"] > cur["overall"]:
-                base_map[kb] = v
-
-    for c in cands:
-        if not c:
-            continue
-        cn = norm_model_slug(c)
-        if not cn:
-            continue
-        if cn in exact_map:
-            return exact_map[cn]
-        if cn in base_map:
-            return base_map[cn]
-        qn = bc.norm_id(c)
-        for k, v in live_map.items():
-            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("overall") is not None:
-                return v
-    return None
-
-
-def find_lmarena(model_id_or_dict, lm_map):
-    """Version-safe matching for LMArena models."""
-    if not lm_map:
-        return None
-    if isinstance(model_id_or_dict, dict):
-        cands = [
-            model_id_or_dict.get("lm_slug"),
-            model_id_or_dict.get("aa_slug"),
-            model_id_or_dict.get("or_slug"),
-            model_id_or_dict.get("display"),
-        ]
-    else:
-        cands = [model_id_or_dict]
-
-    exact_map = {norm_model_slug(k): v for k, v in lm_map.items()}
-    for c in cands:
-        if not c:
-            continue
-        cn = norm_model_slug(c)
-        if not cn:
-            continue
-        if cn in exact_map:
-            return exact_map[cn]
-        qn = bc.norm_id(c)
-        for k, v in lm_map.items():
-            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("elo") is not None:
-                return v
-    return None
-
-
-def find_aa(model_id_or_dict, aa_map):
-    """Version-safe matching for Artificial Analysis models."""
-    if not aa_map:
-        return None
-    if isinstance(model_id_or_dict, dict):
-        cands = [
-            model_id_or_dict.get("aa_slug"),
-            model_id_or_dict.get("lm_slug"),
-            model_id_or_dict.get("or_slug"),
-            model_id_or_dict.get("display"),
-        ]
-    else:
-        cands = [model_id_or_dict]
-
-    exact_map = {norm_model_slug(k): v for k, v in aa_map.items()}
-    for c in cands:
-        if not c:
-            continue
-        cn = norm_model_slug(c)
-        if not cn:
-            continue
-        if cn in exact_map:
-            return exact_map[cn]
-        qn = bc.norm_id(c)
-        for k, v in aa_map.items():
-            if not bc.variant_conflict(qn, bc.norm_id(k)) and v.get("intelligenceIndex") is not None:
-                return v
-    return None
-
 
 def strip_effort_suffix(slug: str) -> str:
     """Strip secondary effort, mode, or thinking suffixes (e.g. -high, -medium, -low, -xhigh, -adaptive)."""
@@ -1537,7 +1461,7 @@ def partition_models_by_benchmark_coverage(models_list):
                 missing_lmarena.append(m)
             elif not has_aa:
                 missing_aa.append(m)
-        elif count == 1:
+        else:
             single_source.append(m)
 
     return {

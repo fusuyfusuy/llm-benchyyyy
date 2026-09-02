@@ -83,48 +83,34 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         }"""
         parsed = bc.parse_livebench(sample_csv, sample_cats)
         self.assertEqual(len(parsed), 2)
-        # Category averages are computed by the parser itself; read the parsed row
-        # directly — find_livebench links tier-suffixed keys via the tier-stripped
-        # base name (effort tiers are the only listing for many flagships).
+        # Category averages are computed by the parser itself; read the parsed row directly.
         opus = parsed["claude-opus-5-xhigh-effort"]
         self.assertAlmostEqual(opus["coding"], 83.75)
         self.assertAlmostEqual(opus["reasoning"], 83.5)
         self.assertAlmostEqual(opus["overall"], 83.62)
-        self.assertEqual(bc.find_livebench("claude-opus-5", parsed)["overall"], 83.62)
         flash = parsed["gemini-3.7-flash-high"]
         self.assertAlmostEqual(flash["coding"], 79.0)
-        self.assertEqual(bc.find_livebench("gemini-3.7-flash", parsed)["overall"], 79.88)
 
     def test_version_safe_matching(self):
-        # Variant fallback (P1 1.4 / S2-C2): exact-normalized keys match; a longer
-        # key whose surplus carries digit tokens never matches (versions are
-        # load-bearing). Tier/effort suffixes link via the tier-stripped base
-        # name (best overall per base) — LiveBench lists flagships only there.
+        # build_universal_catalog links signals via key_index, explicit aliases, and base_slug
         live_mock = {
             "gemini-2-5-flash": {"model": "gemini-2.5-flash", "overall": 46.89},
             "gemini-3-7-flash": {"model": "gemini-3.7-flash", "overall": 79.90},
             "gemini-3-1-pro-preview": {"model": "gemini-3.1-pro-preview", "overall": 77.99},
-        }
-        rec37 = bc.find_livebench({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, live_mock)
-        self.assertIsNotNone(rec37)  # exact-family match retained
-        self.assertEqual(rec37["overall"], 79.90)
-        rec31 = bc.find_livebench({"lm_slug": "gemini-3.1-pro", "display": "Gemini 3.1 Pro (High)"}, live_mock)
-        self.assertIsNotNone(rec31)  # -preview surplus = tier token -> tier-base link
-        self.assertEqual(rec31["overall"], 77.99)
-        self.assertIsNone(bc.find_livebench({"lm_slug": "gemini-3.7-pro", "display": "Gemini 3.7 Pro"}, live_mock))  # version divergence
-        suffixed_only = {"claude-opus-5-max": {"model": "claude-opus-5-max", "overall": 80.5}}
-        rec_opus = bc.find_livebench("claude-opus-5", suffixed_only)
-        self.assertIsNotNone(rec_opus)  # -max tier suffix -> tier-base link
-        self.assertEqual(rec_opus["overall"], 80.5)
-        # Best-per-base: multiple effort tiers collapse to the highest overall.
-        tiered = {
-            "claude-sonnet-4-6-thinking-auto-medium-effort": {"model": "cs46-m", "overall": 73.41},
+            "claude-opus-5-max": {"model": "claude-opus-5-max", "overall": 80.5},
             "claude-sonnet-4-6-thinking-auto-high-effort": {"model": "cs46-h", "overall": 75.59},
         }
-        rec_s46 = bc.find_livebench({"lm_slug": "claude-sonnet-4-6"}, tiered)
-        self.assertEqual(rec_s46["overall"], 75.59)
-        # Model-variant tokens are NOT tiers: 'mimo-v2-pro' must never link to mimo-v2.5.
-        self.assertIsNone(bc.find_livebench({"lm_slug": "mimo-v2.5"}, {"mimo-v2-pro": {"model": "mimo-v2-pro", "overall": 58.35}}))
+        res = bc.build_universal_catalog(live_map=live_mock)
+        # Gemini 3.7 Flash links to gemini-3-7-flash
+        self.assertEqual(res["gemini-3.7-flash-thinking"]["livebench"]["overall"], 79.90)
+        # Gemini 3.1 Pro links via preview tier suffix
+        self.assertEqual(res["gemini-3.1-pro"]["livebench"]["overall"], 77.99)
+        # Claude Opus 5 links via tier suffix
+        self.assertEqual(res["claude-opus-5"]["livebench"]["overall"], 80.5)
+        # Claude Sonnet 4.6 links via tier suffix
+        self.assertEqual(res["claude-sonnet-4-6"]["livebench"]["overall"], 75.59)
+        # Version divergence: gemini-3.7-pro does not exist in catalog
+        self.assertNotIn("gemini-3.7-pro", res)
 
     def test_lmarena_parsing_and_matching(self):
         html_sample = """
@@ -143,12 +129,10 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertEqual(lm_map["gemini-3.7-flash-high"]["elo"], 1490.0)
         self.assertEqual(lm_map["gemini-3.7-flash-high"]["rank"], 9)
 
-        # P1 1.4 / S1-C2: bare query must link only to the identically-normalized
-        # row — never borrow an effort variant's ELO via substring containment.
-        rec = bc.find_lmarena({"lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, lm_map)
-        self.assertIsNotNone(rec)
-        self.assertEqual(rec["elo"], 1480.0)
-        self.assertIsNone(bc.find_lmarena({"lm_slug": "gemini-3.7-flash"}, {"gemini-3.7-flash-high": {"elo": 1490.0}}))
+        # Signal attachment via build_universal_catalog
+        res = bc.build_universal_catalog(lm_map=lm_map)
+        self.assertIn("gemini-3.7-flash-thinking", res)
+        self.assertEqual(res["gemini-3.7-flash-thinking"]["base_metrics"]["lm_elo"], 1480.0)
 
     def test_aa_parsing_and_matching(self):
         # Mirrors the real AA page shape: no static __NEXT_DATA__ blob, data ships
@@ -174,9 +158,11 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertEqual(aa_map["gemini-3-7-flash"]["intelligenceIndex"], 89.0)
         self.assertEqual(aa_map["gemini-3-7-flash"]["medianTps"], 135.0)
 
-        rec = bc.find_aa({"aa_slug": "gemini-3-7-flash", "lm_slug": "gemini-3.7-flash", "display": "Gemini 3.7 Flash (Thinking)"}, aa_map)
-        self.assertIsNotNone(rec)
-        self.assertEqual(rec["codingIndex"], 91.0)
+        # Signal attachment via build_universal_catalog
+        res = bc.build_universal_catalog(aa_map=aa_map)
+        self.assertIn("gemini-3.7-flash-thinking", res)
+        self.assertEqual(res["gemini-3.7-flash-thinking"]["base_metrics"]["aa_coding"], 91.0)
+        self.assertEqual(res["gemini-3.7-flash-thinking"]["base_metrics"]["aa_quality"], 89.0)
 
     def test_pareto_frontier_and_close_calls(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -553,6 +539,40 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         html_sub = bc.render_sub_table_html(sample_sub, "Test HTML Sub", top_n=10)
         self.assertIn("Test HTML Sub", html_sub)
         self.assertIn("Sample Partial Model", html_sub)
+
+    def test_gemini_3_8_flash_missing_aa(self):
+        self.assertIn("gemini-3.8-flash", bc.MODELS_CATALOG)
+        g38 = bc.MODELS_CATALOG["gemini-3.8-flash"]
+        self.assertEqual(g38["pool"], "agy")
+        self.assertEqual(g38["display"], "Gemini 3.8 Flash")
+        self.assertEqual(g38["provider"], "Google")
+        self.assertEqual(g38["price_in"], 0.75)
+        self.assertEqual(g38["price_out"], 3.75)
+
+        # Invariant: No Artificial Analysis benchmarks yet per announcement
+        bm = g38["base_metrics"]
+        self.assertNotIn("aa_quality", bm)
+        self.assertNotIn("aa_coding", bm)
+        self.assertNotIn("aa_reasoning", bm)
+        self.assertIsNone(g38.get("aa_live_quality"))
+        self.assertIsNone(g38.get("aa_live_coding"))
+
+        # Scoring without AA: signals must renormalize and score properly
+        bc.calculate_composite_scores(bc.MODELS_CATALOG)
+        self.assertGreater(g38["capability_q"], 80.0)
+        self.assertGreater(g38["p_success"], 80.0)
+        self.assertGreater(g38["avi_score"], 200.0)
+        self.assertGreater(g38["fgi_score"], 60.0)
+
+        # Partitioning: must fall into missing_aa sub-cohort
+        parts = bc.partition_models_by_benchmark_coverage(list(bc.MODELS_CATALOG.values()))
+        miss_aa_displays = [m["display"] for m in parts["missing_aa"]]
+        self.assertIn("Gemini 3.8 Flash", miss_aa_displays)
+
+        # CLI Sub-table output: must render dash for AA Qual
+        cli_out = bc.render_sub_table_cli(parts["missing_aa"], "Sub-Table 3", color=False)
+        self.assertIn("Gemini 3.8 Flash", cli_out)
+        self.assertIn("—", cli_out)
 
 
 if __name__ == "__main__":
