@@ -240,6 +240,7 @@ class TestBenchmarkCommon(unittest.TestCase):
         # 1. Test parse_timestamp
         t1 = bc.parse_timestamp("2026-08-20T12:00:00Z")
         self.assertIsNotNone(t1)
+        assert t1 is not None  # narrow Optional for type-checkers
         self.assertEqual(t1.year, 2026)
         self.assertEqual(t1.month, 8)
         self.assertEqual(t1.day, 20)
@@ -274,13 +275,15 @@ class TestBenchmarkCommon(unittest.TestCase):
 
         # Run 1
         diff1 = bc.diff_model_catalog(current_rows, prev_snapshot, id_key="model_id", window_days=7.0, now=base_time)
+        run1 = diff1["rows"]
         self.assertIn("fresh-model", diff1["added_ids"])
         self.assertIn("brand-new-model", diff1["added_ids"])
         self.assertNotIn("old-model", diff1["added_ids"])
-        self.assertEqual(current_rows[2]["first_seen"], base_time.isoformat())
+        self.assertEqual(run1[2]["first_seen"], base_time.isoformat())
+        self.assertNotIn("first_seen", current_rows[2])  # pure: inputs never mutated
 
-        # Simulate Run 2 (5 minutes later): current_rows from Run 1 are saved and re-loaded
-        simulated_saved_snapshot = {"models": current_rows}
+        # Simulate Run 2 (5 minutes later): run-1 rows are saved and re-loaded
+        simulated_saved_snapshot = {"models": run1}
         current_rows_run2 = [
             {"model_id": "old-model"},
             {"model_id": "fresh-model"},
@@ -446,11 +449,13 @@ class TestNonDocsFirstSeenPreserved(unittest.TestCase):
         docs_row = {"model_id": "docs-model"}
         newcomer = {"model_id": "brand-new"}
         d = bc.diff_model_catalog([legacy, docs_row, newcomer], dict(TestNonDocsFirstSeenPreserved.PREV), now=now)
-        self.assertEqual(legacy["first_seen"], "2026-08-01T00:00:00+00:00")  # carried, not re-stamped
-        self.assertFalse(legacy["is_new"])  # 29d old → badge self-expires (was permanent True)
-        self.assertEqual(docs_row["first_seen"], "2026-08-01T00:00:00+00:00")
-        self.assertTrue(newcomer["is_new"])  # genuinely new still badges
+        got = {r["model_id"]: r for r in d["rows"]}
+        self.assertEqual(got["glm-5"]["first_seen"], "2026-08-01T00:00:00+00:00")  # carried, not re-stamped
+        self.assertFalse(got["glm-5"]["is_new"])  # 29d old → badge self-expires (was permanent True)
+        self.assertEqual(got["docs-model"]["first_seen"], "2026-08-01T00:00:00+00:00")
+        self.assertTrue(got["brand-new"]["is_new"])  # genuinely new still badges
         self.assertEqual(d["added_ids"], {"brand-new"})
+        self.assertNotIn("first_seen", legacy)  # pure: inputs never mutated
 
     def test_dropped_non_docs_row_is_not_a_fake_removal(self):
         now = dt.datetime(2026, 8, 30, tzinfo=dt.timezone.utc)
@@ -529,6 +534,7 @@ class TestCrossSourceFinders(unittest.TestCase):
         }
         rec = bc.find_aa_for_model("claude-3.7-sonnet", aa_map)
         self.assertIsNotNone(rec)
+        assert rec is not None
         self.assertEqual(rec["slug"], "claude-3-7-sonnet")
 
         # Missing variant returns None
@@ -548,16 +554,19 @@ class TestCrossSourceFinders(unittest.TestCase):
         # Exact canonical match overrides lower-tier prefixes
         rec_luna = bc.find_aa_for_model("gpt-5.6-luna", aa_map)
         self.assertIsNotNone(rec_luna)
+        assert rec_luna is not None
         self.assertEqual(rec_luna["slug"], "gpt-5-6-luna")
         self.assertEqual(rec_luna["intelligenceIndex"], 52.32)
 
         rec_glm = bc.find_aa_for_model("glm-5.2", aa_map)
         self.assertIsNotNone(rec_glm)
+        assert rec_glm is not None
         self.assertEqual(rec_glm["slug"], "glm-5-2")
         self.assertEqual(rec_glm["intelligenceIndex"], 52.64)
 
         rec_grok = bc.find_aa_for_model("grok-4.6", aa_map)
         self.assertIsNotNone(rec_grok)
+        assert rec_grok is not None
         self.assertEqual(rec_grok["slug"], "grok-4-6")
         self.assertEqual(rec_grok["intelligenceIndex"], 60.92)
 

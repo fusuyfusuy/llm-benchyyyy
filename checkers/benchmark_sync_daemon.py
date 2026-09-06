@@ -215,6 +215,7 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
         models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
         prev_snap = lba.load_previous_snapshot(DATA / "benchmarks.json")
         diff = lba.diff_model_catalog(models, prev_snap, id_key="display")
+        models = diff["rows"]
         base_p = lba.save_baseline(models, diff)
         results["baseline_json"] = base_p
         log(f"  Refreshed Master Baseline -> {base_p.name} ({len(models)} evaluated models)")

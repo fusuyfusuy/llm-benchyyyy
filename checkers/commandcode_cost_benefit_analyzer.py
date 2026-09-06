@@ -53,7 +53,7 @@ from benchmark_common import (
     C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
     parse_price,
     get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
-    compute_effective_cost, compute_avi, compute_fgi, compute_bfi, compute_qvi,
+    compute_effective_cost, compute_avi, compute_fgi, compute_bfi, compute_qvi, compute_cost,
     parse_lmarena,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_html,
@@ -386,15 +386,6 @@ find_lm_for_cc = bc.find_lm_for_model
 find_or_for_cc = bc.find_or_for_model
 parse_livebench = bc.parse_livebench
 find_livebench_for_cc = bc.find_livebench_for_model
-
-
-def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output, cached_write_per_1m=0.0, est_cached_write=0):
-    if None in (input_per_1m, output_per_1m, cached_per_1m) or None in (est_input, est_cached, est_output):
-        return None
-    c_write = (cached_write_per_1m or 0.0) * (est_cached_write or 0) / 1_000_000
-    if est_input == 0 and est_cached == 0 and est_output == 0 and (est_cached_write or 0) == 0:
-        return 0.0
-    return (input_per_1m * est_input / 1_000_000) + (cached_per_1m * est_cached / 1_000_000) + (output_per_1m * est_output / 1_000_000) + c_write
 
 
 def _safe_float(val, default=None):
@@ -860,12 +851,12 @@ def main():
         credits = pr.get("credits")
         cost_req = compute_cost(inp, outp, cr, EST_INPUT, EST_CACHED, EST_OUTPUT, cached_write_per_1m=cw, est_cached_write=0)
         # caps scaled from credits (GOAT pooled caps): 5h = 14*credits/70, wk = 35*credits/70, mo = credits
-        if credits is not None:
-            cap_mo = float(credits)
+        cap_mo = bc._safe_float(credits)
+        if cap_mo is None:
+            cap_mo = cap_wk = cap_5h = None
+        else:
             cap_wk = cap_mo * (ACC_WK / ACC_MO)
             cap_5h = cap_mo * (ACC_5H / ACC_MO)
-        else:
-            cap_mo = cap_wk = cap_5h = None
         if cost_req and cost_req > 0 and credits is not None:
             req_5h = cap_5h / cost_req if cap_5h else None
             req_wk = cap_wk / cost_req if cap_wk else None
@@ -995,8 +986,8 @@ def main():
         b["p_success"] = p_succ
         t_mult = compute_token_multiplier(p_succ)
         b["token_multiplier"] = t_mult
-        pin = float(p.get("input_per_1m") or 0.0)
-        pout = float(p.get("output_per_1m") or 0.0)
+        pin = bc._safe_float(p.get("input_per_1m"), 0.0) or 0.0
+        pout = bc._safe_float(p.get("output_per_1m"), 0.0) or 0.0
         blended_price = (0.80 * pin) + (0.20 * pout)
         b["blended_price"] = round(blended_price, 2)
         effective_blended_price = compute_effective_cost(blended_price, t_mult)
@@ -1033,7 +1024,7 @@ def main():
         v = r["value"].get("effective_cost_per_request")
         if v is None:
             v = r.get("cost_per_request_usd")
-        return 999.0 if v is None else float(v)
+        return 999.0 if v is None else (bc._safe_float(v) if bc._safe_float(v) is not None else 999.0)
     sort_key_fn = build_sort_key(sort_mode, _eff_cost)
     rows_sorted = sorted(rows, key=sort_key_fn)
     pareto_ids = set()
@@ -1049,11 +1040,12 @@ def main():
         pareto_ids = set()
 
     prev_snapshot = load_previous_snapshot(DATA / "cc_live.json")
-    diff_model_catalog(rows_sorted, prev_snapshot)
+    rows_sorted = diff_model_catalog(rows_sorted, prev_snapshot)["rows"]
     docs_rows = [r for r in rows_sorted if r["model_id"] in DOCS_IDS]
     for r in docs_rows:
         r["is_docs_model"] = True
     catalog_diff = diff_model_catalog(docs_rows, prev_snapshot)
+    docs_rows = catalog_diff["rows"]
     added_ids = catalog_diff["added_ids"]
     removed_ids = catalog_diff["removed_ids"]
     removed_models = catalog_diff["removed_models"]

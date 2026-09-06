@@ -2410,6 +2410,7 @@ def main():
     # fake-REMOVE every model excluded by the current view.
     prev_snapshot = load_previous_snapshot(DATA / "benchmarks.json")
     catalog_diff = diff_model_catalog(models, prev_snapshot, id_key="display")
+    models = catalog_diff["rows"]
     added_ids = catalog_diff["added_ids"]
     removed_models = catalog_diff["removed_models"]
     if do_fetch:

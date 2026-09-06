@@ -754,6 +754,7 @@ def main():  # noqa: PLR0915
     # previous free-models rows actually populate the baseline map (S3-F3-2).
     prev_snapshot = load_previous_snapshot(DATA / "free_models.json")
     catalog_diff = diff_model_catalog(rows_sorted, prev_snapshot, id_key="model_id", require_docs_tag=False)
+    rows_sorted = catalog_diff["rows"]
     added_ids = catalog_diff["added_ids"]
     removed_ids = catalog_diff["removed_ids"]
     removed_models = catalog_diff["removed_models"]

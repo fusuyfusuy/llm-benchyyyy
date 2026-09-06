@@ -257,7 +257,10 @@ class TestBcheckCache(unittest.TestCase):
                 self.assertIsNone(bc.newest_snapshot_age_h("*lmarena*20*.html"))
                 snap = Path(td) / "lmarena_20260101.html"
                 snap.write_text("x")  # mtime == now, exactly like a fresh clone
-                self.assertGreater(bc.newest_snapshot_age_h("*lmarena*20*.html"), 30 * 24.0)
+                age = bc.newest_snapshot_age_h("*lmarena*20*.html")
+                self.assertIsNotNone(age)
+                assert age is not None
+                self.assertGreater(age, 30 * 24.0)
                 note = bc.cache_staleness_note()
                 self.assertIn("LMArena", note)
                 self.assertIn("--fetch", note)
@@ -283,6 +286,7 @@ class TestBcheckCache(unittest.TestCase):
                 {"display": "New Model", "base_metrics": {}, "created_date": "2026-08-27T00:00:00Z"},
             ]
             diff = bc.diff_model_catalog(rows, None, id_key="display", now=t0)
+            rows = diff["rows"]
             self.assertIn("New Model", diff["added_ids"])
             self.assertNotIn("Old Model", diff["added_ids"])
             p = bc.save_baseline(rows, diff, path=base)

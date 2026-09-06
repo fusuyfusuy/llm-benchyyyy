@@ -164,37 +164,51 @@ def atomic_write_text(path, text: str) -> None:
 
 
 def _safe_float(val, default=None):
-    """Safely convert value to float or return default."""
-    if val is None or val == "" or val == "—" or val == "-":
+    """Safely convert value to float or return default (NaN/Inf-safe)."""
+    if val is None:
         return default
+    if isinstance(val, (int, float)):
+        try:
+            f = float(val)
+        except (ValueError, TypeError):
+            return default
+        if math.isnan(f) or math.isinf(f):
+            return default
+        return f
     try:
-        if isinstance(val, str):
-            val = val.replace(",", "").replace("$", "").replace("%", "").strip()
-        return float(val)
+        s = str(val).strip().replace(",", "").replace("$", "").replace("%", "")
+        if not s or s.lower() in ("nan", "none", "null", "undefined", "—", "-", "n/a"):
+            return default
+        f = float(s)
+        return default if (math.isnan(f) or math.isinf(f)) else f
     except (ValueError, TypeError):
         return default
 
 
 def _safe_int(val, default=None):
     """Safely convert value to int or return default."""
-    if val is None or val == "" or val == "—" or val == "-":
+    f = _safe_float(val, default=None)
+    if f is None:
         return default
-    try:
-        if isinstance(val, str):
-            val = val.replace(",", "").replace("$", "").replace("%", "").strip()
-        return int(float(val))
-    except (ValueError, TypeError):
-        return default
+    return int(round(f))
 
 
 def _safe_int_round(val, default=None):
     """Safely round and convert float value to int."""
-    if val is None:
+    f = _safe_float(val, default=None)
+    if f is None:
         return default
-    try:
-        return int(round(val))
-    except (ValueError, TypeError):
-        return default
+    return int(round(f))
+
+
+def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output, cached_write_per_1m=0.0, est_cached_write=0):
+    """Request cost in dollars from per-1M rates and estimated token counts. Shared by ocheck/ccheck."""
+    if None in (input_per_1m, output_per_1m, cached_per_1m) or None in (est_input, est_cached, est_output):
+        return None
+    c_write = (cached_write_per_1m or 0.0) * (est_cached_write or 0) / 1_000_000
+    if est_input == 0 and est_cached == 0 and est_output == 0 and (est_cached_write or 0) == 0:
+        return 0.0
+    return (input_per_1m * est_input / 1_000_000) + (cached_per_1m * est_cached / 1_000_000) + (output_per_1m * est_output / 1_000_000) + c_write
 
 
 def parse_price(s: str) -> float | None:
@@ -390,6 +404,9 @@ def pareto_dominated(a_cost, a_q, candidates, q_tolerance=3.2, cost_tolerance=0.
 def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
     """Compute Pareto-optimal frontier models on Effective Cost vs Composite Capability,
     including close-call / near-frontier models with generous headroom tolerances.
+
+    Returns stable model IDs only (display/aa_slug/lm_slug/model_id/or_slug/id) —
+    no truncated prefixes (display[:22]/[:20] collided on shared prefixes).
     """
     def _row_cost(a):
         # S2-M1: effective_cost 0.0 is a REAL cost (free tiers dominate the
@@ -402,21 +419,23 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
         parts = [p for p in (a.get("price_in"), a.get("price_out")) if p is not None]
         return sum(parts) if parts else 999
 
+    def _row_ids(a):
+        ids = set()
+        for key in ("display", "aa_slug", "lm_slug", "model_id", "or_slug", "id"):
+            v = a.get(key)
+            if v:
+                ids.add(v)
+        return ids
+
+    costs = [_row_cost(a) for a in models_list]
+    quals = [a.get("capability_q") or 0.0 for a in models_list]
     pareto_set = set()
-    for a in models_list:
-        a_cost = _row_cost(a)
-        a_q = a.get("capability_q") or 0.0
-        candidates = [(_row_cost(b), b.get("capability_q") or 0.0) for b in models_list if b is not a]
+    for i, a in enumerate(models_list):
+        a_cost = costs[i]
+        a_q = quals[i]
+        candidates = [(costs[j], quals[j]) for j in range(len(models_list)) if j != i]
         if not pareto_dominated(a_cost, a_q, candidates, q_tolerance, cost_tolerance):
-            pareto_set.add(a.get("display"))
-            if a.get("aa_slug"):
-                pareto_set.add(a.get("aa_slug"))
-            if a.get("lm_slug"):
-                pareto_set.add(a.get("lm_slug"))
-            if a.get("display")[:22]:
-                pareto_set.add(a.get("display")[:22])
-            if a.get("display")[:20]:
-                pareto_set.add(a.get("display")[:20])
+            pareto_set.update(_row_ids(a))
     return pareto_set
 
 
@@ -1760,6 +1779,7 @@ def diff_model_catalog(
 
     current_ids = set()
     added_ids = set()
+    out_rows = []
 
     for r in current_rows:
         if not isinstance(r, dict):
@@ -1768,16 +1788,17 @@ def diff_model_catalog(
         if not mid:
             continue
         current_ids.add(mid)
+        nr = dict(r)
 
         # 1. Resolve first_seen timestamp
-        first_seen_str = r.get("first_seen")
+        first_seen_str = nr.get("first_seen")
         prev_m = prev_seen_map.get(mid)
 
         if not first_seen_str and prev_m:
             first_seen_str = prev_m.get("first_seen")
 
         # Check API creation date (e.g. OpenRouter "created" integer or string)
-        created_val = r.get("created") or r.get("created_date")
+        created_val = nr.get("created") or nr.get("created_date")
         if not first_seen_str and created_val is not None:
             created_dt = parse_timestamp(created_val)
             if created_dt:
@@ -1789,7 +1810,7 @@ def diff_model_catalog(
             first_seen_str = now_dt.isoformat()
 
         if first_seen_str:
-            r["first_seen"] = first_seen_str
+            nr["first_seen"] = first_seen_str
 
         # 2. Check if within freshness window (<= window_days)
         is_fresh = False
@@ -1803,9 +1824,10 @@ def diff_model_catalog(
 
         if is_fresh or is_brand_new:
             added_ids.add(mid)
-            r["is_new"] = True
+            nr["is_new"] = True
         else:
-            r["is_new"] = False
+            nr["is_new"] = False
+        out_rows.append(nr)
 
     removed_ids = set(prev_models_map.keys()) - current_ids if has_prev_snapshot else set()
     removed_models = [prev_models_map[mid] for mid in sorted(removed_ids) if mid in prev_models_map]
@@ -1814,6 +1836,7 @@ def diff_model_catalog(
         "added_ids": added_ids,
         "removed_ids": removed_ids,
         "removed_models": removed_models,
+        "rows": out_rows,
     }
 
 
