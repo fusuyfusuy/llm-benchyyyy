@@ -14,15 +14,15 @@ This document lists supported model identifiers, provider mappings, and reasonin
 ### Available Models (`agy models`)
 | Model Identifier | Display Name | Built-in Effort Level |
 | :--- | :--- | :--- |
+| `gemini-3.8-flash-high` | Gemini 3.8 Flash (High) | High |
+| `gemini-3.8-flash-medium` | Gemini 3.8 Flash (Medium) | Medium |
+| `gemini-3.8-flash-low` | Gemini 3.8 Flash (Low) | Low |
 | `gemini-3.7-flash-high` | Gemini 3.7 Flash (High) | High |
 | `gemini-3.7-flash-medium` | Gemini 3.7 Flash (Medium) | Medium |
 | `gemini-3.7-flash-low` | Gemini 3.7 Flash (Low) | Low |
 | `gemini-3.6-flash-high` | Gemini 3.6 Flash (High) | High |
 | `gemini-3.6-flash-medium` | Gemini 3.6 Flash (Medium) | Medium |
 | `gemini-3.6-flash-low` | Gemini 3.6 Flash (Low) | Low |
-| `gemini-3.5-flash-high` | Gemini 3.5 Flash (High) | High |
-| `gemini-3.5-flash-medium` | Gemini 3.5 Flash (Medium) | Medium |
-| `gemini-3.5-flash-low` | Gemini 3.5 Flash (Low) | Low |
 | `gemini-3.1-pro-high` | Gemini 3.1 Pro (High) | High |
 | `gemini-3.1-pro-low` | Gemini 3.1 Pro (Low) | Low |
 | `claude-sonnet-4-6` | Claude Sonnet 4.6 (Thinking) | Adaptive |
@@ -65,7 +65,8 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * `x-preview-f-free` (Ox Alpha Free / Unlimited)
 * `hy3-free` (Hy3 Free)
 * `mimo-v2.5-free` (MiMo V2.5 Free)
-* `muse-spark-1.2-contributor-free` (Muse Spark 1.2 Free)
+* `muse-spark-1.3`, `muse-spark-1.3-contributor-free` (Muse Spark 1.3 Free)
+* `muse-spark-1.2`, `muse-spark-1.2-contributor-free` (Muse Spark 1.2 Free)
 * `nemotron-3-ultra-free` (Nemotron 3 Ultra Free)
 * `nemotron-3.5-lightning-free` (Nemotron 3.5 Lightning Free)
 * `gpt-5.1-codex-max` (GPT-5.1 Codex Max)
@@ -77,12 +78,39 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * `ox-alpha-free` (Ox Alpha Free Unlimited)
 * `deepseek-v4-flash` (DeepSeek V4 Flash)
 * `deepseek-v4-pro` (DeepSeek V4 Pro)
-* `glm-5.1`, `glm-5.2`, `glm-5.3`
+* `glm-5.1`, `glm-5.2`, `glm-5.3`, `glm-5.3-flash`
 * `gpt-5.6-luna`
+* `hy4-preview`, `hy3`
 * `kimi-k2.6`, `kimi-k2.7-code`, `kimi-k3`
+* `qwen3.8-flash`, `qwen3.8-max`, `qwen3.7-plus`
+* `muse-spark-1.3-contributor`, `muse-spark-1.2-contributor`
+
+#### Command Code GOAT Provider
+* `gpt-5.6-sol` (Flagship Frontier Reasoning)
+* `gpt-5.6-luna`
+* `qwen-3.8-27b`, `qwen-3.8-flash`, `qwen-3.8-max`
+* `deepseek-v4-flash`, `deepseek-v4-flash-fast`, `deepseek-v4-flash-vision`
+* `meta/muse-spark-1.3`, `meta/muse-spark-1.3-contributor` (18.2k req/5h)
+* `tencent-hy4-preview`, `tencent-hy3`
+* `kimi-k3`, `kimi-k2.7-code`
+* `glm-5.3`, `glm-5.3-flash`, `glm-5.2`
+
+#### Hetzner Provider (`https://inference.hetzner.com/api/v1`)
+* `Qwen3.8-27B` (262,144 token context / European EU serverless inference)
+* `Qwen/Qwen3.6-35B-A3B-FP8` (262,144 token context)
+
+#### NVIDIA Integrate Provider (`https://integrate.api.nvidia.com/v1`)
+* `moonshotai/kimi-k3`, `moonshotai/kimi-k2.6`
+* `nvidia/nemotron-3.5-lightning-30b-a3b` (Ultra-fast thinking)
+* `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`
+* `minimaxai/minimax-m3`
+* `deepseek-ai/deepseek-v4-flash-0731`, `deepseek-ai/deepseek-v4-pro-0813`
+* `google/gemma-4-31b-it`
+* `meta/muse-glimmer-30b`
 
 #### OpenRouter Provider (Free & Key Endpoints)
 * `openrouter/free` (Free Models Router)
+* `meta/muse-spark-1.3`, `meta/muse-spark-1.3-contributor`
 * `openai/gpt-oss-20b:free`
 * `cohere/north-mini-code:free`
 * `dots-studio/dots-3-note-preview:free`

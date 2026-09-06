@@ -1,0 +1,67 @@
+{
+  "model": "google/gemini-3.8-flash",
+  "provider": "openrouter",
+  "total_tasks": 6,
+  "passed": 3,
+  "failed": 3,
+  "pass_rate_pct": 50.0,
+  "total_duration_sec": 126.74,
+  "task_results": [
+    {
+      "id": "arch_order_state_machine",
+      "domain": "Architecture & Design",
+      "passed": true,
+      "latency_sec": 5.01,
+      "error": null
+    },
+    {
+      "id": "arch_event_dispatcher",
+      "domain": "Architecture & Design",
+      "passed": true,
+      "latency_sec": 13.15,
+      "error": null
+    },
+    {
+      "id": "agentic_composite_duration_parser",
+      "domain": "Agentic Coding",
+      "passed": false,
+      "latency_sec": 23.54,
+      "error": "SyntaxError: '{' was never closed"
+    },
+    {
+      "id": "agentic_unified_diff_patcher",
+      "domain": "Agentic Coding",
+      "passed": false,
+      "latency_sec": 25.03,
+      "error": "ValueError: Context line does not match original sequence"
+    },
+    {
+      "id": "reasoning_dependency_dag_waves",
+      "domain": "Formal Reasoning",
+      "passed": false,
+      "latency_sec": 26.81,
+      "error": "SyntaxError: invalid syntax"
+    },
+    {
+      "id": "reasoning_interval_override_merge",
+      "domain": "Formal Reasoning",
+      "passed": true,
+      "latency_sec": 14.69,
+      "error": null
+    }
+  ],
+  "domain_scores": {
+    "Architecture & Design": {
+      "passed": 2,
+      "total": 2
+    },
+    "Agentic Coding": {
+      "passed": 0,
+      "total": 2
+    },
+    "Formal Reasoning": {
+      "passed": 1,
+      "total": 2
+    }
+  }
+}
