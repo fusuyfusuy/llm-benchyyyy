@@ -71,746 +71,592 @@ UA = bc.UA
 # Subscription Pools & Model Definitions
 # pool: 'ocgo' | 'agy' | 'claude' | 'frontier'
 MODELS_CATALOG = {
-    # --- Anthropic Claude Subscription Pool ---
-    "claude-opus-5": {
-        "display": "Claude Opus 5 (Thinking)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Flagship Reasoning / Complex Gates",
-        "sub_cost": "Claude Pro / Team / Max",
-        "price_in": 5.00,
-        "price_out": 25.00,
-        "live_aliases": ["claude-opus-5-max-effort", "claude-opus-5"],
-        "lm_aliases": ["opus-5-high", "claude-opus-5-high", "claude-opus-5"],
-        "aa_aliases": ["claude-opus-5", "claude-opus-5-xhigh", "claude-opus-5-high", "claude-opus-5-medium", "claude-opus-5-low"],
+    'claude-opus-5': {
+        "display": 'Claude Opus 5 (Thinking)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Flagship Reasoning / Complex Gates',
+        "sub_cost": 'Claude Pro / Team / Max',
+        "price_in": 5.0,
+        "price_out": 25.0,
+        "live_aliases": ['claude-opus-5-max-effort', 'claude-opus-5'],
+        "lm_aliases": ['opus-5-high', 'claude-opus-5-high', 'claude-opus-5'],
+        "aa_aliases": ['claude-opus-5', 'claude-opus-5-xhigh', 'claude-opus-5-high', 'claude-opus-5-medium', 'claude-opus-5-low'],
         "base_metrics": {
-            "lm_elo": 1435,
-            "lm_coding": 1520,
-            "lm_hard": 1465,
-            "aa_quality": 96.0,
-            "aa_coding": 97.0,
-            "aa_reasoning": 97.5,
             "speed_tps": 38.0,
         },
     },
-    "claude-fable-5": {
-        "display": "Claude Fable 5 (High)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Elite Creative / Agent",
-        "sub_cost": "API ($10.00 / $50.00)",
-        "price_in": 10.00,
-        "price_out": 50.00,
-        "live_aliases": ["claude-fable-5-max-effort", "claude-fable-5"],
-        "lm_aliases": ["fable-5", "claude-fable-5"],
-        "aa_aliases": ["claude-fable-5"],
+    'claude-fable-5': {
+        "display": 'Claude Fable 5 (High)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Elite Creative / Agent',
+        "sub_cost": 'API ($10.00 / $50.00)',
+        "price_in": 10.0,
+        "price_out": 50.0,
+        "live_aliases": ['claude-fable-5-max-effort', 'claude-fable-5'],
+        "lm_aliases": ['fable-5', 'claude-fable-5'],
+        "aa_aliases": ['claude-fable-5'],
         "base_metrics": {
-            "lm_elo": 1432,
-            "lm_coding": 1512,
-            "lm_hard": 1460,
-            "aa_quality": 95.9,
-            "aa_coding": 96.8,
-            "aa_reasoning": 97.0,
             "speed_tps": 35.0,
         },
     },
-    "claude-opus-4-8": {
-        "display": "Claude Opus 4.8 (Thinking)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Lead Architecture / Reasoning",
-        "sub_cost": "Claude Pro / AGY Bridge",
-        "price_in": 5.00,
-        "price_out": 25.00,
-        "live_aliases": ["claude-opus-4-8-xhigh-effort", "claude-opus-4-8-max-effort", "claude-opus-4-8-high-effort", "claude-opus-4-8-medium-effort", "claude-opus-4-8-low-effort", "claude-opus-4-8"],
-        "lm_aliases": ["opus-4-8", "claude-opus-4-8", "claude-opus-4-8-thinking"],
-        "aa_aliases": ["claude-opus-4-8", "claude-opus-4-8-adaptive", "claude-opus-4-8-high", "claude-opus-4-8-medium"],
+    'claude-opus-4-8': {
+        "display": 'Claude Opus 4.8 (Thinking)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Lead Architecture / Reasoning',
+        "sub_cost": 'Claude Pro / AGY Bridge',
+        "price_in": 5.0,
+        "price_out": 25.0,
+        "live_aliases": ['claude-opus-4-8-xhigh-effort', 'claude-opus-4-8-max-effort', 'claude-opus-4-8-high-effort', 'claude-opus-4-8-medium-effort', 'claude-opus-4-8-low-effort', 'claude-opus-4-8'],
+        "lm_aliases": ['opus-4-8', 'claude-opus-4-8', 'claude-opus-4-8-thinking'],
+        "aa_aliases": ['claude-opus-4-8', 'claude-opus-4-8-adaptive', 'claude-opus-4-8-high', 'claude-opus-4-8-medium'],
         "base_metrics": {
-            "lm_elo": 1425,
-            "lm_coding": 1505,
-            "lm_hard": 1455,
-            "aa_quality": 95.0,
-            "aa_coding": 96.2,
-            "aa_reasoning": 96.5,
             "speed_tps": 40.0,
         },
     },
-    "claude-opus-4-7": {
-        "display": "Claude Opus 4.7 (Thinking)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Lead Architecture / Reasoning",
-        "sub_cost": "Claude Pro / AGY Bridge",
-        "price_in": 5.00,
-        "price_out": 25.00,
-        "live_aliases": ["claude-opus-4-7-xhigh-effort", "claude-opus-4-7-high-effort", "claude-opus-4-7-medium-effort", "claude-opus-4-7-low-effort", "claude-opus-4-7"],
-        "lm_aliases": ["opus-4-7", "claude-opus-4-7", "claude-opus-4-7-thinking"],
-        "aa_aliases": ["claude-opus-4-7", "claude-opus-4-7-adaptive", "claude-opus-4-7-high", "claude-opus-4-7-medium", "claude-opus-4-7-non-reasoning"],
+    'claude-opus-4-7': {
+        "display": 'Claude Opus 4.7 (Thinking)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Lead Architecture / Reasoning',
+        "sub_cost": 'Claude Pro / AGY Bridge',
+        "price_in": 5.0,
+        "price_out": 25.0,
+        "live_aliases": ['claude-opus-4-7-xhigh-effort', 'claude-opus-4-7-high-effort', 'claude-opus-4-7-medium-effort', 'claude-opus-4-7-low-effort', 'claude-opus-4-7'],
+        "lm_aliases": ['opus-4-7', 'claude-opus-4-7', 'claude-opus-4-7-thinking'],
+        "aa_aliases": ['claude-opus-4-7', 'claude-opus-4-7-adaptive', 'claude-opus-4-7-high', 'claude-opus-4-7-medium', 'claude-opus-4-7-non-reasoning'],
         "base_metrics": {
-            "lm_elo": 1422,
-            "lm_coding": 1500,
-            "lm_hard": 1450,
-            "aa_quality": 94.8,
-            "aa_coding": 96.0,
-            "aa_reasoning": 96.2,
             "speed_tps": 41.0,
         },
     },
-    "claude-opus-4-6": {
-        "display": "Claude Opus 4.6 (Thinking)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Lead / Architecture",
-        "sub_cost": "Claude Pro / AGY Bridge",
-        "price_in": 5.00,
-        "price_out": 25.00,
-        "live_aliases": ["claude-opus-4-6-thinking-auto-high-effort", "claude-opus-4-6"],
-        "lm_aliases": ["opus-4-6", "claude-opus-4-6", "claude-opus-4-6-thinking"],
-        "aa_aliases": ["claude-opus-4-6", "claude-opus-4-6-adaptive"],
+    'claude-opus-4-6': {
+        "display": 'Claude Opus 4.6 (Thinking)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Lead / Architecture',
+        "sub_cost": 'Claude Pro / AGY Bridge',
+        "price_in": 5.0,
+        "price_out": 25.0,
+        "live_aliases": ['claude-opus-4-6-thinking-auto-high-effort', 'claude-opus-4-6'],
+        "lm_aliases": ['opus-4-6', 'claude-opus-4-6', 'claude-opus-4-6-thinking'],
+        "aa_aliases": ['claude-opus-4-6', 'claude-opus-4-6-adaptive'],
         "base_metrics": {
-            "lm_elo": 1420,
-            "lm_coding": 1495,
-            "lm_hard": 1445,
-            "aa_quality": 94.5,
-            "aa_coding": 95.8,
-            "aa_reasoning": 96.0,
             "speed_tps": 42.0,
         },
     },
-    "claude-sonnet-5": {
-        "display": "Claude Sonnet 5",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Fast Agentic / Design",
-        "sub_cost": "Claude Pro ($20/mo) / Team",
-        "price_in": 2.00,
-        "price_out": 10.00,
-        "live_aliases": ["claude-sonnet-5-xhigh-effort", "claude-sonnet-5"],
-        "lm_aliases": ["claude-sonnet-5", "sonnet-5"],
-        "aa_aliases": ["claude-sonnet-5"],
+    'claude-sonnet-5': {
+        "display": 'Claude Sonnet 5',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Fast Agentic / Design',
+        "sub_cost": 'Claude Pro ($20/mo) / Team',
+        "price_in": 2.0,
+        "price_out": 10.0,
+        "live_aliases": ['claude-sonnet-5-xhigh-effort', 'claude-sonnet-5'],
+        "lm_aliases": ['claude-sonnet-5', 'sonnet-5', 'sonnet-5-high', 'claude-sonnet-5-high'],
+        "aa_aliases": ['claude-sonnet-5'],
         "base_metrics": {
-            "lm_elo": 1410,
-            "lm_coding": 1485,
-            "lm_hard": 1430,
-            "aa_quality": 93.0,
-            "aa_coding": 94.5,
-            "aa_reasoning": 93.5,
             "speed_tps": 68.0,
         },
     },
-    "claude-sonnet-4-6": {
-        "display": "Claude Sonnet 4.6 (Thinking)",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Design / Refactor",
-        "sub_cost": "Claude Pro / AGY Bridge",
-        "price_in": 3.00,
-        "price_out": 15.00,
-        "live_aliases": ["claude-sonnet-4-6-thinking-auto-high-effort", "claude-sonnet-4-6-thinking-auto-medium-effort", "claude-sonnet-4-6-thinking-auto-low-effort", "claude-sonnet-4-6"],
-        "lm_aliases": ["claude-sonnet-4-6", "sonnet-4-6"],
-        "aa_aliases": ["claude-sonnet-4-6", "claude-sonnet-4-6-thinking"],
+    'claude-sonnet-4-6': {
+        "display": 'Claude Sonnet 4.6 (Thinking)',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Design / Refactor',
+        "sub_cost": 'Claude Pro / AGY Bridge',
+        "price_in": 3.0,
+        "price_out": 15.0,
+        "live_aliases": ['claude-sonnet-4-6-thinking-auto-high-effort', 'claude-sonnet-4-6-thinking-auto-medium-effort', 'claude-sonnet-4-6-thinking-auto-low-effort', 'claude-sonnet-4-6'],
+        "lm_aliases": ['claude-sonnet-4-6', 'sonnet-4-6'],
+        "aa_aliases": ['claude-sonnet-4-6', 'claude-sonnet-4-6-thinking'],
         "base_metrics": {
-            "lm_elo": 1398,
-            "lm_coding": 1478,
-            "lm_hard": 1425,
-            "aa_quality": 92.8,
-            "aa_coding": 95.0,
-            "aa_reasoning": 95.2,
             "speed_tps": 52.0,
         },
     },
-    "claude-haiku-4-5": {
-        "display": "Claude Haiku 4.5",
-        "provider": "Anthropic",
-        "pool": "claude",
-        "tier": "Fast / Scout",
-        "sub_cost": "Claude Pro / API ($1.00 / $5.00)",
-        "price_in": 1.00,
-        "price_out": 5.00,
-        "live_aliases": ["claude-haiku-4-5-20251001-thinking-64k", "claude-haiku-4-5-20251001", "claude-haiku-4-5"],
-        "lm_aliases": ["claude-haiku-4-5", "haiku-4-5"],
-        "aa_aliases": ["claude-haiku-4-5"],
+    'claude-haiku-4-5': {
+        "display": 'Claude Haiku 4.5',
+        "provider": 'Anthropic',
+        "pool": 'claude',
+        "tier": 'Fast / Scout',
+        "sub_cost": 'Claude Pro / API ($1.00 / $5.00)',
+        "price_in": 1.0,
+        "price_out": 5.0,
+        "live_aliases": ['claude-haiku-4-5-20251001-thinking-64k', 'claude-haiku-4-5-20251001', 'claude-haiku-4-5'],
+        "lm_aliases": ['claude-haiku-4-5', 'haiku-4-5', 'haiku-4-5-20251001'],
+        "aa_aliases": ['claude-haiku-4-5', 'claude-4-5-haiku', 'claude-4-5-haiku-reasoning'],
         "base_metrics": {
-            "lm_elo": 1320,
-            "lm_coding": 1360,
-            "lm_hard": 1300,
-            "aa_quality": 82.0,
-            "aa_coding": 84.5,
-            "aa_reasoning": 80.0,
             "speed_tps": 125.0,
         },
     },
-    # --- Google Antigravity / Gemini Subscription Pool ---
-    "gemini-3.1-pro": {
-        "display": "Gemini 3.1 Pro (High)",
-        "provider": "Google",
-        "pool": "agy",
-        "tier": "Flagship Reasoning (1M ctx)",
-        "sub_cost": "AGY Sub (1B tokens/wk + 300M/5h)",
-        "price_in": 2.00,
-        "price_out": 12.00,
-        "live_aliases": ["gemini-3.1-pro-preview-high", "gemini-3-1-pro"],
-        "lm_aliases": ["gemini-3.1-pro", "gemini-3-1-pro", "gemini-3.1-pro-preview"],
-        "aa_aliases": ["gemini-3-1-pro", "gemini-3.1-pro"],
+    'gemini-3.1-pro': {
+        "display": 'Gemini 3.1 Pro (High)',
+        "provider": 'Google',
+        "pool": 'agy',
+        "tier": 'Flagship Reasoning (1M ctx)',
+        "sub_cost": 'AGY Sub (1B tokens/wk + 300M/5h)',
+        "price_in": 2.0,
+        "price_out": 12.0,
+        "live_aliases": ['gemini-3.1-pro-preview-high', 'gemini-3-1-pro'],
+        "lm_aliases": ['gemini-3.1-pro', 'gemini-3-1-pro', 'gemini-3.1-pro-preview', 'gemini-3-1-pro-preview'],
+        "aa_aliases": ['gemini-3-1-pro', 'gemini-3.1-pro', 'gemini-3-1-pro-preview'],
         "base_metrics": {
-            "lm_elo": 1486,
-            "lm_coding": 1460,
-            "lm_hard": 1445,
-            "aa_quality": 93.5,
-            "aa_coding": 94.0,
-            "aa_reasoning": 95.5,
             "speed_tps": 52.0,
         },
     },
-    "gemini-3.7-flash-thinking": {
-        "display": "Gemini 3.7 Flash (Thinking)",
-        "provider": "Google",
-        "pool": "agy",
-        "tier": "Workhorse / Default",
-        "sub_cost": "AGY Sub (1B tokens/wk + 300M/5h)",
+    'gemini-3.7-flash-thinking': {
+        "display": 'Gemini 3.7 Flash (Thinking)',
+        "provider": 'Google',
+        "pool": 'agy',
+        "tier": 'Workhorse / Default',
+        "sub_cost": 'AGY Sub (1B tokens/wk + 300M/5h)',
         "price_in": 0.38,
         "price_out": 1.88,
-        "live_aliases": ["gemini-3.7-flash-high", "gemini-3-7-flash-high", "gemini-3.7-flash", "gemini-3-7-flash"],
-        "lm_aliases": ["gemini-3.7-flash", "gemini-3-7-flash", "gemini 3.7 flash (me", "gemini 3.7 flash (lo"],
-        "aa_aliases": ["gemini-3-7-flash", "gemini-3.7-flash", "gemini-3-7-flash-thinking", "gemini-3-7-flash-medium", "gemini-3-7-flash-low"],
+        "live_aliases": ['gemini-3.7-flash-high', 'gemini-3-7-flash-high', 'gemini-3.7-flash', 'gemini-3-7-flash'],
+        "lm_aliases": ['gemini-3.7-flash', 'gemini-3-7-flash', 'gemini 3.7 flash (me', 'gemini 3.7 flash (lo', 'gemini-3.7-flash-thinking', 'gemini-3-7-flash-high', 'gemini-3-flashthinking-minimal'],
+        "aa_aliases": ['gemini-3-7-flash', 'gemini-3.7-flash', 'gemini-3-7-flash-thinking', 'gemini-3-7-flash-medium', 'gemini-3-7-flash-low'],
         "base_metrics": {
-            "lm_elo": 1490,
-            "lm_coding": 1445,
-            "lm_hard": 1465,
-            "aa_quality": 89.0,
-            "aa_coding": 91.0,
-            "aa_reasoning": 92.0,
             "speed_tps": 135.0,
         },
     },
-    "gemini-3.8-flash": {
-        "display": "Gemini 3.8 Flash",
-        "provider": "Google",
-        "pool": "agy",
-        "tier": "Next-Gen Workhorse / Agentic Coding",
-        "sub_cost": "AGY Sub (1B tokens/wk + 300M/5h)",
-        "price_in": 0.75,
-        "price_out": 3.75,
-        "live_aliases": ["gemini-3.8-flash-high", "gemini-3-8-flash-high", "gemini-3.8-flash", "gemini-3-8-flash", "gemini-3.8-flash-thinking"],
-        "lm_aliases": ["gemini-3.8-flash", "gemini-3-8-flash", "gemini 3.8 flash"],
-        "aa_aliases": ["gemini-3-8-flash", "gemini-3.8-flash", "gemini-3-8-flash-thinking"],
-        "livebench": {
-            "overall": 80.8,
-            "coding": 81.5,
-            "reasoning": 82.2,
-        },
+    'gemini-3.8-flash': {
+        "display": 'Gemini 3.8 Flash',
+        "provider": 'Google',
+        "pool": 'agy',
+        "tier": 'Next-Gen Workhorse / Agentic Coding',
+        "sub_cost": 'AGY Sub (1B tokens/wk + 300M/5h)',
+        "price_in": 0.38,
+        "price_out": 1.88,
+        "live_aliases": ['gemini-3.8-flash-high', 'gemini-3-8-flash-high', 'gemini-3.8-flash', 'gemini-3-8-flash', 'gemini-3.8-flash-thinking'],
+        "lm_aliases": ['gemini-3.8-flash', 'gemini-3-8-flash', 'gemini 3.8 flash', 'gemini-3.8-flash-high', 'gemini-3-8-flash-high'],
+        "aa_aliases": ['gemini-3-8-flash', 'gemini-3.8-flash', 'gemini-3-8-flash-thinking'],
         "base_metrics": {
-            "lm_elo": 1515,
-            "lm_coding": 1490,
-            "lm_hard": 1475,
             "speed_tps": 140.0,
         },
     },
-    "gemini-3.1-flash-lite": {
-        "display": "Gemini 3.1 Flash Lite",
-        "provider": "Google",
-        "pool": "agy",
-        "tier": "Ultra Fast / Bulk",
-        "sub_cost": "AGY Sub (1B tokens/wk + 300M/5h)",
+    'gemini-3.1-flash-lite': {
+        "display": 'Gemini 3.1 Flash Lite',
+        "provider": 'Google',
+        "pool": 'agy',
+        "tier": 'Ultra Fast / Bulk',
+        "sub_cost": 'AGY Sub (1B tokens/wk + 300M/5h)',
         "price_in": 0.25,
-        "price_out": 1.50,
-        "live_aliases": ["gemini-3.1-flash-lite-preview-high", "gemini-3-1-flash-lite"],
-        "lm_aliases": ["gemini-3.1-flash-lite", "gemini-3-1-flash-lite"],
-        "aa_aliases": ["gemini-3-1-flash-lite", "gemini-3.1-flash-lite"],
+        "price_out": 1.5,
+        "live_aliases": ['gemini-3.1-flash-lite-preview-high', 'gemini-3-1-flash-lite'],
+        "lm_aliases": ['gemini-3.1-flash-lite', 'gemini-3-1-flash-lite', 'gemini-3-1-flash-lite-preview'],
+        "aa_aliases": ['gemini-3-1-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3-1-flash-lite-preview'],
         "base_metrics": {
-            "lm_elo": 1432,
-            "lm_coding": 1395,
-            "lm_hard": 1360,
-            "aa_quality": 81.0,
-            "aa_coding": 82.0,
-            "aa_reasoning": 80.0,
             "speed_tps": 180.0,
         },
     },
-    # --- OpenAI & Frontier Subscription / API Models ---
-    "gpt-5.6-sol": {
-        "display": "GPT-5.6 Sol (Reasoning)",
-        "provider": "OpenAI",
-        "pool": "frontier",
-        "tier": "Frontier Flagship Reasoning",
-        "sub_cost": "API ($2.00 / $10.00)",
-        "price_in": 2.00,
-        "price_out": 10.00,
-        "live_aliases": ["gpt-5.6-sol-max", "gpt-5-6-sol-max", "gpt-5-6-sol"],
-        "lm_aliases": ["gpt-5-6-sol-xhighcodex-harness", "gpt-5-6-sol-xhighcodex", "gpt-5-6-sol", "gpt 5-6 sol-xhighcod"],
-        "aa_aliases": ["gpt-5-6-sol", "gpt-5-6-sol-xhigh", "gpt-5-6-sol-high", "gpt-5-6-sol-medium", "gpt-5-6-sol-low"],
+    'gpt-5.6-sol': {
+        "display": 'GPT-5.6 Sol (Reasoning)',
+        "provider": 'OpenAI',
+        "pool": 'frontier',
+        "tier": 'Frontier Flagship Reasoning',
+        "sub_cost": 'API ($2.00 / $10.00)',
+        "price_in": 2.0,
+        "price_out": 10.0,
+        "live_aliases": ['gpt-5.6-sol-max', 'gpt-5-6-sol-max', 'gpt-5-6-sol'],
+        "lm_aliases": ['gpt-5-6-sol-xhighcodex-harness', 'gpt-5-6-sol-xhighcodex', 'gpt-5-6-sol', 'gpt 5-6 sol-xhighcod'],
+        "aa_aliases": ['gpt-5-6-sol', 'gpt-5-6-sol-xhigh', 'gpt-5-6-sol-high', 'gpt-5-6-sol-medium', 'gpt-5-6-sol-low'],
         "base_metrics": {
-            "lm_elo": 1430,
-            "lm_coding": 1515,
-            "lm_hard": 1460,
-            "aa_quality": 95.8,
-            "aa_coding": 96.8,
-            "aa_reasoning": 97.2,
             "speed_tps": 45.0,
         },
     },
-    "grok-4-6": {
-        "display": "Grok 4.6 (Reasoning)",
-        "provider": "xAI",
-        "pool": "frontier",
-        "tier": "Frontier Agentic Reasoning",
-        "sub_cost": "API ($2.00 / $6.00)",
-        "price_in": 2.00,
-        "price_out": 6.00,
-        "live_aliases": ["grok-4.6", "grok-4-6"],
-        "lm_aliases": ["grok-4.6", "grok-4-6", "grok-4-0709"],
-        "aa_aliases": ["grok-4-6", "grok-4-6-xhigh", "grok-4-6-high", "grok-4-6-medium", "grok-4-6-low"],
+    'grok-4-6': {
+        "display": 'Grok 4.6 (Reasoning)',
+        "provider": 'xAI',
+        "pool": 'frontier',
+        "tier": 'Frontier Agentic Reasoning',
+        "sub_cost": 'API ($2.00 / $6.00)',
+        "price_in": 2.0,
+        "price_out": 6.0,
+        "live_aliases": ['grok-4.6', 'grok-4-6'],
+        "lm_aliases": ['grok-4.6', 'grok-4-6', 'grok-4-0709', 'grok-4-6-high', 'grok-4.6-high'],
+        "aa_aliases": ['grok-4-6', 'grok-4-6-xhigh', 'grok-4-6-high', 'grok-4-6-medium', 'grok-4-6-low'],
         "base_metrics": {
-            "lm_elo": 1411,
-            "lm_coding": 1460,
-            "lm_hard": 1430,
-            "aa_quality": 93.5,
-            "aa_coding": 94.5,
-            "aa_reasoning": 94.0,
             "speed_tps": 55.0,
         },
     },
-    "gpt-5.5": {
-        "display": "GPT 5.5 (xHigh)",
-        "provider": "OpenAI",
-        "pool": "frontier",
-        "tier": "Frontier Agentic Reasoning",
-        "sub_cost": "API ($5.00 / $30.00)",
-        "price_in": 5.00,
-        "price_out": 30.00,
-        "live_aliases": ["gpt-5.5-xhigh", "gpt-5.5-high", "gpt-5-5-xhigh"],
-        "lm_aliases": ["gpt-5-5-xhighcodex-harness", "gpt-5-5-highcodex-harness", "gpt-5-5", "gpt 5-5-xhighcodex-h", "gpt 5-5-highcodex-ha", "gpt 5-5-instant"],
-        "aa_aliases": ["gpt-5-5"],
+    'gpt-5.5': {
+        "display": 'GPT 5.5 (xHigh)',
+        "provider": 'OpenAI',
+        "pool": 'frontier',
+        "tier": 'Frontier Agentic Reasoning',
+        "sub_cost": 'API ($5.00 / $30.00)',
+        "price_in": 5.0,
+        "price_out": 30.0,
+        "live_aliases": ['gpt-5.5-xhigh', 'gpt-5.5-high', 'gpt-5-5-xhigh'],
+        "lm_aliases": ['gpt-5-5-xhighcodex-harness', 'gpt-5-5-highcodex-harness', 'gpt-5-5', 'gpt 5-5-xhighcodex-h', 'gpt 5-5-highcodex-ha', 'gpt 5-5-instant'],
+        "aa_aliases": ['gpt-5-5'],
         "base_metrics": {
-            "lm_elo": 1428,
-            "lm_coding": 1500,
-            "lm_hard": 1450,
-            "aa_quality": 95.5,
-            "aa_coding": 96.0,
-            "aa_reasoning": 96.5,
             "speed_tps": 40.0,
         },
     },
-    "gpt-5-6-terra": {
-        "display": "GPT-5.6 Terra (Reasoning)",
-        "provider": "OpenAI",
-        "pool": "frontier",
-        "tier": "Frontier High-Capacity",
-        "sub_cost": "API ($1.50 / $7.50)",
-        "price_in": 1.50,
-        "price_out": 7.50,
-        "live_aliases": ["gpt-5.6-terra-max", "gpt-5-6-terra-max"],
-        "lm_aliases": ["gpt-5-6-terra-xhighcodex-harness", "gpt-5-6-terra", "gpt 5-6-terra-xhighc"],
-        "aa_aliases": ["gpt-5-6-terra", "gpt-5-6-terra-max", "gpt-5-6-terra-high", "gpt-5-6-terra-xhigh"],
+    'gpt-5-6-terra': {
+        "display": 'GPT-5.6 Terra (Reasoning)',
+        "provider": 'OpenAI',
+        "pool": 'frontier',
+        "tier": 'Frontier High-Capacity',
+        "sub_cost": 'API ($1.50 / $7.50)',
+        "price_in": 1.5,
+        "price_out": 7.5,
+        "live_aliases": ['gpt-5.6-terra-max', 'gpt-5-6-terra-max'],
+        "lm_aliases": ['gpt-5-6-terra-xhighcodex-harness', 'gpt-5-6-terra', 'gpt 5-6-terra-xhighc'],
+        "aa_aliases": ['gpt-5-6-terra', 'gpt-5-6-terra-max', 'gpt-5-6-terra-high', 'gpt-5-6-terra-xhigh'],
         "base_metrics": {
-            "lm_elo": 1405,
-            "lm_coding": 1470,
-            "lm_hard": 1425,
-            "aa_quality": 92.5,
-            "aa_coding": 93.5,
-            "aa_reasoning": 94.0,
             "speed_tps": 50.0,
         },
     },
-    "gpt-5.4-pro": {
-        "display": "GPT-5.4 Pro",
-        "provider": "OpenAI",
-        "pool": "frontier",
-        "tier": "Enterprise Agentic Flagship",
-        "sub_cost": "API ($30.00 / $180.00)",
-        "price_in": 30.00,
-        "price_out": 180.00,
-        "live_aliases": ["gpt-5.4-xhigh", "gpt-5.4-high"],
-        "lm_aliases": ["gpt-5.4-pro", "gpt 5-4-highcodex-ha"],
-        "aa_aliases": ["gpt-5.4-pro", "gpt-5-4"],
+    'gpt-5.4-pro': {
+        "display": 'GPT-5.4 Pro',
+        "provider": 'OpenAI',
+        "pool": 'frontier',
+        "tier": 'Enterprise Agentic Flagship',
+        "sub_cost": 'API ($30.00 / $180.00)',
+        "price_in": 30.0,
+        "price_out": 180.0,
+        "live_aliases": ['gpt-5.4-xhigh', 'gpt-5.4-high'],
+        "lm_aliases": ['gpt-5.4-pro', 'gpt 5-4-highcodex-ha', 'gpt-5-4-highcodex-harness', 'gpt-5-4-mediumcodex-harness', 'gpt-5-4'],
+        "aa_aliases": ['gpt-5.4-pro', 'gpt-5-4'],
         "base_metrics": {
-            "lm_elo": 1425,
-            "lm_coding": 1480,
-            "lm_hard": 1440,
-            "aa_quality": 95.0,
-            "aa_coding": 95.5,
-            "aa_reasoning": 95.8,
             "speed_tps": 36.0,
         },
     },
-    "gpt-5.2-codex": {
-        "display": "GPT-5.2 Codex",
-        "provider": "OpenAI",
-        "pool": "frontier",
-        "tier": "Coding Specialist / Agent",
-        "sub_cost": "API ($1.75 / $14.00)",
+    'gpt-5.2-codex': {
+        "display": 'GPT-5.2 Codex',
+        "provider": 'OpenAI',
+        "pool": 'frontier',
+        "tier": 'Coding Specialist / Agent',
+        "sub_cost": 'API ($1.75 / $14.00)',
         "price_in": 1.75,
-        "price_out": 14.00,
-        "live_aliases": ["gpt-5.2-codex", "gpt-5.2-2025-12-11-high"],
-        "lm_aliases": ["gpt-5.2-codex", "gpt-5.2"],
-        "aa_aliases": ["gpt-5-2-codex", "gpt-5.2"],
+        "price_out": 14.0,
+        "live_aliases": ['gpt-5.2-codex', 'gpt-5.2-2025-12-11-high'],
+        "lm_aliases": ['gpt-5.2-codex', 'gpt-5.2', 'gpt-5-2-codex'],
+        "aa_aliases": ['gpt-5-2-codex', 'gpt-5.2'],
         "base_metrics": {
-            "lm_elo": 1390,
-            "lm_coding": 1465,
-            "lm_hard": 1410,
-            "aa_quality": 91.5,
-            "aa_coding": 94.0,
-            "aa_reasoning": 92.0,
             "speed_tps": 62.0,
         },
     },
-    "gpt-oss-120b": {
-        "display": "GPT-OSS 120B (Medium)",
-        "provider": "OpenAI / Open-Weights",
-        "pool": "frontier",
-        "tier": "Open High-Efficiency",
-        "sub_cost": "Open-Weights / API ($0.04 / $0.17)",
+    'gpt-oss-120b': {
+        "display": 'GPT-OSS 120B (Medium)',
+        "provider": 'OpenAI / Open-Weights',
+        "pool": 'frontier',
+        "tier": 'Open High-Efficiency',
+        "sub_cost": 'Open-Weights / API ($0.04 / $0.17)',
         "price_in": 0.04,
         "price_out": 0.17,
-        "live_aliases": ["gpt-oss-120b", "gpt-oss-120b-medium"],
-        "lm_aliases": ["gpt-oss-120b", "gpt-oss-120b-medium"],
-        "aa_aliases": ["gpt-oss-120b"],
+        "live_aliases": ['gpt-oss-120b', 'gpt-oss-120b-medium'],
+        "lm_aliases": ['gpt-oss-120b', 'gpt-oss-120b-medium'],
+        "aa_aliases": ['gpt-oss-120b'],
         "base_metrics": {
-            "lm_elo": 1350,
-            "lm_coding": 1380,
-            "lm_hard": 1345,
-            "aa_quality": 86.5,
-            "aa_coding": 87.5,
-            "aa_reasoning": 86.0,
             "speed_tps": 110.0,
         },
     },
-    "grok-4.5": {
-        "display": "Grok 4.5",
-        "provider": "xAI",
-        "pool": "frontier",
-        "tier": "Frontier Agentic / Reasoning",
-        "sub_cost": "API ($2.00 / $6.00)",
-        "price_in": 2.00,
-        "price_out": 6.00,
-        "live_aliases": ["grok-4.5", "grok-4-5"],
-        "lm_aliases": ["grok-4.5", "grok-4-5"],
-        "aa_aliases": ["grok-4-5", "grok-4.5"],
+    'grok-4.5': {
+        "display": 'Grok 4.5',
+        "provider": 'xAI',
+        "pool": 'frontier',
+        "tier": 'Frontier Agentic / Reasoning',
+        "sub_cost": 'API ($2.00 / $6.00)',
+        "price_in": 2.0,
+        "price_out": 6.0,
+        "live_aliases": ['grok-4.5', 'grok-4-5'],
+        "lm_aliases": ['grok-4.5', 'grok-4-5'],
+        "aa_aliases": ['grok-4-5', 'grok-4.5'],
         "base_metrics": {
-            "lm_elo": 1395,
-            "lm_coding": 1435,
-            "lm_hard": 1415,
-            "aa_quality": 92.0,
-            "aa_coding": 93.0,
-            "aa_reasoning": 94.0,
             "speed_tps": 50.0,
         },
     },
-    "qwen3-coder": {
-        "display": "Qwen3 Coder 480B",
-        "provider": "Alibaba",
-        "pool": "frontier",
-        "tier": "Open Coding Specialist",
-        "sub_cost": "Open-Weights / API ($0.30 / $1.00)",
-        "price_in": 0.30,
-        "price_out": 1.00,
-        "live_aliases": ["qwen3-coder-480b", "qwen3-coder"],
-        "lm_aliases": ["qwen3-coder-480b", "qwen3-coder"],
-        "aa_aliases": ["qwen3-coder-480b", "qwen3-coder"],
+    'qwen3-coder': {
+        "display": 'Qwen3 Coder 480B',
+        "provider": 'Alibaba',
+        "pool": 'frontier',
+        "tier": 'Open Coding Specialist',
+        "sub_cost": 'Open-Weights / API ($0.30 / $1.00)',
+        "price_in": 0.3,
+        "price_out": 1.0,
+        "live_aliases": ['qwen3-coder-480b', 'qwen3-coder'],
+        "lm_aliases": ['qwen3-coder-480b', 'qwen3-coder', 'qwen3-coder-480b-a35b-instruct'],
+        "aa_aliases": ['qwen3-coder-480b', 'qwen3-coder', 'qwen3-coder-480b-a35b-instruct'],
         "base_metrics": {
-            "lm_elo": 1372,
-            "lm_coding": 1450,
-            "lm_hard": 1390,
-            "aa_quality": 89.5,
-            "aa_coding": 93.0,
-            "aa_reasoning": 88.5,
             "speed_tps": 80.0,
         },
     },
-    # --- Open / Upstream Top Benchmark Models ---
-    "hunyuan-4-preview": {
-        "display": "Hunyuan 4 Preview",
-        "provider": "Tencent",
-        "pool": "api",
-        "tier": "Frontier Reasoning",
-        "sub_cost": "API ($0.83 / $2.50)",
+    'hunyuan-4-preview': {
+        "display": 'Hunyuan 4 Preview',
+        "provider": 'Tencent',
+        "pool": 'api',
+        "tier": 'Frontier Reasoning',
+        "sub_cost": 'API ($0.83 / $2.50)',
         "price_in": 0.834,
         "price_out": 2.501,
-        "live_aliases": ["hy4-preview", "hunyuan-4-preview"],
-        "lm_aliases": ["hy4-preview", "tencent-hy4-preview", "hunyuan-4-preview"],
-        "aa_aliases": ["hy4-preview", "tencent-hy4-preview"],
+        "live_aliases": ['hy4-preview', 'hunyuan-4-preview'],
+        "lm_aliases": ['hy4-preview', 'tencent-hy4-preview', 'hunyuan-4-preview'],
+        "aa_aliases": ['hy4-preview', 'tencent-hy4-preview'],
         "base_metrics": {
-            "lm_elo": 1420,
-            "lm_coding": 1490,
             "speed_tps": 48.0,
         },
     },
-    "qwen3.8-max": {
-        "display": "Qwen3.8 Max",
-        "provider": "Alibaba",
-        "pool": "api",
-        "tier": "Tier 1 — High Reasoning",
-        "sub_cost": "API ($2.00 / $6.00)",
-        "price_in": 2.00,
-        "price_out": 6.00,
-        "live_aliases": ["qwen3.8-max", "qwen3-8-max"],
-        "lm_aliases": ["qwen3.8-max", "qwen3-8-max"],
-        "aa_aliases": ["qwen-3-8-max", "qwen3-8-max"],
+    'qwen3.8-max': {
+        "display": 'Qwen3.8 Max',
+        "provider": 'Alibaba',
+        "pool": 'api',
+        "tier": 'Tier 1 — High Reasoning',
+        "sub_cost": 'API ($2.00 / $6.00)',
+        "price_in": 2.0,
+        "price_out": 6.0,
+        "live_aliases": ['qwen3.8-max', 'qwen3-8-max'],
+        "lm_aliases": ['qwen3.8-max', 'qwen3-8-max'],
+        "aa_aliases": ['qwen-3-8-max', 'qwen3-8-max'],
         "base_metrics": {
-            "lm_elo": 1368,
-            "lm_coding": 1395,
-            "lm_hard": 1375,
-            "aa_quality": 88.2,
-            "aa_coding": 89.8,
-            "aa_reasoning": 90.5,
             "speed_tps": 40.0,
         },
     },
-    "qwen3.8-flash-next": {
-        "display": "Qwen3.8-Flash-Next",
-        "provider": "Alibaba",
-        "pool": "api",
-        "tier": "Ultra-Fast Reasoning",
-        "sub_cost": "API ($0.08 / $0.24)",
+    'qwen3.8-flash-next': {
+        "display": 'Qwen3.8-Flash-Next',
+        "provider": 'Alibaba',
+        "pool": 'api',
+        "tier": 'Ultra-Fast Reasoning',
+        "sub_cost": 'API ($0.08 / $0.24)',
         "price_in": 0.08,
         "price_out": 0.24,
-        "live_aliases": ["qwen3.8-flash-next", "qwen3-8-flash-next"],
-        "lm_aliases": ["qwen3.8-flash-next", "qwen3-8-flash-next"],
-        "aa_aliases": ["qwen-3-8-flash-next", "qwen3-8-flash-next"],
+        "live_aliases": ['qwen3.8-flash-next', 'qwen3-8-flash-next'],
+        "lm_aliases": ['qwen3.8-flash-next', 'qwen3-8-flash-next'],
+        "aa_aliases": ['qwen-3-8-flash-next', 'qwen3-8-flash-next'],
         "base_metrics": {
-            "lm_elo": 1360,
-            "lm_coding": 1390,
             "speed_tps": 120.0,
         },
     },
-    "qwen3.8-27b": {
-        "display": "Qwen3.8 27B",
-        "provider": "Alibaba",
-        "pool": "api",
-        "tier": "Fast Executor",
-        "sub_cost": "API ($0.40 / $3.00)",
-        "price_in": 0.40,
-        "price_out": 3.00,
-        "live_aliases": ["qwen3.8-27b", "qwen3-8-27b"],
-        "lm_aliases": ["qwen3.8-27b", "qwen3-8-27b"],
-        "aa_aliases": ["qwen-3-8-27b", "qwen3.8-27b"],
+    'qwen3.8-27b': {
+        "display": 'Qwen3.8 27B',
+        "provider": 'Alibaba',
+        "pool": 'api',
+        "tier": 'Fast Executor',
+        "sub_cost": 'API ($0.40 / $3.00)',
+        "price_in": 0.4,
+        "price_out": 3.0,
+        "live_aliases": ['qwen3.8-27b', 'qwen3-8-27b'],
+        "lm_aliases": ['qwen3.8-27b', 'qwen3-8-27b'],
+        "aa_aliases": ['qwen-3-8-27b', 'qwen3.8-27b'],
         "base_metrics": {
-            "lm_elo": 1355,
-            "lm_coding": 1380,
             "speed_tps": 90.0,
         },
     },
-    "deepseek-v4-flash": {
-        "display": "DeepSeek V4 Flash",
-        "provider": "DeepSeek",
-        "pool": "api",
-        "tier": "Ultra-Fast Verifier",
-        "sub_cost": "API ($0.06 / $0.11)",
+    'deepseek-v4-flash': {
+        "display": 'DeepSeek V4 Flash',
+        "provider": 'DeepSeek',
+        "pool": 'api',
+        "tier": 'Ultra-Fast Verifier',
+        "sub_cost": 'API ($0.06 / $0.11)',
         "price_in": 0.06,
         "price_out": 0.11,
-        "live_aliases": ["deepseek-v4-flash-vision-exp", "deepseek-v4-flash-0731", "deepseek-v4-flash"],
-        "lm_aliases": ["deepseek-v4-flash"],
-        "aa_aliases": ["deepseek-v4-flash", "deepseek-v4-flash-vision", "deepseek-v4-flash-high"],
+        "live_aliases": ['deepseek-v4-flash-vision-exp', 'deepseek-v4-flash-0731', 'deepseek-v4-flash'],
+        "lm_aliases": ['deepseek-v4-flash', 'deepseek-v4-flash-high', 'deepseek-v4-flash-high-preview'],
+        "aa_aliases": ['deepseek-v4-flash', 'deepseek-v4-flash-vision', 'deepseek-v4-flash-high'],
         "base_metrics": {
-            "lm_elo": 1335,
-            "lm_coding": 1360,
-            "lm_hard": 1330,
-            "aa_quality": 83.0,
-            "aa_coding": 85.0,
-            "aa_reasoning": 84.0,
             "speed_tps": 95.0,
         },
     },
-    "deepseek-v4-pro": {
-        "display": "DeepSeek V4 Pro",
-        "provider": "DeepSeek",
-        "pool": "api",
-        "tier": "Tier 2 — Verifier & Logic",
-        "sub_cost": "API ($0.41 / $0.83)",
+    'deepseek-v4-pro': {
+        "display": 'DeepSeek V4 Pro',
+        "provider": 'DeepSeek',
+        "pool": 'api',
+        "tier": 'Tier 2 — Verifier & Logic',
+        "sub_cost": 'API ($0.41 / $0.83)',
         "price_in": 0.41,
         "price_out": 0.83,
-        "live_aliases": ["deepseek-v4-pro-0813", "deepseek-v4-pro"],
-        "lm_aliases": ["deepseek-v4-pro"],
-        "aa_aliases": ["deepseek-v4-pro"],
+        "live_aliases": ['deepseek-v4-pro-0813', 'deepseek-v4-pro'],
+        "lm_aliases": ['deepseek-v4-pro'],
+        "aa_aliases": ['deepseek-v4-pro'],
         "base_metrics": {
-            "lm_elo": 1375,
-            "lm_coding": 1415,
-            "lm_hard": 1395,
-            "aa_quality": 89.0,
-            "aa_coding": 91.0,
-            "aa_reasoning": 92.0,
             "speed_tps": 38.0,
         },
     },
-    "kimi-k3": {
-        "display": "Kimi K3 (Max)",
-        "provider": "Moonshot",
-        "pool": "api",
-        "tier": "Architecture & Reasoning",
-        "sub_cost": "API ($3.00 / $15.00)",
-        "price_in": 3.00,
-        "price_out": 15.00,
-        "live_aliases": ["kimi-k3"],
-        "lm_aliases": ["kimi-k3"],
-        "aa_aliases": ["kimi-k3", "kimi-k3-high", "kimi-k3-low"],
+    'kimi-k3': {
+        "display": 'Kimi K3 (Max)',
+        "provider": 'Moonshot',
+        "pool": 'api',
+        "tier": 'Architecture & Reasoning',
+        "sub_cost": 'API ($3.00 / $15.00)',
+        "price_in": 3.0,
+        "price_out": 15.0,
+        "live_aliases": ['kimi-k3'],
+        "lm_aliases": ['kimi-k3'],
+        "aa_aliases": ['kimi-k3', 'kimi-k3-high', 'kimi-k3-low'],
         "base_metrics": {
-            "lm_elo": 1410,
-            "lm_coding": 1475,
-            "lm_hard": 1430,
-            "aa_quality": 93.0,
-            "aa_coding": 94.5,
-            "aa_reasoning": 95.0,
             "speed_tps": 46.0,
         },
     },
-    "kimi-k2.7-code": {
-        "display": "Kimi K2.7 Code",
-        "provider": "Moonshot",
-        "pool": "api",
-        "tier": "Code Specialist",
-        "sub_cost": "API ($0.95 / $4.00)",
+    'kimi-k2.7-code': {
+        "display": 'Kimi K2.7 Code',
+        "provider": 'Moonshot',
+        "pool": 'api',
+        "tier": 'Code Specialist',
+        "sub_cost": 'API ($0.95 / $4.00)',
         "price_in": 0.95,
-        "price_out": 4.00,
-        "live_aliases": ["kimi-k2.7-code", "kimi-k2-7-code"],
-        "lm_aliases": ["kimi-k2.7-code", "kimi-k2-7-code"],
-        "aa_aliases": ["kimi-k2.7-code"],
+        "price_out": 4.0,
+        "live_aliases": ['kimi-k2.7-code', 'kimi-k2-7-code'],
+        "lm_aliases": ['kimi-k2.7-code', 'kimi-k2-7-code'],
+        "aa_aliases": ['kimi-k2.7-code'],
         "base_metrics": {
-            "lm_elo": 1360,
-            "lm_coding": 1430,
             "speed_tps": 55.0,
         },
     },
-    "glm-5.3": {
-        "display": "GLM-5.3",
-        "provider": "Zhipu AI",
-        "pool": "api",
-        "tier": "Tier 1 — Architecture & Spec",
-        "sub_cost": "API ($1.40 / $4.40)",
-        "price_in": 1.40,
-        "price_out": 4.40,
-        "live_aliases": ["glm-5.3", "glm-5-3"],
-        "lm_aliases": ["glm-5.3", "glm-5-3"],
-        "aa_aliases": ["glm-5-3", "glm-5.3", "glm-5-3-max", "glm-5.3-max"],
+    'glm-5.3': {
+        "display": 'GLM-5.3',
+        "provider": 'Zhipu AI',
+        "pool": 'api',
+        "tier": 'Tier 1 — Architecture & Spec',
+        "sub_cost": 'API ($1.40 / $4.40)',
+        "price_in": 1.4,
+        "price_out": 4.4,
+        "live_aliases": ['glm-5.3', 'glm-5-3'],
+        "lm_aliases": ['glm-5.3', 'glm-5-3', 'glm-5-3-max'],
+        "aa_aliases": ['glm-5-3', 'glm-5.3', 'glm-5-3-max', 'glm-5.3-max'],
         "base_metrics": {
-            "lm_elo": 1362,
-            "lm_coding": 1390,
-            "lm_hard": 1370,
-            "aa_quality": 87.5,
-            "aa_coding": 89.0,
-            "aa_reasoning": 88.5,
             "speed_tps": 42.0,
         },
     },
-    "glm-5.2": {
-        "display": "GLM-5.2",
-        "provider": "Zhipu AI",
-        "pool": "api",
-        "tier": "Tier 1 — Architecture",
-        "sub_cost": "API ($1.40 / $4.40)",
-        "price_in": 1.40,
-        "price_out": 4.40,
-        "live_aliases": ["glm-5.2", "glm-5-2"],
-        "lm_aliases": ["glm-5.2", "glm-5-2"],
-        "aa_aliases": ["glm-5-2", "glm-5.2", "glm-5-2-max", "glm-5.2-max"],
+    'glm-5.2': {
+        "display": 'GLM-5.2',
+        "provider": 'Zhipu AI',
+        "pool": 'api',
+        "tier": 'Tier 1 — Architecture',
+        "sub_cost": 'API ($1.40 / $4.40)',
+        "price_in": 1.4,
+        "price_out": 4.4,
+        "live_aliases": ['glm-5.2', 'glm-5-2'],
+        "lm_aliases": ['glm-5.2', 'glm-5-2', 'glm-5-2-max'],
+        "aa_aliases": ['glm-5-2', 'glm-5.2', 'glm-5-2-max', 'glm-5.2-max'],
         "base_metrics": {
-            "lm_elo": 1350,
-            "lm_coding": 1360,
-            "lm_hard": 1340,
-            "aa_quality": 85.0,
-            "aa_coding": 85.0,
-            "aa_reasoning": 85.0,
             "speed_tps": 60.0,
         },
     },
-    "glm-5.3-flash": {
-        "display": "GLM-5.3 Flash",
-        "provider": "Zhipu AI",
-        "pool": "api",
-        "tier": "Fast Executor",
-        "sub_cost": "API ($0.15 / $0.50)",
+    'glm-5.3-flash': {
+        "display": 'GLM-5.3 Flash',
+        "provider": 'Zhipu AI',
+        "pool": 'api',
+        "tier": 'Fast Executor',
+        "sub_cost": 'API ($0.15 / $0.50)',
         "price_in": 0.15,
-        "price_out": 0.50,
-        "live_aliases": ["glm-5.3-flash", "glm-5-3-flash"],
-        "lm_aliases": ["glm-5.3-flash", "glm-5-3-flash"],
-        "aa_aliases": ["glm-5-3-flash", "glm-5.3-flash"],
+        "price_out": 0.5,
+        "live_aliases": ['glm-5.3-flash', 'glm-5-3-flash'],
+        "lm_aliases": ['glm-5.3-flash', 'glm-5-3-flash'],
+        "aa_aliases": ['glm-5-3-flash', 'glm-5.3-flash'],
         "base_metrics": {
-            "lm_elo": 1340,
-            "lm_coding": 1360,
             "speed_tps": 110.0,
         },
     },
-    "muse-spark-1-2": {
-        "display": "Muse Spark 1.2 (Contributor)",
-        "provider": "Muse",
-        "pool": "api",
-        "tier": "Fast Contributor Specialist",
-        "sub_cost": "API ($0.10 / $0.20)",
-        "price_in": 0.10,
-        "price_out": 0.20,
-        "live_aliases": ["muse-spark-1.2-xhigh", "muse-spark-1.2"],
-        "lm_aliases": ["muse-spark-1-2", "muse-spark-1.2"],
-        "aa_aliases": ["muse-spark-1.2", "muse-spark-1.2-contributor"],
+    'muse-spark-1-2': {
+        "display": 'Muse Spark 1.2 (Contributor)',
+        "provider": 'Muse',
+        "pool": 'api',
+        "tier": 'Fast Contributor Specialist',
+        "sub_cost": 'API ($0.10 / $0.20)',
+        "price_in": 0.1,
+        "price_out": 0.2,
+        "live_aliases": ['muse-spark-1.2-xhigh', 'muse-spark-1-2-xhigh', 'muse-spark-1.2', 'muse-spark-1-2'],
+        "lm_aliases": ['muse-spark-1-2xhigh', 'muse-spark-1-2-xhigh', 'muse-spark-1.2-xhigh', 'muse-spark-1-2', 'muse-spark-1.2', 'muse-spark-1.2-contributor'],
+        "aa_aliases": ['muse-spark-1.2', 'muse-spark-1-2', 'muse-spark-1.2-contributor'],
         "base_metrics": {
-            "lm_elo": 1360,
-            "lm_coding": 1385,
             "speed_tps": 130.0,
         },
     },
-    "gpt-5.6-luna": {
-        "display": "GPT 5.6 Luna",
-        "provider": "OpenAI",
-        "pool": "api",
-        "tier": "High-Efficiency Failover",
-        "sub_cost": "API ($0.20 / $1.20)",
-        "price_in": 0.20,
-        "price_out": 1.20,
-        "live_aliases": ["gpt-5.6-luna-max", "gpt-5-6-luna-max"],
-        "lm_aliases": ["gpt-5-6-luna-xhighcodex-harness", "gpt-5-6-luna", "gpt 5-6 luna-xhighco"],
-        "aa_aliases": ["gpt-5-6-luna"],
+    'gpt-5.6-luna': {
+        "display": 'GPT 5.6 Luna',
+        "provider": 'OpenAI',
+        "pool": 'api',
+        "tier": 'High-Efficiency Failover',
+        "sub_cost": 'API ($0.20 / $1.20)',
+        "price_in": 0.2,
+        "price_out": 1.2,
+        "live_aliases": ['gpt-5.6-luna-max', 'gpt-5-6-luna-max'],
+        "lm_aliases": ['gpt-5-6-luna-xhighcodex-harness', 'gpt-5-6-luna', 'gpt 5-6 luna-xhighco'],
+        "aa_aliases": ['gpt-5-6-luna'],
         "base_metrics": {
-            "lm_elo": 1365,
-            "lm_coding": 1395,
-            "lm_hard": 1375,
-            "aa_quality": 88.0,
-            "aa_coding": 89.5,
-            "aa_reasoning": 90.0,
             "speed_tps": 60.0,
         },
     },
-    "minimax-m3": {
-        "display": "MiniMax M3",
-        "provider": "MiniMax",
-        "pool": "api",
-        "tier": "General Executor",
-        "sub_cost": "API ($0.30 / $1.20)",
-        "price_in": 0.30,
-        "price_out": 1.20,
-        "live_aliases": ["minimax-m3"],
-        "lm_aliases": ["minimax-m3"],
-        "aa_aliases": ["minimax-m3"],
+    'minimax-m3': {
+        "display": 'MiniMax M3',
+        "provider": 'MiniMax',
+        "pool": 'api',
+        "tier": 'General Executor',
+        "sub_cost": 'API ($0.30 / $1.20)',
+        "price_in": 0.3,
+        "price_out": 1.2,
+        "live_aliases": ['minimax-m3'],
+        "lm_aliases": ['minimax-m3', 'minimax-m3-high', 'minimax-m3-reasoning', 'm3'],
+        "aa_aliases": ['minimax-m3'],
         "base_metrics": {
-            "lm_elo": 1338,
-            "lm_coding": 1360,
-            "lm_hard": 1340,
-            "aa_quality": 84.0,
-            "aa_coding": 85.5,
-            "aa_reasoning": 85.0,
             "speed_tps": 75.0,
         },
     },
-    "mimo-v2.5": {
-        "display": "MiMo-V2.5",
-        "provider": "Xiaomi",
-        "pool": "api",
-        "tier": "Bulk Fill",
-        "sub_cost": "API ($0.14 / $0.28)",
+    'mimo-v2.5': {
+        "display": 'MiMo-V2.5',
+        "provider": 'Xiaomi',
+        "pool": 'api',
+        "tier": 'Bulk Fill',
+        "sub_cost": 'API ($0.14 / $0.28)',
         "price_in": 0.14,
         "price_out": 0.28,
-        "live_aliases": ["mimo-v2.5", "mimo-v2-5", "mimo-v2-pro"],
-        "lm_aliases": ["mimo-v2.5", "mimo-v2-5"],
-        "aa_aliases": ["mimo-v2-5", "mimo-v2.5"],
+        "live_aliases": ['mimo-v2.5', 'mimo-v2-5', 'mimo-v2-pro'],
+        "lm_aliases": ['mimo-v2.5', 'mimo-v2-5', 'mimo-v2-5-pro'],
+        "aa_aliases": ['mimo-v2-5', 'mimo-v2.5', 'mimo-v2-5-0424', 'mimo-v2-5-pro'],
         "base_metrics": {
-            "lm_elo": 1315,
-            "lm_coding": 1335,
-            "lm_hard": 1300,
-            "aa_quality": 80.5,
-            "aa_coding": 82.0,
-            "aa_reasoning": 79.5,
             "speed_tps": 115.0,
         },
     },
+    'muse-spark-1.3': {
+        "display": 'Muse Spark 1.3 (Max)',
+        "provider": 'Meta / Muse',
+        "pool": 'api',
+        "tier": 'Elite Fast Frontier / High TPS',
+        "sub_cost": 'OpenCode / CommandCode / Free',
+        "price_in": 0.35,
+        "price_out": 1.5,
+        "live_aliases": ['muse-spark-1.3-xhigh', 'muse-spark-1-3-xhigh', 'muse-spark-1.3-max', 'muse-spark-1-3-max', 'muse-spark-1.3', 'muse-spark-1-3'],
+        "lm_aliases": ['muse-spark-1-3xhigh', 'muse-spark-1-3-xhigh', 'muse-spark-1.3-xhigh', 'muse-spark-1.3', 'muse-spark-1-3', 'muse-spark-1.3-contributor'],
+        "aa_aliases": ['muse-spark-1-3', 'muse-spark-1.3', 'muse-spark-1-3-max', 'muse-spark-1-3-xhigh', 'muse-spark-1.3-xhigh', 'meta/muse-spark-1.3'],
+        "base_metrics": {
+            "speed_tps": 190.0,
+        },
+    },
+    'qwen3.8-27b-hetzner': {
+        "display": 'Qwen 3.8 27B (Hetzner)',
+        "provider": 'Alibaba / Hetzner',
+        "pool": 'hetzner',
+        "tier": 'Free Long-Context Specialist (262k)',
+        "sub_cost": 'Hetzner Free Inference (262k ctx)',
+        "price_in": 0.2,
+        "price_out": 0.6,
+        "live_aliases": ['qwen3.8-27b', 'qwen-3.8-27b', 'qwen-3-8-27b'],
+        "lm_aliases": ['qwen3.8-27b', 'qwen-3.8-27b', 'qwen3-8-27b'],
+        "aa_aliases": ['qwen3.8-27b', 'qwen-3.8-27b', 'qwen-3-8-27b', 'qwen3-8-27b'],
+        "base_metrics": {
+            "speed_tps": 95.0,
+        },
+    },
+    'kimi-k3-nvidia': {
+        "display": 'Kimi K3 (NVIDIA NIM)',
+        "provider": 'Moonshot / NVIDIA',
+        "pool": 'nvidia',
+        "tier": 'Frontier Long-Context Reasoning',
+        "sub_cost": 'NVIDIA Integrate API ($0 / NIM credits)',
+        "price_in": 0.8,
+        "price_out": 3.2,
+        "live_aliases": ['kimi-k3', 'kimi-k-3'],
+        "lm_aliases": ['kimi-k3', 'kimi-k-3', 'kimi-k3-max'],
+        "aa_aliases": ['kimi-k3', 'kimi-k-3'],
+        "base_metrics": {
+            "speed_tps": 75.0,
+        },
+    },
 }
-
 # ==============================================================================
 # 2. LIVE FETCHERS, SNAPSHOTS & PARSERS
 # ==============================================================================
@@ -956,10 +802,11 @@ def livebench_base_name(s):
 
 def strip_effort_suffix(slug: str) -> str:
     """Strip secondary effort, mode, or thinking suffixes (e.g. -high, -medium, -low, -xhigh, -adaptive)."""
+    s = re.sub(r"(\d+)(xhigh|high|medium|low|minimal|max)$", r"\1-\2", slug or "")
     return re.sub(
-        r"-(high|xhigh|medium|low|minimal|max|adaptive|thinking|reasoning|non-reasoning|preview|contributor|base)(-effort)?$",
+        r"[-_](high|xhigh|medium|low|minimal|max|adaptive|thinking|reasoning|non-reasoning|preview|contributor|base)(-effort)?$",
         "",
-        slug,
+        s,
         flags=re.I,
     )
 
@@ -987,6 +834,30 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
         if b and v.get("overall") is not None:
             if b not in live_base or v["overall"] > live_base[b]["overall"]:
                 live_base[b] = v
+
+    # Base map for LMArena effort tiers / stripped slugs
+    lm_base = {}
+    for k, v in (lm_map or {}).items():
+        b = bc.norm_id(strip_effort_suffix(k))
+        if b and v.get("elo") is not None:
+            if b not in lm_base or (v.get("elo") or 0) > (lm_base[b].get("elo") or 0):
+                lm_base[b] = v
+        b_dash = bc.norm_id(strip_effort_suffix(k.replace(".", "-")))
+        if b_dash and v.get("elo") is not None:
+            if b_dash not in lm_base or (v.get("elo") or 0) > (lm_base[b_dash].get("elo") or 0):
+                lm_base[b_dash] = v
+
+    # Base map for Artificial Analysis effort tiers / stripped slugs
+    aa_base = {}
+    for k, v in (aa_map or {}).items():
+        b = bc.norm_id(strip_effort_suffix(k))
+        if b and v.get("intelligenceIndex") is not None:
+            if b not in aa_base or (v.get("intelligenceIndex") or 0) > (aa_base[b].get("intelligenceIndex") or 0):
+                aa_base[b] = v
+        b_dash = bc.norm_id(strip_effort_suffix(k.replace(".", "-")))
+        if b_dash and v.get("intelligenceIndex") is not None:
+            if b_dash not in aa_base or (v.get("intelligenceIndex") or 0) > (aa_base[b_dash].get("intelligenceIndex") or 0):
+                aa_base[b_dash] = v
 
     key_index = {}
     for cid, info in catalog.items():
@@ -1110,59 +981,60 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                     break
 
         # LMArena signal
-        if lm_norm:
+        if lm_norm or lm_base:
             cands_lm = m.get("lm_aliases", []) + [mid, m.get("display")]
             for c in cands_lm:
                 if not c:
                     continue
-                cn = bc.norm_id(c)
-                if cn in lm_norm:
-                    rec = lm_norm[cn]
-                    if rec.get("elo"):
-                        m.setdefault("base_metrics", {})["lm_elo"] = rec["elo"]
-                        if rec.get("coding"):
-                            m["base_metrics"]["lm_coding"] = rec["coding"]
+                c_variants = [bc.norm_id(c), bc.norm_id(c.replace(".", "-")), bc.norm_model_slug(c)]
+                matched_rec = None
+                for cv in c_variants:
+                    if cv in lm_norm:
+                        matched_rec = lm_norm[cv]
                         break
-                c_base = bc.norm_id(strip_effort_suffix(c))
-                if c_base in lm_norm:
-                    rec = lm_norm[c_base]
-                    if rec.get("elo"):
-                        m.setdefault("base_metrics", {})["lm_elo"] = rec["elo"]
-                        if rec.get("coding"):
-                            m["base_metrics"]["lm_coding"] = rec["coding"]
+                    if cv in lm_base:
+                        matched_rec = lm_base[cv]
                         break
+                    c_b = bc.norm_id(strip_effort_suffix(cv))
+                    if c_b in lm_base:
+                        matched_rec = lm_base[c_b]
+                        break
+                if matched_rec:
+                    if matched_rec.get("elo"):
+                        m.setdefault("base_metrics", {})["lm_elo"] = matched_rec["elo"]
+                        if matched_rec.get("coding"):
+                            m["base_metrics"]["lm_coding"] = matched_rec["coding"]
+                    break
 
         # Artificial Analysis signal
-        if aa_norm:
+        if aa_norm or aa_base:
             cands_aa = m.get("aa_aliases", []) + [mid, m.get("display")]
             for c in cands_aa:
                 if not c:
                     continue
-                cn = bc.norm_id(c)
-                if cn in aa_norm:
-                    rec = aa_norm[cn]
+                c_variants = [bc.norm_id(c), bc.norm_id(c.replace(".", "-")), bc.norm_model_slug(c)]
+                matched_rec = None
+                for cv in c_variants:
+                    if cv in aa_norm:
+                        matched_rec = aa_norm[cv]
+                        break
+                    if cv in aa_base:
+                        matched_rec = aa_base[cv]
+                        break
+                    c_b = bc.norm_id(strip_effort_suffix(cv))
+                    if c_b in aa_base:
+                        matched_rec = aa_base[c_b]
+                        break
+                if matched_rec:
                     bm = m.setdefault("base_metrics", {})
-                    if rec.get("intelligenceIndex") is not None:
-                        bm["aa_quality"] = rec["intelligenceIndex"]
-                        m["aa_live_quality"] = rec["intelligenceIndex"]
-                    if rec.get("codingIndex") is not None:
-                        bm["aa_coding"] = rec["codingIndex"]
-                        m["aa_live_coding"] = rec["codingIndex"]
-                    if rec.get("medianTps") is not None:
-                        bm["speed_tps"] = rec["medianTps"]
-                    break
-                c_base = bc.norm_id(strip_effort_suffix(c))
-                if c_base in aa_norm:
-                    rec = aa_norm[c_base]
-                    bm = m.setdefault("base_metrics", {})
-                    if rec.get("intelligenceIndex") is not None:
-                        bm["aa_quality"] = rec["intelligenceIndex"]
-                        m["aa_live_quality"] = rec["intelligenceIndex"]
-                    if rec.get("codingIndex") is not None:
-                        bm["aa_coding"] = rec["codingIndex"]
-                        m["aa_live_coding"] = rec["codingIndex"]
-                    if rec.get("medianTps") is not None:
-                        bm["speed_tps"] = rec["medianTps"]
+                    if matched_rec.get("intelligenceIndex") is not None:
+                        bm["aa_quality"] = matched_rec["intelligenceIndex"]
+                        m["aa_live_quality"] = matched_rec["intelligenceIndex"]
+                    if matched_rec.get("codingIndex") is not None:
+                        bm["aa_coding"] = matched_rec["codingIndex"]
+                        m["aa_live_coding"] = matched_rec["codingIndex"]
+                    if matched_rec.get("medianTps") is not None:
+                        bm["speed_tps"] = matched_rec["medianTps"]
                     break
 
     return catalog
@@ -1327,6 +1199,12 @@ def _z_scores(values: list) -> list:
     return [(v - mean_val) / std_val if isinstance(v, (int, float)) else None for v in values]
 
 
+def _int_str(v) -> str:
+    """NaN/Inf-safe int display; never throws (None-safe)."""
+    i = bc._safe_int(v)
+    return f"{i}" if i is not None else "—"
+
+
 def calculate_composite_scores(models_dict):
     """
     Computes:
@@ -1345,36 +1223,33 @@ def calculate_composite_scores(models_dict):
     keys = list(models_dict.keys())
     m_list = [models_dict[k] for k in keys]
 
-    # AA live intelligenceIndex/codingIndex use a NEW scale vs the static catalog's
-    # retired old-AA-Quality-Index seeds (~93-96): never mix the two cohorts in one
-    # z-distribution. Prefer the live cohort when any live match exists; fall back
-    # to the uniform static cohort only when the whole catalog is offline-static.
-    # ponytail: AA live/static cohort split <- old-vs-new scale drift -> remove split when AA restores a unified live quality index
-    live_q = [m.get("aa_live_quality") for m in m_list]
-    if any(v is not None for v in live_q):
-        z_aa_qual = _z_scores(live_q)
-    else:
-        z_aa_qual = _z_scores([m.get("base_metrics", {}).get("aa_quality") for m in m_list])
-    live_c = [m.get("aa_live_coding") for m in m_list]
-    if any(v is not None for v in live_c):
-        z_aa_cod = _z_scores(live_c)
-    else:
-        z_aa_cod = _z_scores([m.get("base_metrics", {}).get("aa_coding") for m in m_list])
+    # Calculate z-scores across verified upstream benchmark signals only.
+    # Never fabricate fallback cohorts or dummy placeholder scores ("See Something, Say Something").
+    live_q = [m.get("aa_live_quality") if m.get("aa_live_quality") is not None else m.get("base_metrics", {}).get("aa_quality") for m in m_list]
+    z_aa_qual = _z_scores(live_q)
+
+    live_c = [m.get("aa_live_coding") if m.get("aa_live_coding") is not None else m.get("base_metrics", {}).get("aa_coding") for m in m_list]
+    z_aa_cod = _z_scores(live_c)
+
     z_lm_elo = _z_scores([m.get("base_metrics", {}).get("lm_elo") for m in m_list])
     z_lm_cod = _z_scores([m.get("base_metrics", {}).get("lm_coding") for m in m_list])
-    z_aa_reas = _z_scores([m.get("base_metrics", {}).get("aa_reasoning") for m in m_list])  # static for ALL: no live AA equivalent, uniform scale
+
     z_live = _z_scores([
         m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") if isinstance(m.get("livebench"), (int, float)) else None)
         for m in m_list
     ])
+    z_live_reas = _z_scores([
+        m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None
+        for m in m_list
+    ])
 
     signals = (
-        (0.125, z_lm_elo),
-        (0.125, z_lm_cod),
-        (0.150, z_aa_qual),
-        (0.125, z_aa_cod),
-        (0.125, z_aa_reas),
-        (0.175, z_live),
+        (0.200, z_lm_elo),
+        (0.150, z_lm_cod),
+        (0.250, z_aa_qual),
+        (0.150, z_aa_cod),
+        (0.150, z_live),
+        (0.100, z_live_reas),
     )
 
     for i, k in enumerate(keys):
@@ -1387,7 +1262,22 @@ def calculate_composite_scores(models_dict):
                 continue
             num += weight * z
             den += weight
-        cz = num / den if den else 0.0
+
+        if den == 0.0:
+            # Model has ZERO verified benchmark evaluations across all feeds
+            # "See something, say something": Do NOT fabricate capability scores!
+            m["composite_score"] = None
+            m["capability_q"] = None
+            m["p_success"] = None
+            m["token_multiplier"] = None
+            m["effective_cost"] = None
+            m["avi_score"] = None
+            m["fgi_score"] = None
+            m["bfi_score"] = None
+            m["unmatched"] = True
+            continue
+
+        cz = num / den
         q_score = compute_capability_q(cz)
         m["composite_score"] = q_score
         m["capability_q"] = q_score
@@ -1398,8 +1288,10 @@ def calculate_composite_scores(models_dict):
         t_mult = compute_token_multiplier(p_succ_pct)
         m["token_multiplier"] = t_mult
 
-        pin = float(m.get("price_in", 0.0))
-        pout = float(m.get("price_out", 0.0))
+        pin = bc._safe_float(m.get("price_in"), 0.0)
+        pin = 0.0 if pin is None else pin
+        pout = bc._safe_float(m.get("price_out"), 0.0)
+        pout = 0.0 if pout is None else pout
         blended_price = (0.80 * pin) + (0.20 * pout)
         m["blended_price"] = round(blended_price, 2)
         effective_cost = compute_effective_cost(blended_price, t_mult)
@@ -1408,7 +1300,7 @@ def calculate_composite_scores(models_dict):
         m["avi_score"] = compute_avi(q_score, effective_cost)
         m["fgi_score"] = compute_fgi(q_score, p_succ_pct)
 
-        speed = float(m.get("base_metrics", {}).get("speed_tps") or 60.0)
+        speed = bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 60.0) or 60.0
         m["bfi_score"] = compute_bfi(q_score, speed, blended_price)
 
 
@@ -1426,30 +1318,31 @@ def format_compact_price(p_in, p_out):
 
 
 BCHECK_COL_MEDAL_KEYS = {
-    "q": (lambda m: m.get("capability_q", 0), True, None),
-    "psucc": (lambda m: m.get("p_success", 0), True, None),
-    "eff_cost": (lambda m: m.get("effective_cost", 999), False, None),
-    "avi": (lambda m: m.get("avi_score", 0), True, None),
-    "fgi": (lambda m: m.get("fgi_score", 0), True, None),
+    "q": (lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None),
+    "psucc": (lambda m: m.get("p_success") or 0.0, True, lambda m: m.get("p_success") is not None),
+    "eff_cost": (lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None),
+    "avi": (lambda m: m.get("avi_score") or 0.0, True, lambda m: m.get("avi_score") is not None),
+    "fgi": (lambda m: m.get("fgi_score") or 0.0, True, lambda m: m.get("fgi_score") is not None),
     "live": (lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float))),
-    "arena": (lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float))),
-    "speed": (lambda m: m["base_metrics"].get("speed_tps", 0), True, lambda m: isinstance(m["base_metrics"].get("speed_tps"), (int, float))),
-    "price": (lambda m: m.get("blended_price", 999), False, None),
+    "arena": (lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float))),
+    "speed": (lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float))),
+    "price": (lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None),
 }
 
 
 def partition_models_by_benchmark_coverage(models_list):
-    """Partition model list into tri-verified cohort (all 3 benchmarks) and missing-benchmark sub-cohorts."""
+    """Partition model list into tri-verified cohort (all 3 benchmarks), missing-benchmark sub-cohorts, and unmatched models."""
     tri_verified = []
     missing_livebench = []
     missing_lmarena = []
     missing_aa = []
     single_source = []
+    unmatched = []
 
     for m in models_list:
         has_live = (m.get("livebench", {}).get("overall") is not None) if isinstance(m.get("livebench"), dict) else (m.get("livebench") is not None)
         has_arena = m.get("base_metrics", {}).get("lm_elo") is not None
-        has_aa = m.get("aa_live_quality") is not None or m.get("base_metrics", {}).get("aa_quality") is not None
+        has_aa = (m.get("aa_live_quality") is not None) or (m.get("base_metrics", {}).get("aa_quality") is not None)
 
         count = (1 if has_live else 0) + (1 if has_arena else 0) + (1 if has_aa else 0)
         if count == 3:
@@ -1461,8 +1354,10 @@ def partition_models_by_benchmark_coverage(models_list):
                 missing_lmarena.append(m)
             elif not has_aa:
                 missing_aa.append(m)
-        else:
+        elif count == 1:
             single_source.append(m)
+        else:
+            unmatched.append(m)
 
     return {
         "tri_verified": tri_verified,
@@ -1470,7 +1365,103 @@ def partition_models_by_benchmark_coverage(models_list):
         "missing_lmarena": missing_lmarena,
         "missing_aa": missing_aa,
         "single_source": single_source,
+        "unmatched": unmatched,
     }
+
+
+def render_unmatched_models_cli(unmatched_models, color=True):
+    """Render prominent warning for catalog models that have 0 matching upstream benchmark signals ("See Something, Say Something")."""
+    if not unmatched_models:
+        return ""
+    lines = []
+    w_total = 95
+    header_text = "⚠️ UNMATCHED CATALOG MODELS (0 upstream benchmark evaluations found)"
+    sub_text = "See Something, Say Something: these catalog models have no verified evaluations:"
+    if color:
+        lines.append(f"\n{C_BOLD}{C_YELLOW}╭" + ("─" * w_total) + f"╮{C_RESET}")
+        title_padded = f" {header_text}" + (" " * max(0, w_total - display_len(header_text) - 1))
+        lines.append(f"{C_BOLD}{C_YELLOW}│{C_RESET}{C_BOLD}{C_WHITE}{title_padded}{C_RESET}{C_BOLD}{C_YELLOW}│{C_RESET}")
+        sub_padded = f" {sub_text}" + (" " * max(0, w_total - display_len(sub_text) - 1))
+        lines.append(f"{C_BOLD}{C_YELLOW}│{C_RESET}{C_DIM}{sub_padded}{C_RESET}{C_BOLD}{C_YELLOW}│{C_RESET}")
+        lines.append(f"{C_BOLD}{C_YELLOW}├────┬──────────────────────────┬───────┬────────────────────────────────────────────────────┤{C_RESET}")
+        for i, m in enumerate(unmatched_models, 1):
+            disp = m.get("display", "Unknown")[:24]
+            p_badge_str = pool_badge(m.get("pool", "api"), color=False)
+            la = ", ".join(m.get("live_aliases", [])[:2]) or "—"
+            lma = ", ".join(m.get("lm_aliases", [])[:2]) or "—"
+            info = f"LiveBench ({la}) · Arena ({lma}) -> 0 matches"[:50]
+            row_cells = [
+                color_cell(f"#{i}", C_GRAY, width=4, align="^", bg=BG_HEADER),
+                color_cell(disp, C_YELLOW, width=24, align="<", bg=BG_HEADER),
+                color_cell(p_badge_str, "", width=5, align="^", bg=BG_HEADER),
+                color_cell(info, C_DIM, width=50, align="<", bg=BG_HEADER),
+            ]
+            lines.append(f"{C_BOLD}{C_YELLOW}│{C_RESET}" + f"{C_BOLD}{C_YELLOW}│{C_RESET}".join(row_cells) + f"{C_BOLD}{C_YELLOW}│{C_RESET}")
+        lines.append(f"{C_BOLD}{C_YELLOW}╰────┴──────────────────────────┴───────┴────────────────────────────────────────────────────╯{C_RESET}")
+    else:
+        lines.append(f"\n" + "=" * (w_total + 2))
+        lines.append(f" {header_text}")
+        lines.append(f" {sub_text}")
+        lines.append("-" * (w_total + 2))
+        for i, m in enumerate(unmatched_models, 1):
+            disp = m.get("display", "Unknown")[:24]
+            p = pool_badge(m.get("pool", "api"), color=False)
+            la = ", ".join(m.get("live_aliases", [])[:2]) or "—"
+            lma = ", ".join(m.get("lm_aliases", [])[:2]) or "—"
+            lines.append(f" #{i:<2} {disp:<24} {p:^5} | LiveBench ({la}) · Arena ({lma}) -> 0 matches")
+        lines.append("-" * (w_total + 2))
+    return "\n".join(lines)
+
+
+def render_unmatched_models_md(unmatched_models):
+    """Render Markdown alert for catalog models missing all upstream benchmark signals."""
+    if not unmatched_models:
+        return ""
+    lines = [
+        "",
+        "### ⚠️ Unmatched Catalog Models (0 Upstream Benchmark Evaluations)",
+        "> **See Something, Say Something**: The following models configured in the catalog did not match any verified evaluation on LiveBench, LMArena, or Artificial Analysis:",
+        "",
+        "| Model | Pool | Checked LiveBench Aliases | Checked LMArena Aliases |",
+        "| :--- | :---: | :--- | :--- |",
+    ]
+    for m in unmatched_models:
+        disp = m.get("display", "Unknown")
+        p = m.get("pool", "api").upper()
+        la = ", ".join(m.get("live_aliases", [])) or "—"
+        lma = ", ".join(m.get("lm_aliases", [])) or "—"
+        lines.append(f"| {disp} | `[{p}]` | `{la}` | `{lma}` |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_unmatched_models_html(unmatched_models):
+    """Render HTML alert for catalog models missing all upstream benchmark signals."""
+    if not unmatched_models:
+        return ""
+    trs = []
+    for m in unmatched_models:
+        disp = html.escape(m.get("display", "Unknown"))
+        p = html.escape(m.get("pool", "api").upper())
+        la = html.escape(", ".join(m.get("live_aliases", [])) or "—")
+        lma = html.escape(", ".join(m.get("lm_aliases", [])) or "—")
+        trs.append(f"<tr><td style=\"font-weight:600;\">{disp}</td><td><code>[{p}]</code></td><td><code>{la}</code></td><td><code>{lma}</code></td></tr>")
+    return f"""
+    <div style="background: #2a1515; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-top: 24px;">
+        <h3 style="color: #ef4444; margin-top: 0;">⚠️ Unmatched Catalog Models (0 Upstream Benchmark Evaluations)</h3>
+        <p style="color: #cbd5e1; font-size: 0.9em;"><strong>See Something, Say Something</strong>: The following catalog models did not match any verified evaluation on LiveBench, LMArena, or Artificial Analysis:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+            <thead>
+                <tr style="text-align: left; color: #94a3b8; border-bottom: 1px solid #475569;">
+                    <th>Model</th><th>Pool</th><th>LiveBench Aliases</th><th>LMArena Aliases</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(trs)}
+            </tbody>
+        </table>
+    </div>
+    """
 
 
 def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10):
@@ -1509,8 +1500,8 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
             lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
             lb_val = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
             elo = m.get("base_metrics", {}).get("lm_elo")
-            elo_val = f"{int(elo)}" if isinstance(elo, (int, float)) else "—"
-            aa = m.get("aa_live_quality") or m.get("base_metrics", {}).get("aa_quality")
+            elo_val = _int_str(elo)
+            aa = m.get("aa_live_quality")
             aa_val = f"{aa:.1f}" if isinstance(aa, (int, float)) else "—"
             row_cells = [
                 color_cell(f"#{i}", C_SILVER if i == 2 else (C_GOLD if i == 1 else (C_BRONZE if i == 3 else C_WHITE)), width=4, align="^", bg=bg),
@@ -1541,16 +1532,16 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
             lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
             lb_val = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
             elo = m.get("base_metrics", {}).get("lm_elo")
-            elo_val = f"{int(elo)}" if isinstance(elo, (int, float)) else "—"
-            aa = m.get("aa_live_quality") or m.get("base_metrics", {}).get("aa_quality")
+            elo_val = _int_str(elo)
+            aa = m.get("aa_live_quality")
             aa_val = f"{aa:.1f}" if isinstance(aa, (int, float)) else "—"
             out.append(f"#{i:<3} {mid:<24} {p_badge_str:^5} {q:>6.1f} {p:>6.1f}% ${c:>7.2f} {lb_val:>6} {elo_val:>6} {aa_val:>10}")
         out.append("-" * (w_total + 2))
     return "\n".join(out)
 
 
-def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30):
-    """Render structured TUI table with adaptive terminal width, tri-verified main table, and missing-benchmark sub-tables."""
+def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30, unmatched_models=None):
+    """Render structured TUI table with adaptive terminal width, tri-verified main table, missing-benchmark sub-tables, and unmatched model alerts."""
     if color is None:
         color = not os.getenv("NO_COLOR")
 
@@ -1612,18 +1603,18 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Price", 12, ">"),
         ]
 
-    top_frontier = max(primary_models, key=lambda m: m.get("fgi_score", 0)) if primary_models else None
-    top_avi = max(primary_models, key=lambda m: m.get("avi_score", 0)) if primary_models else None
-    top_speed = max(primary_models, key=lambda m: m.get("base_metrics", {}).get("speed_tps") or 0) if primary_models else None
+    top_frontier = max(primary_models, key=lambda m: m.get("fgi_score") or 0.0) if primary_models else None
+    top_avi = max(primary_models, key=lambda m: m.get("avi_score") or 0.0) if primary_models else None
+    top_speed = max(primary_models, key=lambda m: m.get("base_metrics", {}).get("speed_tps") or 0.0) if primary_models else None
 
     # Total inner width between outer box borders
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     # 1. Executive Summary Banner
     title_str = "⚡ TRI-VERIFIED AGENTIC RADAR (LiveBench · Arena.ai · AA)"
-    f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score', 0):.1f})" if top_frontier else ""
-    v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score', 0):.1f})" if top_avi else ""
-    s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed.get('base_metrics', {}).get('speed_tps') or 0:.0f}t/s)" if top_speed else ""
+    f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score') or 0.0:.1f})" if top_frontier and top_frontier.get("fgi_score") is not None else ""
+    v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score') or 0.0:.1f})" if top_avi and top_avi.get("avi_score") is not None else ""
+    s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed.get('base_metrics', {}).get('speed_tps') or 0.0:.0f}t/s)" if top_speed and top_speed.get("base_metrics", {}).get("speed_tps") is not None else ""
     count_label = f"Tri-Verified: {total_tri} models (Top {shown_models} shown)" if shown_models < total_tri else f"Tri-Verified: {total_tri} models"
     if is_slim:
         summary_str = f" {count_label} │ {f_info} │ {v_info}"
@@ -1686,7 +1677,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
 
         mid_raw = m["display"]
         is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
-        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (mid_raw[:22] in pareto_ids) or (mid_raw[:20] in pareto_ids)
+        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
 
         m_name_w = headers[1][1]
         mid = (("+" if is_added else "") + mid_raw)[:m_name_w]
@@ -1705,11 +1696,11 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         speed_badge = medal_badge(meds.get("speed"), color=color)
         price_badge = medal_badge(meds.get("price"), color=color)
 
-        q_val = m.get("capability_q", 0)
-        p_val = m.get("p_success", 0)
-        eff_cost = m.get("effective_cost", 0)
-        avi = m.get("avi_score", 0)
-        fgi = m.get("fgi_score", 0)
+        q_val = m.get("capability_q")
+        p_val = m.get("p_success")
+        eff_cost = m.get("effective_cost")
+        avi = m.get("avi_score")
+        fgi = m.get("fgi_score")
         lb = m.get("livebench", {})
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lcod = bm.get("lm_coding", "-")
@@ -1719,13 +1710,13 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         pout = m.get("price_out", 0.0)
         price_str = format_compact_price(pin, pout)
 
-        q_disp = f"{q_val:.1f}" + q_badge
-        p_disp = f"{p_val:.1f}%" + psucc_badge
-        eff_disp = f"${eff_cost:.2f}" + eff_badge
-        avi_disp = f"{avi:.1f}" + avi_badge
-        fgi_disp = f"{fgi:.1f}" + fgi_badge
+        q_disp = (f"{q_val:.1f}" if q_val is not None else "—") + q_badge
+        p_disp = (f"{p_val:.1f}%" if p_val is not None else "—") + psucc_badge
+        eff_disp = (f"${eff_cost:.2f}" if eff_cost is not None else "—") + eff_badge
+        avi_disp = (f"{avi:.1f}" if avi is not None else "—") + avi_badge
+        fgi_disp = (f"{fgi:.1f}" if fgi is not None else "—") + fgi_badge
         lb_disp = (f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—") + live_badge
-        elo_disp = (f"{int(elo)}" if isinstance(elo, (int, float)) else f"{elo}") + arena_badge
+        elo_disp = ((_int_str(elo) if isinstance(elo, (int, float)) else f"{elo}") + arena_badge)
         spd_disp = (f"{spd:.0f}t/s" if isinstance(spd, (int, float)) else f"{spd}") + speed_badge
         price_disp = price_str + price_badge
 
@@ -1737,11 +1728,11 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             else:
                 mid_color = C_WHITE
 
-            q_color = score_color_q(q_val)
-            p_color = score_color_p(p_val)
-            eff_color = C_GREEN if eff_cost < 2.0 else (C_CYAN if eff_cost < 10.0 else (C_YELLOW if eff_cost < 25.0 else C_MAGENTA))
-            avi_color = score_color_avi(avi)
-            fgi_color = score_color_fgi(fgi)
+            q_color = score_color_q(q_val or 0.0)
+            p_color = score_color_p(p_val or 0.0)
+            eff_color = C_GREEN if (eff_cost is not None and eff_cost < 2.0) else (C_CYAN if (eff_cost is not None and eff_cost < 10.0) else (C_YELLOW if (eff_cost is not None and eff_cost < 25.0) else C_MAGENTA))
+            avi_color = score_color_avi(avi or 0.0)
+            fgi_color = score_color_fgi(fgi or 0.0)
             lb_color = C_GREEN if (isinstance(lb_res, (int, float)) and lb_res >= 78.0) else (C_CYAN if (isinstance(lb_res, (int, float)) and lb_res >= 70.0) else (C_YELLOW if (isinstance(lb_res, (int, float)) and lb_res >= 60.0) else C_GRAY))
             elo_color = C_GREEN if (isinstance(elo, (int, float)) and elo >= 1480) else (C_CYAN if (isinstance(elo, (int, float)) and elo >= 1440) else (C_YELLOW if (isinstance(elo, (int, float)) and elo >= 1400) else C_GRAY))
             spd_color = C_GREEN if (isinstance(spd, (int, float)) and spd >= 100) else (C_CYAN if (isinstance(spd, (int, float)) and spd >= 60) else C_WHITE)
@@ -1812,6 +1803,15 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         if sub_t:
             out.append(sub_t)
 
+    all_unmatched = list(unmatched_models or [])
+    for um in partitions.get("unmatched", []):
+        if um not in all_unmatched:
+            all_unmatched.append(um)
+    if all_unmatched:
+        sub_t = render_unmatched_models_cli(all_unmatched, color=color)
+        if sub_t:
+            out.append(sub_t)
+
     out.append("")
     out.extend(render_metric_guide_cli(
         "Metric Decision Guide",
@@ -1843,16 +1843,16 @@ def render_podium_table(models_list, color=None):
         color = not os.getenv("NO_COLOR")
 
     cols = [
-        ("Q(Cap) — Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
-        ("FGI — Architectural Gate", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
-        ("AVI — Daily Driver ROI", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
+        ("Q(Cap) — Capability", lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None, lambda m: f"{m.get('capability_q') or 0.0:.1f}"),
+        ("FGI — Architectural Gate", lambda m: m.get("fgi_score") or 0.0, True, lambda m: m.get("fgi_score") is not None, lambda m: f"{m.get('fgi_score') or 0.0:.1f}"),
+        ("AVI — Daily Driver ROI", lambda m: m.get("avi_score") or 0.0, True, lambda m: m.get("avi_score") is not None, lambda m: f"{m.get('avi_score') or 0.0:.1f}"),
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
-        ("Arena.ai — Global Elo", lambda m: m["base_metrics"].get("lm_elo", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_elo"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_elo'))}"),
-        ("Coding Elo — LMSYS Arena", lambda m: m["base_metrics"].get("lm_coding", 0), True, lambda m: isinstance(m["base_metrics"].get("lm_coding"), (int, float)), lambda m: f"{int(m['base_metrics'].get('lm_coding'))}"),
-        ("Speed — Throughput", lambda m: m["base_metrics"].get("speed_tps", 0), True, lambda m: isinstance(m["base_metrics"].get("speed_tps"), (int, float)), lambda m: f"{int(m['base_metrics'].get('speed_tps'))} t/s"),
-        ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost", 999), False, None, lambda m: f"${m.get('effective_cost', 0):.2f}"),
-        ("Price — Blended $/M", lambda m: m.get("blended_price", 999), False, None, lambda m: f"${m.get('blended_price', 0):.2f}"),
-        ("P(Succ) — Pass Rate", lambda m: m.get("p_success", 0), True, None, lambda m: f"{m.get('p_success', 0):.1f}%"),
+        ("Arena.ai — Global Elo", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
+        ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Speed — Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
+        ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
+        ("Price — Blended $/M", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
+        ("P(Succ) — Pass Rate", lambda m: m.get("p_success") or 0.0, True, lambda m: m.get("p_success") is not None, lambda m: f"{m.get('p_success') or 0.0:.1f}%"),
     ]
 
     headers = [
@@ -1950,8 +1950,8 @@ def render_sub_table_md(sub_models, title, top_n=10):
         lb = m.get("livebench")
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
-        elo_str = f"{int(bm['lm_elo'])}" if isinstance(bm.get("lm_elo"), (int, float)) else "—"
-        aa_val = m.get("aa_live_quality") or bm.get("aa_quality")
+        elo_str = _int_str(bm.get("lm_elo"))
+        aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
         cost = f"${m['price_in']:.2f} / ${m['price_out']:.2f}"
         lines.append(f"| #{i} | **{mid_raw}** | {sub} | {q} | {psucc} | {eff_cost} | {lb_str} | {elo_str} | {aa_str} | {cost} |")
@@ -1970,8 +1970,8 @@ def render_sub_table_html(sub_models, title, top_n=10):
         lb = m.get("livebench")
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
-        elo_str = f"{int(bm['lm_elo'])}" if isinstance(bm.get("lm_elo"), (int, float)) else "—"
-        aa_val = m.get("aa_live_quality") or bm.get("aa_quality")
+        elo_str = _int_str(bm.get("lm_elo"))
+        aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
         trs.append(f"""
         <tr>
@@ -2013,8 +2013,8 @@ def render_sub_table_html(sub_models, title, top_n=10):
     """
 
 
-def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int | None = 30):
-    """Render detailed Markdown report with tri-verified master leaderboard and partial benchmark sub-tables."""
+def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int | None = 30, unmatched_models=None):
+    """Render detailed Markdown report with tri-verified master leaderboard, partial benchmark sub-tables, and unmatched models."""
     if pareto_ids is None:
         pareto_ids = compute_pareto_frontier(models_list)
 
@@ -2049,19 +2049,24 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
     for m in display_models:
         bm = m.get("base_metrics", {})
         mid_raw = m['display']
-        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (mid_raw[:22] in pareto_ids) or (mid_raw[:20] in pareto_ids)
+        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
         mid = f"⭐ **{mid_raw}**" if is_pareto else f"**{mid_raw}**"
         sub = f"`{m['pool'].upper()}` ({m['tier']})"
-        q = f"**{m.get('capability_q', 0):.1f}**"
-        psucc = f"{m.get('p_success', 0):.1f}%"
-        eff_cost = f"${m.get('effective_cost', 0):.2f}"
-        avi = f"**{m.get('avi_score', 0):.1f}**"
-        fgi = f"{m.get('fgi_score', 0):.1f}"
+        q_val = m.get("capability_q")
+        q = f"**{q_val:.1f}**" if q_val is not None else "—"
+        psucc_val = m.get("p_success")
+        psucc = f"{psucc_val:.1f}%" if psucc_val is not None else "—"
+        eff_cost_val = m.get("effective_cost")
+        eff_cost = f"${eff_cost_val:.2f}" if eff_cost_val is not None else "—"
+        avi_val = m.get("avi_score")
+        avi = f"**{avi_val:.1f}**" if avi_val is not None else "—"
+        fgi_val = m.get("fgi_score")
+        fgi = f"{fgi_val:.1f}" if fgi_val is not None else "—"
         lb = m.get("livebench", {})
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
-        elo_str = f"{int(bm['lm_elo'])}" if isinstance(bm.get("lm_elo"), (int, float)) else "—"
-        aa_val = m.get("aa_live_quality") or bm.get("aa_quality")
+        elo_str = _int_str(bm.get("lm_elo"))
+        aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
         cost = f"${m['price_in']:.2f} / ${m['price_out']:.2f}"
 
@@ -2084,17 +2089,24 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
     if single_source:
         lines.append(render_sub_table_md(single_source, "2.4 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)", top_n=10))
 
+    all_unmatched = list(unmatched_models or [])
+    for um in partitions.get("unmatched", []):
+        if um not in all_unmatched:
+            all_unmatched.append(um)
+    if all_unmatched:
+        lines.append(render_unmatched_models_md(all_unmatched))
+
     podium_cols = [
-        ("Q(Cap) — Composite Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
-        ("FGI — Architectural Gate Index", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
-        ("AVI — Agentic Value Index (ROI)", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
+        ("Q(Cap) — Composite Capability", lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None, lambda m: f"{m.get('capability_q') or 0.0:.1f}"),
+        ("FGI — Architectural Gate Index", lambda m: m.get("fgi_score") or 0.0, True, lambda m: m.get("fgi_score") is not None, lambda m: f"{m.get('fgi_score') or 0.0:.1f}"),
+        ("AVI — Agentic Value Index (ROI)", lambda m: m.get("avi_score") or 0.0, True, lambda m: m.get("avi_score") is not None, lambda m: f"{m.get('avi_score') or 0.0:.1f}"),
         ("LiveBench (%) — Decontaminated", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
-        ("Arena.ai Elo — Global Arena", lambda m: m.get("base_metrics", {}).get("lm_elo", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('lm_elo'))}"),
-        ("Coding Elo — LMSYS Arena", lambda m: m.get("base_metrics", {}).get("lm_coding", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('lm_coding'))}"),
-        ("Speed — Generation Throughput", lambda m: m.get("base_metrics", {}).get("speed_tps", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
-        ("Eff $/M — Real Solved Task Cost", lambda m: m.get("effective_cost", 999), False, None, lambda m: f"${m.get('effective_cost', 0):.2f}"),
-        ("Price — Blended Raw Cost", lambda m: m.get("blended_price", 999), False, None, lambda m: f"${m.get('blended_price', 0):.2f}"),
-        ("P(Succ) (%) — 1-Turn Pass Rate", lambda m: m.get("p_success", 0), True, None, lambda m: f"{m.get('p_success', 0):.1f}%"),
+        ("Arena.ai Elo — Global Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
+        ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Speed — Generation Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
+        ("Eff $/M — Real Solved Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
+        ("Price — Blended Raw Cost", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
+        ("P(Succ) (%) — 1-Turn Pass Rate", lambda m: m.get("p_success") or 0.0, True, lambda m: m.get("p_success") is not None, lambda m: f"{m.get('p_success') or 0.0:.1f}%"),
     ]
 
     lines.extend([
@@ -2142,8 +2154,8 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
     return "\n".join(lines)
 
 
-def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30):
-    """Render standalone HTML dashboard with tri-verified table and sub-tables."""
+def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30, unmatched_models=None):
+    """Render standalone HTML dashboard with tri-verified table, sub-tables, and unmatched models."""
     if pareto_ids is None:
         pareto_ids = compute_pareto_frontier(models_list)
 
@@ -2170,7 +2182,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         bm = m.get("base_metrics", {})
         mid_raw = m['display']
         is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
-        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (mid_raw[:22] in pareto_ids) or (mid_raw[:20] in pareto_ids)
+        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
         pool_cls = {"claude": "badge-cld", "agy": "badge-agy", "ocgo": "badge-ocg", "frontier": "badge-frt"}.get(m["pool"], "")
 
         lb = m.get("livebench", {})
@@ -2190,16 +2202,27 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             row_cls_parts.append("pareto")
         row_cls = f" class='{' '.join(row_cls_parts)}'" if row_cls_parts else ""
 
+        q_val = m.get('capability_q')
+        q_str = f"{q_val:.1f}" if q_val is not None else "—"
+        p_val = m.get('p_success')
+        p_str = f"{p_val:.1f}%" if p_val is not None else "—"
+        eff_val = m.get('effective_cost')
+        eff_str = f"${eff_val:.2f}" if eff_val is not None else "—"
+        avi_val = m.get('avi_score')
+        avi_str = f"{avi_val:.1f}" if avi_val is not None else "—"
+        fgi_val = m.get('fgi_score')
+        fgi_str = f"{fgi_val:.1f}" if fgi_val is not None else "—"
+
         trs.append(f"""
         <tr{row_cls}>
             <td style="font-weight:600;">{name_html}</td>
             <td><span class="badge {pool_cls}">{m['pool'].upper()}</span></td>
             <td>{html.escape(m['tier'])}</td>
-            <td style="font-weight:700; color:#2563eb;">{m.get('capability_q', 0):.1f}</td>
-            <td>{m.get('p_success', 0):.1f}%</td>
-            <td>${m.get('effective_cost', 0):.2f}</td>
-            <td style="font-weight:700; color:#10b981;">{m.get('avi_score', 0):.1f}</td>
-            <td style="font-weight:700; color:#8b5cf6;">{m.get('fgi_score', 0):.1f}</td>
+            <td style="font-weight:700; color:#2563eb;">{q_str}</td>
+            <td>{p_str}</td>
+            <td>{eff_str}</td>
+            <td style="font-weight:700; color:#10b981;">{avi_str}</td>
+            <td style="font-weight:700; color:#8b5cf6;">{fgi_str}</td>
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
             <td>{bm.get('lm_coding', '—')}</td>
             <td>{bm.get('speed_tps', '—')} t/s</td>
@@ -2208,16 +2231,16 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         """)
 
     podium_cols = [
-        ("Q(Cap) — Capability", lambda m: m.get("capability_q", 0), True, None, lambda m: f"{m.get('capability_q', 0):.1f}"),
-        ("FGI — Architectural Gate", lambda m: m.get("fgi_score", 0), True, None, lambda m: f"{m.get('fgi_score', 0):.1f}"),
-        ("AVI — Daily Driver ROI", lambda m: m.get("avi_score", 0), True, None, lambda m: f"{m.get('avi_score', 0):.1f}"),
+        ("Q(Cap) — Capability", lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None, lambda m: f"{m.get('capability_q') or 0.0:.1f}"),
+        ("FGI — Architectural Gate", lambda m: m.get("fgi_score") or 0.0, True, lambda m: m.get("fgi_score") is not None, lambda m: f"{m.get('fgi_score') or 0.0:.1f}"),
+        ("AVI — Daily Driver ROI", lambda m: m.get("avi_score") or 0.0, True, lambda m: m.get("avi_score") is not None, lambda m: f"{m.get('avi_score') or 0.0:.1f}"),
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
-        ("Arena.ai — Global Elo", lambda m: m.get("base_metrics", {}).get("lm_elo", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('lm_elo'))}"),
-        ("Coding Elo — LMSYS Arena", lambda m: m.get("base_metrics", {}).get("lm_coding", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('lm_coding'))}"),
-        ("Speed — Throughput", lambda m: m.get("base_metrics", {}).get("speed_tps", 0), True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{int(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
-        ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost", 999), False, None, lambda m: f"${m.get('effective_cost', 0):.2f}"),
-        ("Price — Blended $/M", lambda m: m.get("blended_price", 999), False, None, lambda m: f"${m.get('blended_price', 0):.2f}"),
-        ("P(Succ) — Pass Rate", lambda m: m.get("p_success", 0), True, None, lambda m: f"{m.get('p_success', 0):.1f}%"),
+        ("Arena.ai — Global Elo", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
+        ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Speed — Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
+        ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
+        ("Price — Blended $/M", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
+        ("P(Succ) — Pass Rate", lambda m: m.get("p_success") or 0.0, True, lambda m: m.get("p_success") is not None, lambda m: f"{m.get('p_success') or 0.0:.1f}%"),
     ]
 
     podium_trs = []
@@ -2252,6 +2275,13 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         sub_tables_html.append(render_sub_table_html(miss_aa, "🧪 Top 10 — Missing Artificial Analysis (LiveBench + Arena Evaluated)", top_n=10))
     if single_source:
         sub_tables_html.append(render_sub_table_html(single_source, "🚀 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)", top_n=10))
+
+    all_unmatched = list(unmatched_models or [])
+    for um in partitions.get("unmatched", []):
+        if um not in all_unmatched:
+            all_unmatched.append(um)
+    if all_unmatched:
+        sub_tables_html.append(render_unmatched_models_html(all_unmatched))
 
     removed_html = ""
     if removed_models:
@@ -2403,8 +2433,9 @@ def main():
     catalog = build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
     calculate_composite_scores(catalog)
 
-    # Filter to models with verified benchmark evaluations
-    models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+    # Filter to models with verified benchmark evaluations; track unmatched models explicitly ("See Something, Say Something")
+    unmatched_catalog = [m for m in catalog.values() if m.get("unmatched") or (not m.get("livebench") and not m.get("aa_live_quality") and not m.get("base_metrics", {}).get("lm_elo"))]
+    models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo")]
 
     # Diffing + baseline run catalog-wide BEFORE --pool view filtering: a subset baseline would
     # fake-REMOVE every model excluded by the current view.
@@ -2426,25 +2457,25 @@ def main():
         models = [m for m in models if m["pool"] == args.pool]
 
     if args.sort == "composite":
-        models.sort(key=lambda m: m.get("composite_score", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("composite_score") or 0.0), reverse=True)
     elif args.sort == "avi":
-        models.sort(key=lambda m: m.get("avi_score", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("avi_score") or 0.0), reverse=True)
     elif args.sort == "fgi":
-        models.sort(key=lambda m: m.get("fgi_score", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("fgi_score") or 0.0), reverse=True)
     elif args.sort == "bfi":
-        models.sort(key=lambda m: m.get("bfi_score", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("bfi_score") or 0.0), reverse=True)
     elif args.sort == "coding":
-        models.sort(key=lambda m: m.get("base_metrics", {}).get("lm_coding", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("base_metrics", {}).get("lm_coding") or m.get("aa_live_coding") or 0.0), reverse=True)
     elif args.sort == "reasoning":
-        models.sort(key=lambda m: m.get("base_metrics", {}).get("aa_reasoning", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else 0.0) or 0.0, reverse=True)
     elif args.sort == "speed":
-        models.sort(key=lambda m: m.get("base_metrics", {}).get("speed_tps", 0), reverse=True)
+        models.sort(key=lambda m: (m.get("base_metrics", {}).get("speed_tps") or 0.0), reverse=True)
     elif args.sort == "live":
-        models.sort(key=lambda m: (m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") or 0)), reverse=True)
+        models.sort(key=lambda m: (m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") or 0.0)) or 0.0, reverse=True)
     elif args.sort == "price":
-        models.sort(key=lambda m: m.get("price_in", 999))
+        models.sort(key=lambda m: m.get("price_in") if m.get("price_in") is not None else 999.0)
     elif args.sort == "effective_cost":
-        models.sort(key=lambda m: m.get("effective_cost", 999))
+        models.sort(key=lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0)
 
     if args.json:
         display_models = models[:top_n] if (top_n and len(models) > top_n) else models
@@ -2452,7 +2483,7 @@ def main():
         return
 
     if args.md:
-        md_text = render_markdown_report(models, top_n=top_n)
+        md_text = render_markdown_report(models, top_n=top_n, unmatched_models=unmatched_catalog)
         if args.md == "stdout":
             print(md_text)
         else:
@@ -2462,7 +2493,7 @@ def main():
         return
 
     if args.html:
-        html_text = render_html_report(models, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note, top_n=top_n)
+        html_text = render_html_report(models, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note, top_n=top_n, unmatched_models=unmatched_catalog)
         p = pathlib.Path(args.html)
         bc.atomic_write_text(p, html_text)
         print(f"Wrote HTML dashboard to {args.html}")
@@ -2474,7 +2505,7 @@ def main():
         return
 
     slim_opt = True if args.slim else (False if args.wide else None)
-    print(render_cli_table(models, color=use_color, slim=slim_opt, wide=args.wide, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note, top_n=top_n))
+    print(render_cli_table(models, color=use_color, slim=slim_opt, wide=args.wide, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note, top_n=top_n, unmatched_models=unmatched_catalog))
 
 
 if __name__ == "__main__":

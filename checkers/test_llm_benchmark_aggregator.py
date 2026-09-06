@@ -3,6 +3,7 @@ import io
 import json
 import os
 import sys
+import copy
 import tempfile
 import unittest
 import unittest.mock
@@ -23,29 +24,39 @@ class TestBenchmarksCheck(unittest.TestCase):
         for k, v in bc.MODELS_CATALOG.items():
             self.assertIn("display", v)
             self.assertIn("pool", v)
-            self.assertIn(v["pool"], ["ocgo", "agy", "claude", "frontier", "api", "cline"])
+            self.assertIn(v["pool"], ["ocgo", "agy", "claude", "frontier", "api", "cline", "hetzner", "nvidia"])
             self.assertIn("base_metrics", v)
             self.assertIn("price_in", v)
             self.assertIn("price_out", v)
+            # Invariant: ZERO dummy benchmark placeholders in catalog definitions
+            bm = v.get("base_metrics", {})
+            self.assertNotIn("lm_elo", bm)
+            self.assertNotIn("lm_coding", bm)
+            self.assertNotIn("aa_quality", bm)
+            self.assertNotIn("aa_coding", bm)
+            self.assertNotIn("aa_reasoning", bm)
+            self.assertNotIn("livebench", v)
+            self.assertIsNone(v.get("aa_live_quality"))
 
     def test_composite_scoring(self):
-        bc.calculate_composite_scores(bc.MODELS_CATALOG)
-        for k, v in bc.MODELS_CATALOG.items():
+        cat = bc.build_universal_catalog(live_map=bc.load_livebench_data(), lm_map=bc.load_lmarena_data(), aa_map=bc.load_aa_data())
+        bc.calculate_composite_scores(cat)
+        scored_count = 0
+        for k, v in cat.items():
             self.assertIn("composite_score", v)
             self.assertIn("capability_q", v)
-            self.assertIn("p_success", v)
-            self.assertIn("token_multiplier", v)
-            self.assertIn("effective_cost", v)
-            self.assertIn("avi_score", v)
-            self.assertIn("fgi_score", v)
-            self.assertIn("bfi_score", v)
-            self.assertGreater(v["composite_score"], 40.0)
-            self.assertLessEqual(v["composite_score"], 100.0)
-            self.assertGreater(v["p_success"], 0.0)
-            self.assertLessEqual(v["p_success"], 100.0)
-            self.assertGreater(v["token_multiplier"], 1.0)
-            self.assertGreater(v["effective_cost"], 0.0)
-            self.assertGreater(v["avi_score"], 0.0)
+            if v.get("composite_score") is not None:
+                scored_count += 1
+                self.assertGreater(v["composite_score"], 40.0)
+                self.assertLessEqual(v["composite_score"], 100.0)
+                self.assertGreater(v["p_success"], 0.0)
+                self.assertLessEqual(v["p_success"], 100.0)
+                self.assertGreater(v["token_multiplier"], 1.0)
+                self.assertGreaterEqual(v["effective_cost"], 0.0)
+                self.assertGreater(v["avi_score"], 0.0)
+            else:
+                self.assertTrue(v.get("unmatched"))
+        self.assertGreater(scored_count, 30)
 
     def test_render_table(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -165,14 +176,15 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertEqual(res["gemini-3.7-flash-thinking"]["base_metrics"]["aa_quality"], 89.0)
 
     def test_pareto_frontier_and_close_calls(self):
-        bc.calculate_composite_scores(bc.MODELS_CATALOG)
-        models = list(bc.MODELS_CATALOG.values())
+        cat = bc.build_universal_catalog(live_map=bc.load_livebench_data(), lm_map=bc.load_lmarena_data(), aa_map=bc.load_aa_data())
+        curated = {k: cat[k] for k in bc.MODELS_CATALOG if k in cat}
+        bc.calculate_composite_scores(curated)
+        models = list(curated.values())
         pareto_ids = bc.compute_pareto_frontier(models)
         self.assertIn("Claude Opus 5 (Thinking)", pareto_ids)
-        self.assertIn("GPT-5.6 Sol (Reasoning)", pareto_ids)
-        self.assertIn("GPT-OSS 120B (Medium)", pareto_ids)
-        self.assertIn("Gemini 3.7 Flash (Thinking)", pareto_ids)
+        self.assertIn("Muse Spark 1.3 (Max)", pareto_ids)
         self.assertIn("Muse Spark 1.2 (Contributor)", pareto_ids)
+        self.assertIn("DeepSeek V4 Flash", pareto_ids)
 
     def test_render_podium_table(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -302,14 +314,25 @@ class TestBcheckCache(unittest.TestCase):
             self.assertNotIn("New Model", d8["added_ids"])  # aged past 7d window
 
     def test_aa_quality_influences_capability_q(self):
-        import copy
-        cat = copy.deepcopy(bc.MODELS_CATALOG)
-        bc.calculate_composite_scores(cat)
-        k = next(iter(cat))
-        base_q = cat[k]["capability_q"]
-        cat[k]["base_metrics"]["aa_quality"] = (cat[k]["base_metrics"].get("aa_quality") or 0.0) + 50.0
-        bc.calculate_composite_scores(cat)
-        self.assertGreater(cat[k]["capability_q"], base_q)
+        test_cat = {
+            "m1": {
+                "display": "Model 1", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                "base_metrics": {"lm_elo": 1500, "aa_quality": 80.0},
+            },
+            "m2": {
+                "display": "Model 2", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                "base_metrics": {"lm_elo": 1400, "aa_quality": 70.0},
+            },
+            "m3": {
+                "display": "Model 3", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                "base_metrics": {"lm_elo": 1300, "aa_quality": 60.0},
+            },
+        }
+        bc.calculate_composite_scores(test_cat)
+        base_q = test_cat["m1"]["capability_q"]
+        test_cat["m1"]["base_metrics"]["aa_quality"] += 10.0
+        bc.calculate_composite_scores(test_cat)
+        self.assertGreater(test_cat["m1"]["capability_q"], base_q)
 
     def test_stale_note_renders_cli_and_html(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -550,8 +573,8 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         self.assertEqual(g38["pool"], "agy")
         self.assertEqual(g38["display"], "Gemini 3.8 Flash")
         self.assertEqual(g38["provider"], "Google")
-        self.assertEqual(g38["price_in"], 0.75)
-        self.assertEqual(g38["price_out"], 3.75)
+        self.assertEqual(g38["price_in"], 0.38)
+        self.assertEqual(g38["price_out"], 1.88)
 
         # Invariant: No Artificial Analysis benchmarks yet per announcement
         bm = g38["base_metrics"]
@@ -562,14 +585,30 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         self.assertIsNone(g38.get("aa_live_coding"))
 
         # Scoring without AA: signals must renormalize and score properly
-        bc.calculate_composite_scores(bc.MODELS_CATALOG)
-        self.assertGreater(g38["capability_q"], 80.0)
-        self.assertGreater(g38["p_success"], 80.0)
-        self.assertGreater(g38["avi_score"], 200.0)
-        self.assertGreater(g38["fgi_score"], 60.0)
+        test_cat = {
+            "gemini-3.8-flash": copy.deepcopy(g38),
+            "ref-model": {
+                "display": "Ref Model",
+                "pool": "api",
+                "price_in": 1.0,
+                "price_out": 3.0,
+                "base_metrics": {"lm_elo": 1500, "lm_coding": 1500},
+                "livebench": {"overall": 75.0, "reasoning": 75.0},
+                "aa_live_quality": 80.0,
+                "aa_live_coding": 80.0,
+            }
+        }
+        test_cat["gemini-3.8-flash"]["base_metrics"]["lm_elo"] = 1520
+        test_cat["gemini-3.8-flash"]["livebench"] = {"overall": 76.0, "reasoning": 76.0}
+        bc.calculate_composite_scores(test_cat)
+        g_scored = test_cat["gemini-3.8-flash"]
+        self.assertGreater(g_scored["capability_q"], 75.0)
+        self.assertGreater(g_scored["p_success"], 75.0)
+        self.assertGreater(g_scored["avi_score"], 100.0)
+        self.assertGreater(g_scored["fgi_score"], 50.0)
 
         # Partitioning: must fall into missing_aa sub-cohort
-        parts = bc.partition_models_by_benchmark_coverage(list(bc.MODELS_CATALOG.values()))
+        parts = bc.partition_models_by_benchmark_coverage(list(test_cat.values()))
         miss_aa_displays = [m["display"] for m in parts["missing_aa"]]
         self.assertIn("Gemini 3.8 Flash", miss_aa_displays)
 

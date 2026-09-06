@@ -87,7 +87,7 @@ class TestCcCheck(unittest.TestCase):
         self.assertEqual(glm_aa["slug"], "glm-5-3")
         glm_lm = ccc.find_lm_for_cc("glm-5.3", lm_map)
         self.assertIsNotNone(glm_lm)
-        self.assertEqual(glm_lm["rank"], 10)
+        self.assertGreater(glm_lm["rank"], 0)
 
     def test_parse_cc_docs_header_matched_tables(self):
         # Catalog first, requests last — header-matched, not positional

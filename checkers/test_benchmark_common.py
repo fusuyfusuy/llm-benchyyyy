@@ -125,6 +125,8 @@ class TestBenchmarkCommon(unittest.TestCase):
         self.assertEqual(bc.pool_badge("or", color=False), "[OR]")
         self.assertEqual(bc.pool_badge("cline", color=False), "[CLN]")
         self.assertEqual(bc.pool_badge("cln", color=False), "[CLN]")
+        self.assertEqual(bc.pool_badge("hetzner", color=False), "[HTZ]")
+        self.assertEqual(bc.pool_badge("nvidia", color=False), "[NVD]")
 
     def test_parsers_synthetic(self):
         # Test LiveBench

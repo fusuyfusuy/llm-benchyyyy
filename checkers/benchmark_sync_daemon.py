@@ -212,7 +212,7 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
         aa_map = lba.load_aa_data(fetch=False)
         cat = lba.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
         lba.calculate_composite_scores(cat)
-        models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+        models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo")]
         prev_snap = lba.load_previous_snapshot(DATA / "benchmarks.json")
         diff = lba.diff_model_catalog(models, prev_snap, id_key="display")
         models = diff["rows"]

@@ -55,6 +55,8 @@ C_OCGO = "\033[38;5;48m"      # Emerald Green
 C_FRONTIER = "\033[38;5;141m" # Violet / Purple
 C_OPENROUTER = "\033[38;5;51m"# Cyan
 C_CLINE = "\033[38;5;39m"     # Dodger Blue / Sky Accent
+C_HETZNER = "\033[38;5;203m"   # Hetzner Red / Coral
+C_NVIDIA = "\033[38;5;118m"    # NVIDIA Lime Green
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -111,7 +113,9 @@ VARIANT_TOKENS = frozenset({
 
 def strip_tier_tokens(s: str) -> str:
     """Strip trailing effort/tier tokens from a normalized slug."""
-    toks = (norm_model_slug(s) or "").split("-")
+    s_norm = norm_model_slug(s) or ""
+    s_norm = re.sub(r"(\d+)(xhigh|high|medium|low|minimal|max)$", r"\1-\2", s_norm)
+    toks = s_norm.split("-")
     while toks and toks[-1] in TIER_TOKENS:
         toks.pop()
     return "-".join(toks)
@@ -1189,6 +1193,12 @@ def pool_badge(pool: str, color: bool = True) -> str:
     elif p in ("api", "upstream", "ext"):
         col = C_CYAN
         tag = "API"
+    elif p in ("hetzner", "htz"):
+        col = C_HETZNER
+        tag = "HTZ"
+    elif p in ("nvidia", "nvd"):
+        col = C_NVIDIA
+        tag = "NVD"
     elif p in ("stealth", "stl"):
         col = C_MAGENTA
         tag = "STL"
