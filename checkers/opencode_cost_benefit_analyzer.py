@@ -102,86 +102,103 @@ ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
-# ---------- fallback catalog (from docs snapshot 2026-08-21) ----------
+# ---------- fallback catalog (from live docs 2026-09-08: https://opencode.ai/docs/go/#usage-limits) ----------
 # pricing per 1M tokens, usage = monthly_usage_limit_usd
+# pooled caps: $12/5h · $30/wk · $60/mo; per-model window cap = pool × (usage/60)
 FALLBACK_PRICING = {
-    "grok-4.5": {"input": 2.00, "output": 6.00, "cached_read": 0.30, "cached_write": None, "usage": 15},
+    "grok-4.6": {"input": 2.00, "output": 6.00, "cached_read": 0.50, "cached_write": None, "usage": 15},
     "gpt-5.6-luna": {"input": 0.20, "output": 1.20, "cached_read": 0.02, "cached_write": 0.25, "usage": 15},
+    "glm-5.3-flash": {"input": 0.15, "output": 0.50, "cached_read": 0.03, "cached_write": None, "usage": 15},
     "glm-5.3": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 15},
     "glm-5.2": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 60},
     "glm-5.1": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 60},
-    "glm-5": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 60},
     "kimi-k3": {"input": 3.00, "output": 15.00, "cached_read": 0.30, "cached_write": None, "usage": 15},
     "kimi-k2.7-code": {"input": 0.95, "output": 4.00, "cached_read": 0.19, "cached_write": None, "usage": 60},
     "kimi-k2.6": {"input": 0.95, "output": 4.00, "cached_read": 0.16, "cached_write": None, "usage": 60},
-    "kimi-k2.5": {"input": 0.95, "output": 4.00, "cached_read": 0.16, "cached_write": None, "usage": 60},
     "mimo-v2.5": {"input": 0.14, "output": 0.28, "cached_read": 0.0028, "cached_write": None, "usage": 60},
     "mimo-v2.5-pro": {"input": 0.435, "output": 0.87, "cached_read": 0.003625, "cached_write": None, "usage": 15},
-    "mimo-v2-pro": {"input": 0.14, "output": 0.28, "cached_read": 0.0028, "cached_write": None, "usage": 60},
-    "mimo-v2-omni": {"input": 0.14, "output": 0.28, "cached_read": 0.0028, "cached_write": None, "usage": 60},
     "minimax-m3": {"input": 0.30, "output": 1.20, "cached_read": 0.06, "cached_write": None, "usage": 60},
     "minimax-m2.7": {"input": 0.30, "output": 1.20, "cached_read": 0.06, "cached_write": 0.375, "usage": 60},
     "minimax-m2.5": {"input": 0.30, "output": 1.20, "cached_read": 0.06, "cached_write": 0.375, "usage": 60},
     "muse-spark-1.2-contributor": {"input": 0.10, "output": 0.20, "cached_read": 0.002, "cached_write": None, "usage": 60},
+    "muse-spark-1.3-contributor": {"input": 0.10, "output": 0.20, "cached_read": 0.002, "cached_write": None, "usage": 60},
     "qwen3.8-max": {"input": 2.00, "output": 6.00, "cached_read": 0.25, "cached_write": 2.50, "usage": 15},
-    "qwen3.7-max": {"input": 2.50, "output": 7.50, "cached_read": 0.50, "cached_write": 3.125, "usage": 60},
+    "qwen3.8-flash": {"input": 0.15, "output": 0.47, "cached_read": 0.016, "cached_write": 0.20, "usage": 30},
+    "qwen3.7-max": {"input": 2.50, "output": 7.50, "cached_read": 0.50, "cached_write": 3.125, "usage": 30},
     "qwen3.7-plus": {"input": 0.40, "output": 1.60, "cached_read": 0.04, "cached_write": 0.50, "usage": 60},
     "qwen3.6-plus": {"input": 0.50, "output": 3.00, "cached_read": 0.05, "cached_write": 0.625, "usage": 60},
-    "qwen3.5-plus": {"input": 0.40, "output": 1.60, "cached_read": 0.04, "cached_write": 0.50, "usage": 60},
     "deepseek-v4-pro": {"input": 0.66, "output": 1.98, "cached_read": 0.022, "cached_write": None, "usage": 15},
     "deepseek-v4-flash": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 30},
     "deepseek-v4-flash-vision-exp": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 15},
+    "hy4-preview": {"input": 0.834, "output": 2.501, "cached_read": 0.042, "cached_write": None, "usage": 30},
     "hy3": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
-    "hy3-preview": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
     "longcat-2.0": {"input": 0.30, "output": 1.20, "cached_read": 0.006, "cached_write": None, "usage": 60},
-    "longcat": {"input": 0.30, "output": 1.20, "cached_read": 0.006, "cached_write": None, "usage": 60},
-    "ox-alpha-free": {"input": None, "output": None, "cached_read": None, "cached_write": None, "usage": None},
+    "omen-alpha": {"input": 0.20, "output": 0.66, "cached_read": 0.04, "cached_write": None, "usage": 100},
+    # --- API-served but ABSENT from the live docs pricing table (2026-09-08) ---
+    # The live /zen/go/v1/models endpoint still serves these 7 ids. They are
+    # deliberately EXCLUDED from DOCS_IDS (main table is docs-backed only) but
+    # retain last-known pricing here so API-driven JSON rows keep real values
+    # instead of falling into the unknown-model default (usage 60, no prices).
+    # Drop an entry once the API stops serving it.
+    "grok-4.5": {"input": 2.00, "output": 6.00, "cached_read": 0.30, "cached_write": None, "usage": 15},
+    "glm-5": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 60},
+    "kimi-k2.5": {"input": 0.95, "output": 4.00, "cached_read": 0.16, "cached_write": None, "usage": 60},
+    "mimo-v2-pro": {"input": 0.14, "output": 0.28, "cached_read": 0.0028, "cached_write": None, "usage": 60},
+    "mimo-v2-omni": {"input": 0.14, "output": 0.28, "cached_read": 0.0028, "cached_write": None, "usage": 60},
+    "qwen3.5-plus": {"input": 0.40, "output": 1.60, "cached_read": 0.04, "cached_write": 0.50, "usage": 60},
+    "hy3-preview": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
 }
 
-# Docs-backed models (exactly those on https://opencode.ai/docs/go/ pricing table)
+# Docs-backed models (exactly those on https://opencode.ai/docs/go/ pricing table, 2026-09-08: 28 models)
 DOCS_IDS = {
-    "grok-4.5", "gpt-5.6-luna", "glm-5.3", "glm-5.2", "glm-5.1",
+    "grok-4.6", "gpt-5.6-luna", "glm-5.3-flash", "glm-5.3", "glm-5.2", "glm-5.1",
     "kimi-k3", "kimi-k2.7-code", "kimi-k2.6",
     "mimo-v2.5", "mimo-v2.5-pro",
     "minimax-m3", "minimax-m2.7", "minimax-m2.5",
-    "muse-spark-1.2-contributor",
-    "qwen3.8-max", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus",
+    "muse-spark-1.2-contributor", "muse-spark-1.3-contributor",
+    "qwen3.8-max", "qwen3.8-flash", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus",
     "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
-    "hy3", "longcat-2.0", "longcat", "ox-alpha-free",
+    "hy4-preview", "hy3", "longcat-2.0", "omen-alpha",
 }
 
+# Per-request token estimates from https://opencode.ai/docs/go/#usage-limits (2026-09-08)
 FALLBACK_TOKENS = {
-    "grok-4.5": (1100, 71500, 220),
+    "grok-4.6": (390, 32500, 120),
+    "glm-5.3-flash": (1000, 55000, 200),
     "glm-5.3": (700, 52000, 150),
     "glm-5.2": (700, 52000, 150),
     "glm-5.1": (700, 52000, 150),
-    "glm-5": (700, 52000, 150),
     "gpt-5.6-luna": (1000, 50000, 220),
     "kimi-k3": (1050, 76500, 300),
     "kimi-k2.7-code": (870, 55000, 200),
     "kimi-k2.6": (870, 55000, 200),
-    "kimi-k2.5": (870, 55000, 200),
     "mimo-v2.5": (830, 71500, 295),
     "mimo-v2.5-pro": (790, 86000, 305),
-    "mimo-v2-pro": (830, 71500, 295),
-    "mimo-v2-omni": (830, 71500, 295),
     "minimax-m3": (510, 56000, 190),
     "minimax-m2.7": (300, 55000, 125),
     "minimax-m2.5": (300, 55000, 125),
     "muse-spark-1.2-contributor": (620, 71400, 300),
+    "muse-spark-1.3-contributor": (620, 71400, 300),
     "qwen3.8-max": (420, 66000, 200),
+    "qwen3.8-flash": (600, 58000, 200),
     "qwen3.7-max": (420, 66000, 200),
     "qwen3.7-plus": (500, 57000, 190),
     "qwen3.6-plus": (500, 57000, 190),
-    "qwen3.5-plus": (500, 57000, 190),
     "deepseek-v4-pro": (750, 82000, 290),
     "deepseek-v4-flash": (410, 71300, 310),
     "deepseek-v4-flash-vision-exp": (410, 71300, 310),
+    "hy4-preview": (830, 71500, 295),
     "hy3": (830, 71500, 295),
+    "longcat-2.0": (920, 88900, 200),
+    "omen-alpha": (300, 40000, 100),
+    # Last-known token estimates for the 7 API-served-but-undocumented ids above.
+    "grok-4.5": (1100, 71500, 220),
+    "glm-5": (700, 52000, 150),
+    "kimi-k2.5": (870, 55000, 200),
+    "mimo-v2-pro": (830, 71500, 295),
+    "mimo-v2-omni": (830, 71500, 295),
+    "qwen3.5-plus": (500, 57000, 190),
     "hy3-preview": (830, 71500, 295),
-    "longcat-2.0": (500, 60000, 200),
-    "longcat": (500, 60000, 200),
-    "ox-alpha-free": (0, 0, 0),
 }
 
 ACC_5H, ACC_WK, ACC_MO = 12.0, 30.0, 60.0
@@ -267,7 +284,7 @@ def parse_ocgo_docs(html, verbose=False):
                 "cached_write": parse_price(cw_raw),
                 "usage": usage,
             }
-            if verbose and mid in ("grok-4.5", "glm-5.3", "hy3"):
+            if verbose and mid in ("grok-4.6", "glm-5.3", "hy3"):
                 print(f"    pricing {mid}: {pricing[mid]} from '{model_raw}'")
 
     # --- requests table ---
@@ -298,7 +315,7 @@ def parse_ocgo_docs(html, verbose=False):
         lis = re.findall(r"<li[^>]*>(.*?)</li>", seg, flags=re.S)
         for li in lis:
             txt = re.sub(r"<[^>]+>", "", li).strip()
-            # e.g. "Grok 4.5 — 1,100 input, 71,500 cached, 220 output tokens per request"
+            # e.g. "Grok 4.6 — 390 input, 32,500 cached, 120 output tokens per request"
             # or "GLM-5.3/5.2/5.1 — 700 input, 52,000 cached, 150 output..."
             m = re.search(r"([\d,]+)\s+input.*?([\d,]+)\s+cached.*?([\d,]+)\s+output", txt)
             if not m:
@@ -320,29 +337,13 @@ def parse_ocgo_docs(html, verbose=False):
                 mid = model_to_id(part)
                 if not mid:
                     # Try to map verbose names
-                    # "Kimi K2.7" without "Code" should map to both k2.6/k2.7 code?
-                    # We'll handle special cases
+                    # "Kimi K2.7" without "Code" covers k2.7-code/k2.6
                     if "kimi k2.7" in part.lower() or "kimi k2.6" in part.lower():
-                        for k in ("kimi-k2.7-code", "kimi-k2.6", "kimi-k2.5"):
-                            tokens[k] = (inp, cac, out)
-                        continue
-                    if "glm-5.3" in part.lower():
-                        for k in ("glm-5.3", "glm-5.2", "glm-5.1", "glm-5"):
+                        for k in ("kimi-k2.7-code", "kimi-k2.6"):
                             tokens[k] = (inp, cac, out)
                         continue
                     continue
-                # For cases like "mimo-v2.5" the li says "MiMo-V2.5 — 830..."
-                # So we get one id per li, but for slash groups we split above
                 tokens[mid] = (inp, cac, out)
-                # Handle special expanded cases
-                if mid == "mimo-v2.5":
-                    tokens["mimo-v2-pro"] = (inp, cac, out)
-                    tokens["mimo-v2-omni"] = (inp, cac, out)
-                if mid == "mimo-v2.5-pro":
-                    pass
-                if mid == "qwen3.7-plus":
-                    # Also covers qwen3.6-plus? No, separate li
-                    pass
 
     # Ensure every pricing entry has token estimate fallback
     for mid in pricing:
@@ -359,7 +360,7 @@ def model_to_id(raw):
     raw = re.sub(r"\([^)]*\)", "", raw).strip()
     # Normalize spaces and dashes
     # Examples:
-    # "Grok 4.5" -> "grok-4.5"
+    # "Grok 4.6" -> "grok-4.6"
     # "GPT 5.6 Luna" -> "gpt-5.6-luna"
     # "GLM-5.3" -> "glm-5.3"
     # "MiMo V2.5 Pro" -> "mimo-v2.5-pro"
@@ -370,44 +371,42 @@ def model_to_id(raw):
     # "DeepSeek V4 Pro" -> "deepseek-v4-pro"
     # "DeepSeek V4 Flash Vision Exp" -> "deepseek-v4-flash-vision-exp"
     # "Hy3" -> "hy3"
-    # "Ox Alpha Free" -> "ox-alpha-free"
+    # "Omen Alpha" -> "omen-alpha"
     low = raw.lower()
-    # Direct mappings for known oddities
+    # Direct mappings for known oddities (live docs 2026-09-08)
     mapping = {
-        "grok 4.5": "grok-4.5",
+        "grok 4.6": "grok-4.6",
         "gpt 5.6 luna": "gpt-5.6-luna",
+        "glm-5.3-flash": "glm-5.3-flash",
         "glm-5.3": "glm-5.3",
         "glm-5.2": "glm-5.2",
         "glm-5.1": "glm-5.1",
-        "glm 5": "glm-5",
         "kimi k3": "kimi-k3",
         "kimi k2.7 code": "kimi-k2.7-code",
         "kimi k2.6": "kimi-k2.6",
-        "kimi k2.5": "kimi-k2.5",
         "mimo v2.5": "mimo-v2.5",
         "mimo v2.5 pro": "mimo-v2.5-pro",
         "mimo-v2.5": "mimo-v2.5",
         "mimo-v2.5-pro": "mimo-v2.5-pro",
-        "mimo v2 pro": "mimo-v2-pro",
-        "mimo v2 omni": "mimo-v2-omni",
         "minimax m3": "minimax-m3",
         "minimax m2.7": "minimax-m2.7",
         "minimax m2.5": "minimax-m2.5",
         "muse spark 1.2 contributor": "muse-spark-1.2-contributor",
+        "muse spark 1.3 contributor": "muse-spark-1.3-contributor",
         "qwen3.8 max": "qwen3.8-max",
+        "qwen3.8 flash": "qwen3.8-flash",
         "qwen3.7 max": "qwen3.7-max",
         "qwen3.7 plus": "qwen3.7-plus",
         "qwen3.6 plus": "qwen3.6-plus",
-        "qwen3.5 plus": "qwen3.5-plus",
         "deepseek v4 pro": "deepseek-v4-pro",
         "deepseek v4 flash": "deepseek-v4-flash",
         "deepseek v4 flash vision exp": "deepseek-v4-flash-vision-exp",
+        "hy4 preview": "hy4-preview",
         "hy3": "hy3",
-        "hy3-preview": "hy3-preview",
         "longcat 2.0": "longcat-2.0",
         "longcat-2.0": "longcat-2.0",
         "longcat": "longcat-2.0",
-        "ox alpha free": "ox-alpha-free",
+        "omen alpha": "omen-alpha",
     }
     if low in mapping:
         return mapping[low]
@@ -1422,7 +1421,7 @@ def main():
         print(f"  using fallback API ids: {len(ocgo_api_ids)}")
     else:
         for k in FALLBACK_PRICING:
-            if k not in ocgo_api_ids and k != "longcat":
+            if k not in ocgo_api_ids:
                 ocgo_api_ids.append(k)
 
     # Merge pricing: live docs override fallback
@@ -2166,7 +2165,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 
 {role_recs_html}
 
-<div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.5, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
+<div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
 
 <p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
 <div class="footer"><span class="path">path: outputs/ocgo_cost_benefit.html</span><span class="work">{html_lib.escape(work_sentence)}</span></div>

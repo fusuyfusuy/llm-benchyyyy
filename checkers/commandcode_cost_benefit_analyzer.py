@@ -68,6 +68,13 @@ ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
 FALLBACK_PRICING = {
+    # Live docs 2026-09-08: https://commandcode.ai/docs/plans/goat#usage-limits (46 priced + 2 free = 48 total)
+    # pooled caps: $14/5h · $35/wk · $70/mo; per-model 5h cap = $14 × (credits/70)
+    "gemini-3.8-flash": {"input": 1.5, "output": 7.5, "cached_read": 0.15, "cached_write": None, "credits": 40.0},
+    "muse-spark-1.3": {"input": 1.25, "output": 4.25, "cached_read": 0.15, "cached_write": None, "credits": 20.0},
+    "muse-spark-1.3-contributor": {"input": 0.1, "output": 0.2, "cached_read": 0.002, "cached_write": None, "credits": 20.0},
+    "qwen-3.8-max-0902": {"input": 2.0, "output": 6.0, "cached_read": 0.25, "cached_write": None, "credits": 20.0},
+    "longcat-2.0-free": {"input": None, "output": None, "cached_read": None, "cached_write": None, "credits": None},
     "tencent-hy4-preview": {"input": 0.834, "output": 2.501, "cached_read": 0.042, "cached_write": None, "credits": 20.0},
     "glm-5.3-flash": {"input": 0.15, "output": 0.5, "cached_read": 0.03, "cached_write": None, "credits": 40.0},
     "qwen-3.8-flash": {"input": 0.16, "output": 0.47, "cached_read": 0.016, "cached_write": None, "credits": 20.0},
@@ -128,9 +135,13 @@ _ID_ALIASES = {
     "kimi-k2.7-code-highspeed": "kimi-k2.7-code-highspeed",
     "kimi-k2-7-code-highspeed": "kimi-k2.7-code-highspeed",
     "muse-spark-1.2-contributor": "muse-spark-1.2-contributor",
+    "muse-spark-1.3-contributor": "muse-spark-1.3-contributor",
     "laguna-s-2.1-free": "laguna-s-2.1-free",
     "laguna-s-2.1free": "laguna-s-2.1-free",
     "laguna-s-2.1": "laguna-s-2.1-free",
+    "longcat-2.0-free": "longcat-2.0-free",
+    "longcat-2.0free": "longcat-2.0-free",
+    "longcat-2.0": "longcat-2.0-free",
     "qwen-3.7-flash-(32k)": "qwen-3.7-flash",
     "qwen-3.7-flash-(256k)": "qwen-3.7-flash",
     "qwen-3.7-flash-(>256k)": "qwen-3.7-flash",
@@ -303,7 +314,9 @@ def parse_cc_docs(html, verbose=False):
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 8:
                 continue
-            clean = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
+            # Strip tags with a space so adjacent badges don't fuse:
+            # "LongCat 2.0"+"Free" must stay two tokens, not "2.0Free".
+            clean = [re.sub(r"<[^>]+>", " ", c).strip() for c in cells]
             clean = [" ".join(c.split()) for c in clean]
             model_raw = re.sub(r"\s*-\d+%\s*$", "", clean[0]).strip()
             mid = _norm_cc_id(model_raw)
@@ -330,7 +343,7 @@ def parse_cc_docs(html, verbose=False):
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 6:
                 continue
-            clean = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
+            clean = [re.sub(r"<[^>]+>", " ", c).strip() for c in cells]
             clean = [" ".join(c.split()) for c in clean]
             model_raw = re.sub(r"\s*-\d+%\s*$", "", clean[0]).strip()
             mid = _norm_cc_id(model_raw)
@@ -361,7 +374,7 @@ def parse_cc_docs(html, verbose=False):
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 4:
                 continue
-            clean = [re.sub(r"<[^>]+>", "", c).replace(",", "").strip() for c in cells]
+            clean = [re.sub(r"<[^>]+>", " ", c).replace(",", "").strip() for c in cells]
             clean = [" ".join(c.split()) for c in clean]
             model_raw = re.sub(r"\s*-\d+%\s*$", "", clean[0]).strip()
             mid = _norm_cc_id(model_raw)
