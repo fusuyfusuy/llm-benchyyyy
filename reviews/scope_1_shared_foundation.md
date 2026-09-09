@@ -1,130 +1,134 @@
 # Scope 1 Audit — Shared Foundation & Math
-**Scope:** `checkers/benchmark_common.py` + `checkers/test_benchmark_common.py`
-**Auditor:** Scope 1 (Shared Foundation) — method: `mimori slice` + targeted reads + adversarial runtime probes
-**Date:** 2026-02 (session) · **Tests:** 29/29 pass (`pytest checkers/test_benchmark_common.py`)
+
+**Scope:** `checkers/benchmark_common.py` (2052 lines) + `checkers/test_benchmark_common.py` (637 lines). Non-goals: aggregator, cost analyzers, rankers, daemon (referenced only as consumers).
+**Auditor:** ScopeSharedFoundation · **Commit:** `b27355d` · **Date:** 2026-09-09
+**Method:** targeted range reads + adversarial runtime probes (every crash/value below was executed, not inferred).
+**Tests:** suite passes (29+ tests); probes below cover what the suite does not.
 
 ---
 
-## 1. Executive Summary
+## 1. Executive verdict
 
-**Health score: 8.6 / 10** — *Moderate-to-Minor band; strong core, defensive gaps at the edges.*
+**Health score: 8.2 / 10** — *Moderate band (7.0–8.4). Strong core, defensive gaps at the edges.*
 
-This module is the best-tested and most carefully-invariant'd file in the checkers suite. The core mathematical layer (z-scores, capability-Q clamping, sigmoid P_succ, value indices), the normalization layer (`norm_id`/`norm_model_slug`/`strip_tier_tokens`/`variant_conflict`), the staleness layer (filename-date authority, S2-M2), and `atomic_write_text` are all **correct and faithful to the documented invariants** — verified by probe, not just by reading. 29/29 tests pass, including the subtle ones (filename-date-beats-fresh-mtime, variant/digit surplus rejection, two-set docs-tag diffing, 0.0-cost Pareto frontier).
+The mathematical core, normalization layer, staleness layer (filename-date authority), `diff_model_catalog` two-set semantics, `load_previous_snapshot` loud-corrupt handling, and `atomic_write_text` are **correct and probe-verified**. The old std-dev drift (`stdev` vs `pstdev`) is **fixed** — all three z-primitives now use population `pstdev`. No RCE, no data-loss, no crash-loop, nothing in the <7.0 Critical band.
 
-The weaknesses concentrate in **parser robustness** (silent whole-source failure on adversarial-but-plausible upstream payloads), **NaN/`nan` string handling** (silent fabrication of Q=99.9, or a hard crash in `get_z_scores`), and **defensive type-guarding** in two display/compute helpers. None of these are data-loss/RCE/crash-loop grade (no deserialization of untrusted code, no path traversal possible through `atomic_write_text`), so nothing lands in the <7.0 Critical band. But the parse-failure class is the *same class of bug that already bit production once* (2026-08-27 parse_aa silently broken, per `.mimori/memory.md`) — the residual escape-ordering fragility means the blast radius (all four checkers silently lose an entire benchmark source) is unchanged.
+The residual risk concentrates in four moderate defects: a **10.7-second ReDoS** in `strip_tier_tokens`, a **NaN crash path** into `get_z_scores` reachable through `parse_lmarena`'s unguarded `float(rating)`, **single-bad-record kills whole-source** parsing in `parse_lmarena`, and **NaN→Q=99.9 fabrication** in `compute_capability_q`. Plus invariant drift (zero-fill vs None-passthrough z-scores), tier-strip bypass of the variant guard, silent `fetch_url`, and raising staleness helpers. The 2026-08-27 incident class (silent whole-source parse loss → stale cache marked fresh) is **narrowed but not closed**.
 
 **Invariant status:**
 
 | Invariant | Status |
 |---|---|
-| Pure Python 3.11+ stdlib, zero deps | ✅ Compliant (imports: stdlib only) |
-| Offline by default; staleness from filename `_YYYYMMDD`, not mtime | ✅ Compliant (S2-M2) — `snapshot_date_str`/`pick_latest_raw`/`snapshot_age_hours` all key on filename date; tests pin it |
-| Never mix AA live intelligenceIndex (~62–78) with static seeds (~93–96) in one z-distribution | ✅ **Held in the aggregator's `calculate_composite_scores` (cohort split, `llm_benchmark_aggregator.py:1425-1434`)**. ⚠️ **Latent drift in the shared primitive**: `get_z_scores` banks missing entries at cohort mean (z=0.0 → Q=78) — a footgun that contradicts the invariant's letter; currently masked because every consumer guards with `is not None` before reading the z array |
-| Missing signals NEVER banked at cohort mean | ⚠️ Partially: `compute_meanfill_composite` skips missing (✅); `get_z_scores` zero-fills (⚠️ latent) |
-| CC ≤ 10, depth ≤ 3, fail-fast, no swallowed errors | ⚠️ **Breach-leaning**: `parse_aa`/`parse_lmarena`/`fetch_url` swallow exceptions and return `{}`/`None` *silently* (no warning at default verbosity); parsers return empty dicts with no post-parse validation, so a broken parse looks identical to "source has no data" |
+| Pure stdlib, zero deps | ✅ Compliant (imports are stdlib-only, lines 8–24) |
+| Offline by default; staleness from filename `_YYYYMMDD`, not mtime | ✅ Compliant — `snapshot_date_str` / `pick_latest_raw` / `snapshot_age_hours` key on filename date; midnight-UTC anchoring overcounts ≤24h (P3) |
+| Never mix AA live vs static scales in one z-distribution | ✅ Held (aggregator cohort split); shared primitive no longer drifts on std (all `pstdev`) |
+| Missing signals NEVER banked at cohort mean | ⚠️ **Breached (latent):** `get_z_scores` zero-fills missing at z=0.0→Q=78; `compute_meanfill_composite` correctly skips; aggregator reimplements `_z_scores` with None-passthrough. Two divergent primitives = drift |
+| Fail-fast, no swallowed errors | ⚠️ **Breach-leaning:** `parse_lmarena`/`parse_aa`/`fetch_url` swallow failures to `{}`/`None` silently at default verbosity; no post-parse sanity gate, so "broken parse" ≡ "source has no data" |
+| Corrupt baseline is loud, cold-starts either way | ✅ Compliant — `load_previous_snapshot` WARNs on stderr and returns None (verified) |
+| Atomic crash-safe writes, inputs never mutated | ✅ Compliant — tmp+fsync+`os.replace`+cleanup verified, no tmp leftovers; `diff_model_catalog` copies rows (test-pinned). Missing only parent-dir fsync (P3) |
 
 ---
 
-## 2. Top Findings (with line references)
+## 2. Findings
 
-### P1 — Critical-severity findings (silent corruption / whole-source data loss)
+### P1 — fix next cycle (High)
 
-**F1. `parse_lmarena` RSC block extraction truncates on `}]` inside string values — silently drops the entire LMArena source**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L554` and `#L558`
-The block finder is `unescaped.find('"entries":[{', pos)` then the **escape-unaware** `unescaped.find("}]", idx)` (#L558-561). Any `}]` sequence inside a string field (a model name, notes, or description containing `x}] y`) terminates the JSON early → `json.loads` fails → `except Exception: pass` (#L587) → falls through to the legacy table path → ultimately `{}`. Compounding: `elo = round(float(rating), 0)` (#L571) crashes the whole block on non-numeric ratings, and the naive pre-unescape `html_text.replace('\\"', '"')` (#L552) corrupts any value that legitimately contained an escaped quote/backslash, again producing `{}`.
-*Probe results:* payload with `"notes":"x}] y"` → `{}`; payload with escaped quote in a name → `{}`; payload with `"rating":{}` → `{}`. Real RSC payload parses correctly today, but the class of failure is one upstream name/description tweak away, and the failure is **silent at default verbosity**.
+**F1. Catastrophic ReDoS in `strip_tier_tokens` — 10.7 s on a 30 KB model id.**
+`checkers/benchmark_common.py:118` — `re.sub(r"(\d+)(xhigh|high|medium|low|minimal|max)$", …)`.
+`(\d+)` + 6-way alternation + `$` anchor backtracks O(n·m) when the suffix never matches. Probe: `"1"*30000` → **10.737 s**. Model ids flow from upstream payloads (AA/LMArena/OpenRouter) into `strip_tier_tokens` on every `find_*` call, so one poisoned upstream string stalls every checker run. All other regexes in the file probed linear (≤0.001 s at 50 KB).
+*Fix:* replace the regex with a suffix loop, e.g. split trailing digit-run once (`re.match(r"^(.*?\d)[-_]?(xhigh|high|…)$", …)` with the digit part made possessive via a single `rstrip`-style scan) or plain `str.endswith` checks over the 6 suffixes. Add a 5 KB-input perf test.
 
-**F2. `parse_aa` unescapes the whole HTML *before* bracket-scanning — escaped quotes in values break quote tracking and kill the entire AA source**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L651` (unescape), `#L672-L689` (scan), `#L715-L718` (silent `{}` on failure)
-The scan relies on real quotes, but the text has already been through `replace('\\"', '"')`. A model name that originally contained an escaped quote (e.g. `GPT-5.6 \"Luna\"`) becomes a bare `"` inside the string, the depth-tracker closes the string early, the bracket scan ends at the wrong `]`, and `json.loads` throws — swallowed by `except Exception` (#L715) → returns `{}` → every downstream checker (bcheck/ocheck/fcheck/scheck all import this, in-degree 8 per `mimori slice`) silently loses the AA column for the run. There is **no post-parse sanity gate** (no "≥N models or warn loudly" check), so a broken parse is indistinguishable from "AA has no data".
-*Probe results:* `"name":"GPT \\"5\\" Live"` → `{}` (0 models); real escaped RSC payload → parses correctly (6-line fix recipe below removes the fragility without touching the happy path).
+**F2. `get_z_scores` hard-crashes on NaN/Inf; counts booleans as numbers.**
+`checkers/benchmark_common.py:291–306`. `isinstance(v, (int,float))` admits `bool`, `nan`, `inf`; `statistics.pstdev` then raises `ValueError: inf or nan encountered in data` (probe-confirmed for both `nan` and `inf` cohorts) — a whole-run crash from one poisoned value. Separately, `get_z_scores([True, False, 1.0])` → `[0.7, -1.4, 0.7]`: booleans skew the cohort mean/std.
+*Fix:* filter with `isinstance(v, bool)` exclusion and `math.isfinite(v)` in both the `valid` list and the output guard; all-NaN cohort → all-`0.0`.
 
-**F3. NaN/`nan`/`inf` values are accepted and either silently fabricate top-of-scale Q or hard-crash the run**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L166-L175` (`_safe_float`), `#L200-L210` (`parse_price`), `#L284-L291` (`compute_capability_q`), `#L294-L303` (`compute_p_success`), `#L272-L281` (`get_z_scores`)
-`_safe_float("nan")` returns `nan` (float("nan") succeeds; only ValueError/TypeError are caught). Consequences, all probe-confirmed:
-- `compute_capability_q(nan)` → **99.9** (Python `min(99.9, nan)` returns 99.9) — a single `"nan"` token in an AA payload silently promotes that model to the top of the Q scale, distorting every derived metric (P_succ, AVI, FGI, BFI, QVI, Pareto frontier).
-- `compute_p_success(nan)` → 0.0 (max/min clamping semantics), so the same model shows Q=99.9 *and* P=0.0 simultaneously.
-- `get_z_scores([nan, 70, 80, 90])` → `ValueError: inf or nan encountered in data` — a hard crash of the whole run instead of row-level isolation.
+**F3. `parse_lmarena`: one bad record (or one `}]` in a string) silently drops the entire LMArena source.**
+`checkers/benchmark_common.py:601–638`. Three stacked defects: (a) block end found with escape-unaware `unescaped.find("}]", idx)` (line 607) — any `}]` inside a name/notes/description truncates the JSON → `json.loads` fails → `except: pass` → falls to the legacy table path → `{}`; (b) the `try` at line 611 wraps the **whole entries loop**, so one record with non-numeric `rating` (`round(float(rating),0)`, line 620 — note: `float("nan")` *succeeds*, storing `nan`, which then triggers F2 downstream), a dict `rating` (`float({})` raises), or a string `contextLength` (`ctx//1000`, line 626 raises) discards every good record in the block; (c) failure is silent at default verbosity. Probe: garbage/empty inputs return `{}` (good), but `parse_lmarena(None)` raises `AttributeError` (P3).
+*Fix:* per-record `try` inside the `for e` loop; guard `rating` with `_safe_float` (never bare `float()`); guard `contextLength` with `_safe_int`; replace `find("}]")` with a quote-aware scan (same disciplined pattern `parse_aa` already uses at lines 720–738); `if not html_text: return {}` entry guard.
 
----
+**F4. `compute_capability_q(nan)` fabricates top-of-scale Q=99.9 (with P_succ=0.0).**
+`checkers/benchmark_common.py:316` — `max(40.0, min(99.9, 78.0 + nan))` → `min(99.9, nan)` returns `99.9` in CPython. Probe: `nan→99.9`, `inf→99.9`; `compute_p_success(nan)→0.0`, so one NaN yields the incoherent pair **Q=99.9 with P=0.0**; `compute_avi(80, nan)→873.1`, `compute_bfi(80,100,nan)→800.0` (garbage in, ranked out). Reachability is real: F3's `float(rating)` path stores `nan` without `_safe_float` filtering, and `compute_meanfill_composite`'s `fmean` propagates any `nan` that reaches it straight into `compute_capability_q` (line 500). `_safe_float` itself correctly rejects NaN/Inf in both numeric and string paths — the hole is that `compute_*` re-admits them.
+*Fix:* `if cz is None or not isinstance(cz,(int,float)) or isinstance(cz,bool) or not math.isfinite(cz): return 78.0` (and analogous `math.isfinite` guards in `compute_p_success`→0.0, `compute_avi`/`compute_fgi`/`compute_bfi`→0.0, `compute_token_multiplier`→100.0).
 
-### P2 — Moderate findings (invariant drift, missing fallbacks, validation gaps)
+### P2 — fix eventually (Moderate)
 
-**F4. `get_z_scores` zero-fills missing/non-numeric entries at the cohort mean — the exact behavior the bcheck Q-scoring invariant forbids**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L272-L281` (zero-fill at #L276/#L281)
-Probe: `get_z_scores([None, 70, 80, 90])` → `[0.0, -1.0, 0.0, 1.0]` — the missing entry is banked at z=0.0 → Q=78.0 (cohort mean). Currently *masked* because ocheck/ccheck only read `z_int[i]` when the source value is non-None (`opencode_cost_benefit_analyzer.py:1788-1797`), and `compute_meanfill_composite` skips missing correctly (`benchmark_common.py:440-448`). But it is a loaded footgun for any future consumer that indexes the z array blindly, and it is why the aggregator had to reimplement a *correct* `_z_scores` returning `None` for missing (`llm_benchmark_aggregator.py:1385-1399`). **Two divergent z-primitives in one suite is invariant drift.** Bonus inconsistency: `get_z_scores` uses `statistics.stdev` (sample, n−1) while `compute_meanfill_composite` uses `pstdev` (population) for the identical concept (#L278 vs #L432-434).
+**F5. `get_z_scores` zero-fills missing entries at the cohort mean — the behavior the suite's own invariant forbids.**
+`checkers/benchmark_common.py:306` vs `checkers/llm_benchmark_aggregator.py:1215–1229`. Probe: `get_z_scores([None,70,80,90])` → `[0.0,…]` — the missing entry banks z=0.0→Q=78. Currently masked (ocheck/ccheck index `z[i]` only when the source value is non-None; `compute_meanfill_composite` skips missing), but it is why the aggregator maintains a second, correct `_z_scores` (None-passthrough + weight renormalization). Two divergent z-primitives is textbook invariant drift and a loaded footgun for the next consumer.
+*Fix:* adopt None-passthrough in `get_z_scores` (major-version flag if any blind indexer exists — audit shows none: all readers guard) or, at minimum, document the footgun on the docstring and add a test pinning the divergence as intentional.
 
-**F5. Staleness helpers crash on missing/None paths instead of reporting "missing"**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L232-L241` (`snapshot_age_hours` → `FileNotFoundError` at #L241), `#L244-L250` (`staleness_tag(None)` → `TypeError` at #L247)
-Probe-confirmed: `snapshot_age_hours("/nonexistent/x.json")` crashes; `staleness_tag(None)` crashes. Consumers like `opencode_cost_benefit_analyzer.py:78-86` guard `pick_latest_raw` → None *before* calling staleness, but `llm_benchmark_aggregator.py:1361-1364` and `stealth_model_detector.py:329` do not always — a missing/deleted snapshot turns an offline run into a traceback instead of a "source missing" banner. Also: `snapshot_age_hours` anchors the filename date at **midnight UTC** (#L239), so age overcounts by up to ~24h and the `>24h` WARN (#L249) fires up to a day early for a same-day snapshot fetched in the afternoon (tests only pin midnight-to-midnight, so this is invisible to the suite).
+**F6. Stage-1 tier-stripping bypasses `variant_conflict`: `non`/`reasoning` treated as tiers.**
+`checkers/benchmark_common.py:100–104` (`TIER_TOKENS` contains `non`, `reasoning`, `base`, `preview`, `auto`), `:115–122`, `:840–853` (+ LM/LiveBench twins at 867–881, 916–930). `strip_tier_tokens("glm-5-2-non-reasoning")` → `"glm-5-2"`, so stage 1 links a **non-reasoning record to a base query** although `variant_conflict` correctly returns `True` for the pair — stage 1 never consults it. Same for `-base` (real base-checkpoint vs instruct-tuned conflation) and `-preview`/`-auto`. Over-strip extremes: `strip_tier_tokens("claude-high")` → `""`, `"gpt-next"` → `"gpt"`.
+*Fix:* remove capability-distinctive tokens (`non`, `reasoning`, `base`, `preview`) from `TIER_TOKENS` (keep pure effort/tier: `high/medium/low/minimal/xhigh/max/effort/thinking`); AND-gate stage 1 with `not variant_conflict(sn, norm_model_slug(slug))`; never return on an empty stripped key.
 
-**F6. `parse_openrouter` crashes on non-dict records or non-dict `pricing` — a schema tweak takes down the whole checker**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L740-L748`
-Probe-confirmed: `{"data": [{"id": "a/b", "pricing": "0.000003"}]}` → `AttributeError: 'str' object has no attribute 'get'` (#L746); a non-dict item in `data` → same crash (#L742). If OpenRouter ever emits `pricing` as a string, or a list entry that isn't a dict, every checker crashes. Needs `isinstance` guards and per-record isolation (skip the bad record, keep the rest).
+**F7. Size/context suffixes false-link: `llama-3` resolves to `llama-3-70b`.**
+`checkers/benchmark_common.py:132–149`, `:884–903`. Surplus token `70b` is neither in `VARIANT_TOKENS` nor pure-digit, so `variant_conflict("llama-3","llama-3-70b")` → `False` (probe-confirmed both 70b and 8b; `find_aa_for_model("llama-3",…)` returns the 70b record by dict order; OpenRouter twin resolves `llama-3` → first size variant). Same class: `model`↔`model-200k/128k` (context), `model`↔`model-v2` (version), `model-2024` date suffixes link only when pure-digit (correct) but `70b`-style alphanumeric sizes slip through. A bare family query silently inherits one member's benchmarks.
+*Fix:* treat trailing size tokens (`\d+[bmkt]` + optional `b`, e.g. `8b/70b/200k/1m`) and version tokens (`v\d+`, 4-digit dates) as conflicts in `variant_conflict`; make `find_or_for_model` deterministic on ambiguity (prefer exact, else `None` instead of first-dict-order).
 
-**F7. `find_aa_for_model`/`find_lm_for_model`/`find_livebench_for_model` stage-1 tier-stripping can link a *non-reasoning* variant — contradicting the memory contract ("non/reasoning are VARIANT tokens, never tier")**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L97-L101` (`TIER_TOKENS` contains `non`, `reasoning`), `#L112-L117` (`strip_tier_tokens`), `#L787-L801` (stage 1 links on `strip_tier_tokens(slug) == sn`)
-Probe-confirmed: with only `glm-5-2-non-reasoning` (intelligenceIndex 34.2) in the AA map, `find_aa_for_model("glm-5.2", aa_map)` **returns the non-reasoning record** because stage 1 strips `non-reasoning` as a tier and links on the base. `variant_conflict("glm-5.2","glm-5-2-non-reasoning")` correctly returns `True` — but stage 1 never consults `variant_conflict`, so the guard is bypassed whenever the AA map is sparse (exactly the "static seed" degradation scenario the invariant warns about). `strip_tier_tokens("glm-5.2-non-reasoning")` → `"glm-5-2"` — the token is being treated as a tier, in direct conflict with the memory.md contract that classifies `non`/`reasoning` as variant tokens.
+**F8. `fetch_url` is silent, single-shot, unbounded.**
+`checkers/benchmark_common.py:65–72` (plus a drifted duplicate at `llm_benchmark_aggregator.py:1073`). Swallows every exception to `None` with no log; no retry on transient 5xx/timeout; no status/empty-body distinction (truncated 200 with 0 bytes saves as today's snapshot upstream of the 2026-08-27 incident chain); `resp.read()` unbounded (no size cap); always UTF-8-`replace` (ignores charset); `urllib` follows redirects silently with a frozen 2023 Chrome/120 UA (increasingly bot-walled). Callers treat `None`≡`""` (`if body:`), so failure ≡ empty source.
+*Fix:* stderr WARN on failure (not `verbose`-gated); 1 retry with backoff on timeout/5xx; `Content-Length`/byte-cap guard (~50 MB); consolidate the aggregator duplicate onto `bc.fetch_url`.
 
-**F8. Defensive type gaps crash two compute/render helpers**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L405` + `#L410-L413` (`compute_pareto_frontier`: `a.get("display")` → `None` → `None[:22]` → `TypeError`), `#L1819-L1823` (`render_removed_models_cli`: `f"{pr_lim:.0f}/m"` on a string limit → `ValueError: Unknown format code 'f'`)
-Probe-confirmed both. A catalog row missing `display`, or a snapshot whose `monthly_usage_limit_usd` is a string, crashes the report render instead of degrading gracefully.
+**F9. Staleness helpers raise on missing paths instead of reporting "missing".**
+`checkers/benchmark_common.py:251–260`, `:263–269`. Probe: `snapshot_age_hours("/nonexistent/f.json")` → `FileNotFoundError`; `staleness_tag(None)` → `TypeError`. Most callers guard via `pick_latest_raw`→None first, but any unguarded call turns an offline run into a traceback instead of a "source missing" banner.
+*Fix:* `snapshot_age_hours` returns `None` (or `inf`) on missing/unstatable; `staleness_tag` accepts `None` → `" (missing — run with --fetch)"`; type the contract.
 
----
+**F10. `parse_openrouter` crashes on non-dict records or non-dict `pricing`.**
+`checkers/benchmark_common.py:789–797`. No per-record isolation and no `isinstance` guards: a list entry that isn't a dict (`rec.get`, line 791) or `pricing` as a string (`pricing.get`, line 795) raises `AttributeError` out of the whole parse (uncaught inside; callers happen to wrap, but the entire source is lost). `parse_openrouter(None)`→`{}` and string-price coercion both verified tolerant — only the shape guards are missing.
+*Fix:* `if not isinstance(rec, dict): continue`; `if not isinstance(pricing, dict): pricing = {}`.
 
-### P3 — Minor findings (polish, test gaps, hardening)
+**F11. `parse_aa` tries only the best array; pre-unescape breaks quote tracking.**
+`checkers/benchmark_common.py:700`, `:739–767`. The full-text `replace('\\"', '"')` before scanning means a legitimately escaped quote in a model name becomes a bare `"` that closes the depth-tracker's string early → wrong `]` → `json.loads` throws → `return {}` with no fallback to the next candidate array and no loud warning. Per-model loop itself is safe (`_safe_float` never raises; missing slug skipped). 4.6 MB scan measured 0.03 s — no perf issue.
+*Fix:* scan the raw text with escape-aware quote tracking (handle `\"` inside the tracker instead of pre-replacing); on `json.loads` failure, continue to the next candidate `idx` before giving up; loud stderr WARN when zero models parse from non-empty input.
 
-**F9. `fetch_url` swallows every exception silently; the sync daemon writes whatever bytes come back with no sanity gate**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L62-L69`; `benchmark_sync_daemon.py:103-107`, `:142-146`
-A 200-with-error-page (or truncated body) is saved as today's `artificial_analysis_YYYYMMDD.html` with no size/parse validation → the filename date marks it *fresh* for 24h while parsers silently return `{}` (F1/F2). The memory.md 2026-08-27 incident is exactly this chain. Recommend: minimum-byte threshold + parse-validate-before-persist, and a loud stderr WARN (not just `verbose`-gated) when a fetch/parse yields empty.
+### P3 — polish / hardening (Minor)
 
-**F10. `parse_livebench` `or`-chains treat legitimate 0.0 scores as missing; `overall` double-counts summary columns**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L530-L536` (e.g. `cat_scores.get("Coding") or ... or _safe_float(row.get("coding"))` falls through on 0.0), `#L518` (mean of *all* numeric non-`model`/`nq_`/`out_` columns — an "Overall" column in the CSV would be double-counted).
-
-**F11. `diff_model_catalog` stamps future-dated `created` values as `first_seen` and marks them brand-new**
-`file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L1769-L1779`, `#L1788-L1792`
-Probe: a row with `created: "2026-09-01"` at `now=2026-08-30` is stamped `first_seen` in the future and flagged green. The freshness guard clamps negative age (`0 <= age_days`) so it self-corrects next run, but the persisted future timestamp leaks into reports/sorts.
-
-**F12. Test-coverage gaps in `test_benchmark_common.py`** — no malformed-input tests for any parser (F1/F2/F6), no NaN/`nan`-string tests (F3), no missing-path staleness tests (F5), no non-dict record tests (F6), no `compute_pareto_frontier`-without-`display` / string-limit render tests (F8), and `compute_role_recommendations` is only exercised with a 4-model happy path. The suite is excellent at pinning the *happy-path contracts* (staleness filename authority, variant conflicts, docs-tag diffing) but leaves the entire failure-class surface untested.
-
-**Performance verdict (P3, no action needed):** `parse_aa`'s bracket scan is O(k·n) with k = number of `"models":` occurrences (2–4 in practice) over a 1–3 MB HTML — fine. `parse_lmarena` is O(k·n) similarly. Whole-response buffering in `fetch_url` and `atomic_write_text` is acceptable at leaderboard scale; no streaming needed. No perf bloat found.
-
-**Security verdict (P3, no action needed):** `atomic_write_text` is clean — tmp name is `.{name}.{pid}.{time_ns()}.tmp`, and `Path.with_name` rejects `/` (probe-confirmed `ValueError`), so no traversal through the tmp path; `os.replace` + fsync is atomic; stale tmp cleanup in `finally`. Deserialization is `json.loads` only (no pickle/eval); parsers run `json.loads` on remote content but JSON is not executable. No credentials handled in this module.
+- **F12. `parse_livebench` `or`-chains + `overall` double-count.** Lines 567, 579–585: `cat_scores.get("Coding") or …` treats a legitimate `0.0` as missing; `overall` averages *every* numeric non-`model`/`nq_`/`out_` column, so a precomputed `overall`/`coding` summary column in the CSV would be double-counted. Duplicate slugs silently last-win; bad `categories_json` silently ignored. *Fix:* `is not None` chains; exclude known summary columns from `overall`; first-win or warn on duplicates.
+- **F13. `parse_*` reject `None` with `AttributeError`.** `parse_lmarena(None)` / `parse_aa(None)` raise on `.replace` (probe-confirmed); `parse_livebench(None)` happens to return `{}`. *Fix:* `if not html_text: return {}` guards (then F9-style callers are safe by construction).
+- **F14. `compute_*` type gaps.** `compute_avi(-1.2, 5.0)` raises `TypeError` (negative `**2.2` → complex → `round`); `compute_effective_cost("abc", 2.0)` → `ValueError`; `compute_cost("a",…)` → `TypeError`; `compute_token_multiplier(50, alpha=-5.0)` → `-3.0` (negative retry cost); `compute_cost` passes through negative rates (`-0.0002`). Normal pipeline clamps Q first, so reachability is direct-call only. *Fix:* `math.isfinite` + sign guards per F4; `alpha` validated `> 0`; `compute_cost` coerces via `_safe_float` or raises a documented `TypeError`.
+- **F15. Strict-shape helpers.** `comp_key` (`:504–512`) and `compute_meanfill_composite` (`:466–501`) raise `KeyError` on rows missing `benchmarks`/`model_id` keys (probe-confirmed); meanfill propagates `fmean(nan)` → `nan` composite → F4. *Fix:* `.get` chains + `math.isfinite` filter on `aa_vals`/`lm_vals`.
+- **F16. `atomic_write_text` missing parent-dir fsync.** Lines 152–168 verified correct (tmp+fsync+replace+cleanup, no leftovers, `IsADirectoryError`/`FileNotFoundError` propagate honestly). Only gap: the directory entry itself is never fsynced, so the rename may not survive an OS crash. *Fix:* fsync the parent fd after `os.replace` (best-effort, guarded).
+- **F17. Snapshot-date edge polish.** Future-dated files clamp to age 0 (verified, correct); `snapshot_date_str` correctly rejects `20261345`/`20260230`; midnight-UTC anchoring over-ages same-day snapshots by up to ~24 h (WARN fires early); `parse_timestamp(True)` → epoch 1970 (bool is `int` subclass; `created: true` from upstream would stamp 1970). *Fix:* `isinstance(val, bool)` rejection in `parse_timestamp`.
+- **F18. Output encoding good; input entities un-decoded; UA stale.** `html_lib.escape` correctly applied at HTML render sites (verified — only-`escape` usage); but parsed names keep entities (`&amp;` survives into slugs). UA frozen at Chrome/120 (2023). *Fix:* `html_lib.unescape` on title/name fields before slugging; refresh UA periodically.
+- **F19. Performance (measured, not a problem except F1).** Pareto sweep is O(n²) but 513 rows → 0.015 s, 1000 → 0.056 s — fine at this catalog scale. `parse_aa` bracket scan 4.8 MB → 0.03 s. Residual waste: `find_*` recomputes `norm_model_slug`/`strip_tier_tokens` per candidate per query (O(Q·M) regexes across catalog joins) — memoize normalizations per map if catalogs grow 10×.
 
 ---
 
-## 3. Actionable Remediations (prioritized)
+## 3. Remediation list (ordered)
 
-### P1 (do first — silent corruption / whole-source loss)
-1. **Fix the RSC extraction order in `parse_aa` and `parse_lmarena`: scan the *raw* text, unescape only the extracted segment.**
-   - `parse_lmarena` (#L554-561): replace the blind `find("}]")` with an escape-aware bracket scan over the raw HTML (track `in_str`/`esc`, count `[`/`]`), starting at `"entries":[{`. Then unescape the segment (`\"`→`"`, `\/`→`/`) and `json.loads` it. This single change fixes F1's truncation *and* escaped-quote corruption, because the scan's escape flag already handles `\"` correctly on raw text.
-   - `parse_aa` (#L651, #L672-689): move the `replace('\\"', '"').replace("\\/", "/")` to *after* the segment is located (scan raw text; the bracket-depth state machine already tracks escapes). Unescape `unescaped[best_idx:best_end]` before `json.loads` (#L699-700).
-   - Add a **post-parse validation gate** to both parsers: if the source marker was found but `len(out) == 0` (or `< 50` for AA), emit a loud `WARN` to stderr *unconditionally*, not just under `verbose` — a broken parse must never look identical to "no data".
-2. **Reject non-finite floats at the conversion boundary.** In `_safe_float` (#L166-175) and `parse_price` (#L200-210): after `float(val)`, `if not math.isfinite(f) : return default`. This neutralizes F3 end-to-end (AA "nan" → `None` → consumer skips the signal), and makes `compute_capability_q`/`compute_p_success`/`get_z_scores` NaN-proof without touching their math. Add a defensive `math.isfinite` guard in `get_z_scores`'s valid-list filter (#L274) so a stray NaN degrades to a skipped row instead of a run-wide `ValueError`.
+**P1 (next cycle):**
+1. F1: replace suffix regex with `endswith` loop + add adversarial-size perf test.
+2. F4: `math.isfinite` + bool guards on all `compute_*` entry points.
+3. F2: `math.isfinite` + bool filter in `get_z_scores`.
+4. F3: per-record isolation + `_safe_float` rating + `_safe_int` context + quote-aware block end + empty-input guard in `parse_lmarena`.
 
-### P2 (next — invariant drift, crash surfaces, missing fallbacks)
-3. **Align the shared z-primitive with the invariant:** change `get_z_scores` (#L272-281) to return `None` for missing/non-numeric entries (mirroring `llm_benchmark_aggregator.py:1385-1399`), and fix the docstring that currently advertises zero-fill. Verify all consumers (ocheck/ccheck z-array indexing at `opencode_cost_benefit_analyzer.py:1788-1797`, `commandcode_cost_benefit_analyzer.py:864-876`) skip `None` entries — they already key off `is not None` on the source signal, so this is a mechanical change. Reconcile `stdev` vs `pstdev` (#L278 vs #L432-434) with a comment or a single helper.
-4. **Make staleness helpers total:** `snapshot_age_hours` (#L232-241) → return `math.inf` (or raise a documented `FileNotFoundError` caught by callers) when the path is missing; `staleness_tag` (#L244-250) → `""` on `None`. And anchor the age to the snapshot's actual fetch window — either store a fetch timestamp alongside the date or accept the midnight anchor but document the ≤24h overcount in the WARN text.
-5. **Harden `parse_openrouter` (#L740-748):** `isinstance(rec, dict)` filter, `isinstance(pricing, dict)` guard, and per-record `try/except` so one malformed record is skipped rather than crashing the checker. Add a "parsed 0 of N" warning when the payload had entries but none parsed.
-6. **Move `non`/`reasoning` handling in the finders to match the memory contract:** in `find_aa_for_model`/`find_lm_for_model`/`find_livebench_for_model` stage 1 (#L787-801, #L814-820, #L864-869), either remove `non`/`reasoning` from `TIER_TOKENS` (they belong in `VARIANT_TOKENS` only — `#L97-101`) or run the stage-1 candidate list through `variant_conflict` before linking. Keep exact-canonical matches untouched (they're correct today).
-7. **Defensive isinstance guards:** `compute_pareto_frontier` (#L410-413) — `d = a.get("display"); if d and d[:22]`; `render_removed_models_cli` (#L1823) — `isinstance(pr_lim, (int, float))` before `:.0f`.
+**P2 (eventually):**
+5. F5: unify z-primitives (None-passthrough) or pin the divergence as intentional + tested.
+6. F6: prune `TIER_TOKENS` to pure effort/tier; AND-gate stage 1 with `variant_conflict`.
+7. F7: size/version/date surplus tokens → conflict; deterministic ambiguity (no dict-order wins).
+8. F8: loud WARN + 1 retry + byte cap in `fetch_url`; delete the aggregator duplicate.
+9. F11: escape-aware `parse_aa` scan + try-next-array fallback + loud empty-parse WARN.
+10. F10: `isinstance` guards + per-record isolation in `parse_openrouter`.
+11. F9: `None`-tolerant staleness contract.
 
-### P3 (polish / hardening)
-8. **Gate the sync daemon's snapshot persistence:** minimum-byte threshold + parse-validate-before-write for AA/LMArena/OpenRouter (`benchmark_sync_daemon.py:129-159`), so a 200-error-page can never become today's fresh snapshot (feeds F9).
-9. **`parse_livebench` (#L518, #L530-536):** exclude any column literally named `overall`/`Overall` from the mean; use explicit `is not None` checks instead of `or`-chains so 0.0 scores survive.
-10. **`diff_model_catalog` (#L1769-1779):** clamp `first_seen` to `now` when `created` parses to a future date (clock-skew tolerance), and add a unit test with a future `created` + a negative-age run.
-11. **Extend `test_benchmark_common.py` with a failure-class suite:** one test per F1/F2/F3/F5/F6/F8 trigger (escaped quotes in values, `}]` in strings, `"nan"` price, missing path, string pricing, missing `display`, string limit). These are one-liners that lock the P1/P2 fixes in place — the current suite's only real gap.
+**P3 (polish):** F12–F19 as listed; each is a ≤5-line change with a pinned test.
 
 ---
 
-## 4. Verified-Correct Highlights (for the record)
+## 4. Test-gap notes (`test_benchmark_common.py`)
 
-- `variant_conflict` (#L127-144): token-prefix-run + variant/digit-surplus rejection is correct; `qwen3-5` vs `qwen-3-5` and `mimo-v2-pro` vs `mimo-v2-5` both correctly conflict (probe-verified); equal ids non-conflict; empty → conflict. Matches memory.md S2-C2 exactly.
-- `norm_id` preserves dots/underscores, `norm_model_slug` strips vendor prefixes and folds `qwen-3` → `qwen3` — matches the documented divergence contract (memory.md dedup note).
-- Staleness-from-filename (S2-M2): `snapshot_date_str` validates via `strptime` (rejects `20261399`), `pick_latest_raw` orders by filename date before mtime, tests pin "name wins over fresh mtime".
-- `atomic_write_text`: genuinely atomic (tmp sibling + `fsync` + `os.replace`, cleanup in `finally`, pid+ns collision-proof name, `with_name` blocks traversal).
-- `load_previous_snapshot`: absent = silent, corrupt = loud `WARN` (S1-M2) — tested.
-- `compute_meanfill_composite`: missing signals properly skipped, weights renormed over present signals; single-row cohort pins to Q=78 (the model *is* the cohort — no banking violation).
-- `diff_model_catalog`: two-set docs-tag diff (S1-M1/S3-F3-2), catalog-wide `first_seen` carry-over, negative-age guard — all tested and correct.
-- Pareto cost handling (S2-M1): 0.0 is a real cost, `None` → price sum, unknown → 999 sentinel — tested.
-- Z-score std=0 → all-zeros contract pinned (S2-M3).
+The suite pins the important contracts (variant/digit rejection, zero-std, two-set docs diff, 0.0-cost Pareto, filename-date authority, input non-mutation). Missing coverage that would have caught the above: NaN/Inf cohorts for `get_z_scores`; `compute_capability_q(nan)`; `parse_lmarena` with a `}]`-in-string and a dict-rating record; `parse_openrouter` with non-dict rec/pricing; `strip_tier_tokens` adversarial-length timing; `0.0`-valued LiveBench categories; `staleness_tag(None)`; `parse_timestamp(True)`. Recommended: one test per P1 fix, none permanent beyond that (per throwaway-script-first policy — each reproduces pre-fix, passes post-fix).
+
+---
+
+## 5. Probe log (all executed 2026-09-09, `checkers/` on `sys.path`)
+
+- `variant_conflict`: `llama-3|70b→False`, `model|200k→False`, `model|v2→False`, `qwen3-5|7→True`, `model|pro→True`, `gpt-4|turbo→True` — size/context/version surplus under-discriminates.
+- `strip_tier_tokens`: `llama-3-base→llama-3`, `gpt-next→gpt`, `qwen-non-reasoning→qwen`, `claude-high→""`, regex `(\d+)(…)$` on 30k digits → **10.737 s**.
+- `get_z_scores([nan,1,2])` / `[inf,1,2]` → `ValueError`; `[True,False,1.0]` → bool-skewed scores.
+- `compute_capability_q(nan/inf)→99.9`, `("bad")→ValueError`; `compute_avi(-1.2,5)→TypeError`; `compute_avi(80,nan)→873.1`; `compute_token_multiplier(50,alpha=-5)→-3.0`; `compute_effective_cost("abc",2)→ValueError`; `compute_cost("a",..)→TypeError`.
+- `parse_openrouter(None)→{}`, bad-pricing tolerated; `parse_livebench(None/"" /bad-cats)` tolerant; `parse_lmarena(None)` / `parse_aa(None)` → `AttributeError`.
+- `parse_aa` 4.8 MB synthetic → 0.03 s; Pareto 100/513/1000 rows → 0.001/0.015/0.056 s.
+- `diff_model_catalog`: future `first_seen`→not-new (correct); dup ids→dup rows; cold start→no green (correct); naive `now` accepted; `parse_timestamp(True)`→1970 epoch.
+- `atomic_write_text`: content correct, no tmp leftovers, dir-target→`IsADirectoryError`, `/proc`→`FileNotFoundError`.
+- `snapshot_age_hours(missing)`→`FileNotFoundError`; future file age 0; `20261345`/`20260230`→`None`.
+- `find_aa("llama-3", {70b:80, 8b:60})`→70b record (dict-order win); `comp_key({model_id})`→`KeyError`; meanfill missing keys→`KeyError`, nan→`nan` mean propagation.

@@ -20,6 +20,7 @@ from contextlib import contextmanager
 import datetime as dt
 import fcntl
 import glob
+import http.client
 import json
 import os
 import pathlib
@@ -82,7 +83,7 @@ def fetch_url_content(url: str, timeout: int = 20, max_retries: int = 3) -> str 
             if len(text) < 100 or normalized.startswith(("404", "not found", "<h1>404")):
                 raise ValueError(f"invalid response body ({len(text)} bytes)")
             return text
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as e:
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError, http.client.HTTPException) as e:
             if attempt < max_retries:
                 backoff = 1.5 ** attempt
                 time.sleep(backoff)

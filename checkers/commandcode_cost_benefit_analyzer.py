@@ -774,7 +774,7 @@ def main():
     requests_live = {}
     intel_live = {}
     cc_ids = []
-
+    fetched_maps: dict[str, dict] = {}
     if do_fetch:
         body = fetch(CC_DOCS, verbose=verbose)
         if body:
@@ -798,9 +798,24 @@ def main():
 
         for url, tag in [(OPENROUTER_API, "openrouter_models"), (AA_URL, "artificial_analysis"), (LMARENA_URL, "lmarena")]:
             body = fetch(url, verbose=verbose)
-            if body and do_write:
+            if not body:
+                continue
+            try:
+                text = body.decode(errors="ignore")
+                if tag == "openrouter_models":
+                    parsed_or = bc.parse_openrouter(json.loads(text), verbose=verbose)
+                    fetched_maps[tag] = parsed_or
+                    text = json.dumps(json.loads(text), indent=2)
+                elif tag == "artificial_analysis":
+                    fetched_maps[tag] = bc.parse_aa(text, verbose=verbose)
+                else:
+                    fetched_maps[tag] = parse_lmarena(text, verbose=verbose)
+            except Exception as e:
+                print(f"  WARN {tag} live parse failed, falling back to snapshot: {e}", file=sys.stderr)
+                continue
+            if do_write:
                 snap = RAW / f"{tag}_{dt.date.today().isoformat().replace('-','')}.{'json' if tag=='openrouter_models' else 'html'}"
-                bc.atomic_write_text(snap, body.decode(errors="ignore") if tag != "openrouter_models" else json.dumps(json.loads(body), indent=2))
+                bc.atomic_write_text(snap, text)
                 print(f"  saved {tag} -> {snap.relative_to(ROOT)}")
 
     if not pricing_live:
@@ -846,33 +861,42 @@ def main():
             if mid != "laguna-s-2.1-free":
                 pr["credits"] = FALLBACK_PRICING[mid]["credits"]
 
-    or_map = {}
-    snap_or = pick_latest_raw("openrouter_models")
-    if snap_or:
-        try:
-            j = json.loads(snap_or.read_text(errors="ignore"))
-            or_map = bc.parse_openrouter(j, verbose=verbose)
-            print(f"  OpenRouter: {len(or_map)} models ({snap_or.name})")
-        except Exception as e:
-            print(f"  WARN OpenRouter parse: {e}", file=sys.stderr)
+    or_map = dict(fetched_maps.get("openrouter_models", {}))
+    if or_map:
+        print(f"  OpenRouter: {len(or_map)} models (live fetch)")
+    else:
+        snap_or = pick_latest_raw("openrouter_models")
+        if snap_or:
+            try:
+                j = json.loads(snap_or.read_text(errors="ignore"))
+                or_map = bc.parse_openrouter(j, verbose=verbose)
+                print(f"  OpenRouter: {len(or_map)} models ({snap_or.name})")
+            except Exception as e:
+                print(f"  WARN OpenRouter parse: {e}", file=sys.stderr)
 
-    aa_map = {}
-    snap_aa = pick_latest_raw("artificial_analysis")
-    if snap_aa:
-        try:
-            aa_map = bc.parse_aa(snap_aa.read_text(errors="ignore"), verbose=verbose)
-            print(f"  AA: {len(aa_map)} entries ({snap_aa.name})")
-        except Exception as e:
-            print(f"  WARN AA parse: {e}", file=sys.stderr)
+    aa_map = dict(fetched_maps.get("artificial_analysis", {}))
+    if aa_map:
+        print(f"  AA: {len(aa_map)} entries (live fetch)")
+    else:
+        snap_aa = pick_latest_raw("artificial_analysis")
+        if snap_aa:
+            try:
+                aa_map = bc.parse_aa(snap_aa.read_text(errors="ignore"), verbose=verbose)
+                print(f"  AA: {len(aa_map)} entries ({snap_aa.name})")
+            except Exception as e:
+                print(f"  WARN AA parse: {e}", file=sys.stderr)
 
-    lm_map = {}
-    snap_lm = pick_latest_raw("lmarena")
-    if snap_lm:
-        try:
-            lm_map = bc.parse_lmarena(snap_lm.read_text(errors="ignore"), verbose=verbose)
-            print(f"  LMArena: {len(lm_map)} entries ({snap_lm.name})")
-        except Exception as e:
-            print(f"  WARN LMArena parse: {e}", file=sys.stderr)
+    lm_map = dict(fetched_maps.get("lmarena", {}))
+    if lm_map:
+        print(f"  LMArena: {len(lm_map)} entries (live fetch)")
+    else:
+        snap_lm = pick_latest_raw("lmarena")
+        if snap_lm:
+            try:
+                lm_map = bc.parse_lmarena(snap_lm.read_text(errors="ignore"), verbose=verbose)
+                print(f"  LMArena: {len(lm_map)} entries ({snap_lm.name})")
+            except Exception as e:
+                print(f"  WARN LMArena parse: {e}", file=sys.stderr)
 
     live_map = {}
     csv_matches = [p for p in sorted(glob.glob(str(RAW / "*livebench*20*.csv"))) if "cost" not in p]
@@ -1040,13 +1064,18 @@ def main():
         b["p_success"] = p_succ
         t_mult = compute_token_multiplier(p_succ)
         b["token_multiplier"] = t_mult
-        pin = bc._safe_float(p.get("input_per_1m"), 0.0) or 0.0
-        pout = bc._safe_float(p.get("output_per_1m"), 0.0) or 0.0
-        blended_price = (0.80 * pin) + (0.20 * pout)
-        b["blended_price"] = round(blended_price, 2)
-        effective_blended_price = compute_effective_cost(blended_price, t_mult)
-        b["effective_cost"] = effective_blended_price
-        v["effective_blended_price"] = effective_blended_price
+        pin = bc._safe_float(p.get("input_per_1m"))
+        pout = bc._safe_float(p.get("output_per_1m"))
+        if pin is None or pout is None:
+            b["blended_price"] = None
+            b["effective_cost"] = None
+            v["effective_blended_price"] = None
+        else:
+            blended_price = (0.80 * pin) + (0.20 * pout)
+            b["blended_price"] = round(blended_price, 2)
+            effective_blended_price = compute_effective_cost(blended_price, t_mult)
+            b["effective_cost"] = effective_blended_price
+            v["effective_blended_price"] = effective_blended_price
         c_req = r.get("cost_per_request_usd")
         eff_c_req = (c_req * t_mult) if c_req is not None else None
         v["effective_cost_per_request"] = round(eff_c_req, 6) if eff_c_req is not None else None
@@ -1068,15 +1097,11 @@ def main():
         toks_tot = (r["tokens"].get("est_input", 0) or 0) + (r["tokens"].get("est_cached", 0) or 0) + (r["tokens"].get("est_output", 0) or 0)
         avi_cost = (eff_c_req * 1_000_000.0 / toks_tot) if (eff_c_req is not None and eff_c_req > 0 and toks_tot > 0) else None
         avi = compute_avi(q_score, avi_cost) if avi_cost is not None else None
-        b["avi_score"] = avi
-        v["avi_score"] = avi
-        fgi = compute_fgi(q_score, p_succ)
-        b["fgi_score"] = fgi
-        v["fgi_score"] = fgi
         speed = _safe_float(b.get("aa_median_tps"), default=60.0) or 60.0
-        bfi = compute_bfi(q_score, speed, blended_price)
-        b["bfi_score"] = bfi
-        v["bfi_score"] = bfi
+        _bl = b.get("blended_price")
+        _bfi = compute_bfi(q_score, speed, _bl) if _bl is not None else None
+        b["bfi_score"] = _bfi
+        v["bfi_score"] = _bfi
 
     sort_mode = getattr(args, "sort", "value")
     def _eff_cost(r):

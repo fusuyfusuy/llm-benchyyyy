@@ -745,7 +745,10 @@ def format_model_display_name(mid: str) -> tuple[str, str]:
         return disp, prov
     elif low.startswith("muse"):
         prov = "Muse"
-        disp = "Muse Spark 1.2 Contributor" if "spark" in low else mid.replace("-", " ").title()
+        core = re.sub(r"^muse[-_]?", "", mid, flags=re.I)
+        ver = "1.2" if "1-2" in core or "1.2" in core else ("1.3" if "1-3" in core or "1.3" in core else "")
+        variant = " Contributor" if "contrib" in low else ""
+        disp = f"Muse Spark {ver}{variant}".strip() if ver else mid.replace("-", " ").title()
         return disp, prov
     elif low.startswith("longcat"):
         prov = "Meituan"
@@ -1066,6 +1069,28 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                 if aa_rec and aa_rec.get("contextWindowTokens"):
                     m["context_length"] = aa_rec["contextWindowTokens"]
                     break
+
+    # Provider-variant mirrors share one upstream evaluation (e.g. Kimi K3
+    # Max vs NVIDIA NIM: identical livebench/AA/elo, different prices).
+    # Counting it twice inflates scoring, Pareto, and medals — mark mirrors
+    seen_signals: dict[tuple, str] = {}
+    for mid, m in catalog.items():
+        lb = m.get("livebench") if isinstance(m.get("livebench"), dict) else None
+        bm = m.get("base_metrics", {}) if isinstance(m.get("base_metrics"), dict) else {}
+        key = (
+            (lb or {}).get("overall"),
+            m.get("aa_live_quality"),
+            m.get("aa_live_coding"),
+            bm.get("lm_elo"),
+            bm.get("lm_coding"),
+        )
+        n_signals = sum(1 for v in key if v is not None)
+        if n_signals < 2:
+            continue
+        if key in seen_signals:
+            m["signal_mirror_of"] = seen_signals[key]
+        else:
+            seen_signals[key] = mid
 
     return catalog
 
@@ -1617,7 +1642,8 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     display_models = primary_models[:top_n] if (top_n and len(primary_models) > top_n) else primary_models
     shown_models = len(display_models)
 
-    col_medals = compute_column_medals(primary_models, BCHECK_COL_MEDAL_KEYS, id_key="display")
+    medal_pool = [m for m in primary_models if not m.get("signal_mirror_of")]
+    col_medals = compute_column_medals(medal_pool, BCHECK_COL_MEDAL_KEYS, id_key="display")
 
     # Adaptive width detection (detect split panes or small windows)
     term_cols = shutil.get_terminal_size((120, 24)).columns
@@ -1727,7 +1753,8 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             rank_str = f" #{rank_num}"
 
         mid_raw = m["display"]
-        is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
+        _alias0 = (m.get("aa_aliases") or m.get("lm_aliases") or m.get("live_aliases") or [None])[0]
+        is_added = (mid_raw in added_ids) or (_alias0 in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
         is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
 
         m_name_w = headers[1][1]
@@ -1880,7 +1907,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         color=color,
     ))
 
-    role_recs = compute_role_recommendations(primary_models, context="bcheck")
+    role_recs = compute_role_recommendations([m for m in primary_models if not m.get("signal_mirror_of")], context="bcheck")
     if role_recs:
         out.append("")
         out.extend(render_role_recommendations_cli(role_recs, color=color, is_slim=is_slim, width=inner_w))
@@ -2057,7 +2084,8 @@ def render_one_shot_cli_table(
             rank_str = f" #{rank_num}"
 
         mid_raw = m.get("display") or m.get("model_id", "Unknown")
-        is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
+        _alias0 = (m.get("aa_aliases") or m.get("lm_aliases") or m.get("live_aliases") or [None])[0]
+        is_added = (mid_raw in added_ids) or (_alias0 in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
         is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
 
         m_name_w = headers[1][1]
@@ -2579,7 +2607,8 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
     for m in display_models:
         bm = m.get("base_metrics", {})
         mid_raw = m['display']
-        is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
+        _alias0 = (m.get("aa_aliases") or m.get("lm_aliases") or m.get("live_aliases") or [None])[0]
+        is_added = (mid_raw in added_ids) or (_alias0 in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
         is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
         pool_cls = {"claude": "badge-cld", "agy": "badge-agy", "ocgo": "badge-ocg", "frontier": "badge-frt"}.get(m["pool"], "")
 

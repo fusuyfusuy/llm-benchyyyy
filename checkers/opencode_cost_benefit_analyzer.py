@@ -1854,14 +1854,21 @@ def main():
         t_mult = compute_token_multiplier(p_succ)
         b["token_multiplier"] = t_mult
 
-        # Effective costs
-        pin = bc._safe_float(p.get("input_per_1m"), 0.0) or 0.0
-        pout = bc._safe_float(p.get("output_per_1m"), 0.0) or 0.0
-        blended_price = (0.80 * pin) + (0.20 * pout)
-        b["blended_price"] = round(blended_price, 2)
-        effective_blended_price = compute_effective_cost(blended_price, t_mult)
-        b["effective_cost"] = effective_blended_price
-        v["effective_blended_price"] = effective_blended_price
+        # Effective costs: unknown price stays None (never 0.0 — that would
+        # fabricate $0.00 blended + inflated BFI for unpriced rows). Real 0.0
+        # is a genuine free tier and keeps its 0.0 effective cost.
+        pin = bc._safe_float(p.get("input_per_1m"))
+        pout = bc._safe_float(p.get("output_per_1m"))
+        if pin is None or pout is None:
+            b["blended_price"] = None
+            b["effective_cost"] = None
+            v["effective_blended_price"] = None
+        else:
+            blended_price = (0.80 * pin) + (0.20 * pout)
+            b["blended_price"] = round(blended_price, 2)
+            effective_blended_price = compute_effective_cost(blended_price, t_mult)
+            b["effective_cost"] = effective_blended_price
+            v["effective_blended_price"] = effective_blended_price
 
         c_req = r.get("cost_per_request_usd")
         eff_c_req = (c_req * t_mult) if c_req is not None else None
@@ -1896,9 +1903,10 @@ def main():
         v["fgi_score"] = fgi
 
         speed = _safe_float(b.get("aa_median_tps"), default=60.0) or 60.0
-        bfi = compute_bfi(q_score, speed, blended_price)
-        b["bfi_score"] = bfi
-        v["bfi_score"] = bfi
+        _bl = b.get("blended_price")
+        _bfi = compute_bfi(q_score, speed, _bl) if _bl is not None else None
+        b["bfi_score"] = _bfi
+        v["bfi_score"] = _bfi
 
     # Sort by chosen sort mode (default: value)
     sort_mode = getattr(args, "sort", "value")

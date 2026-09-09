@@ -1,158 +1,354 @@
-# Scope 3: Cost Analyzers Audit Report (ocheck / ccheck)
+# Scope 3 — Cost/Benefit Analyzers Audit (ocheck / ccheck)
 
-**Date:** 2026-09-01
-**Target Files:**
-- `checkers/opencode_cost_benefit_analyzer.py` (2189 lines, `ocgo_check.py`)
-- `checkers/commandcode_cost_benefit_analyzer.py` (1179 lines, `cc_check.py`)
-- `checkers/test_opencode_cost_benefit_analyzer.py` (15 tests)
-- `checkers/test_commandcode_cost_benefit_analyzer.py` (12 tests)
-- Supporting: `checkers/benchmark_common.py`
+**Commit:** b27355d · **Date:** 2026-09-09 · **Auditor:** ScopeCostAnalyzers
+**Targets:** `checkers/opencode_cost_benefit_analyzer.py` (2239 lines),
+`checkers/commandcode_cost_benefit_analyzer.py` (1323 lines),
+`checkers/test_opencode_cost_benefit_analyzer.py`,
+`checkers/test_commandcode_cost_benefit_analyzer.py`
+**Non-goals:** aggregator, rankers, daemon, shared-math internals (cited only as contract surface).
 
-**Method:** `mimori slice` on `main`/`parse_ocgo_docs`/`parse_cc_docs` + targeted `read_file`, live offline runs of both checkers (`--check --plain`) against the 20260901 snapshot set, direct reproduction of the scoring path, and full test-suite runs. No subagents spawned.
+**Health score: 8.3 / 10 (Moderate — one functional fetch-path bug in ccheck, rest minor/polish)**
 
-**Health Score: 7.8 / 10 (Moderate)** — ccheck: 8.8; ocheck: 7.2.
+## 1. Verdict
 
----
+Both checkers are structurally sound: offline-first with `--fetch` as the sole network
+path, `--check` correctly gates every write, corrupt snapshots degrade to WARN + fallback,
+HTML output escapes interpolated ids, and the AVI cost-basis change is internally
+consistent with the Eff c/r column. The single biggest defect is that
+**ccheck's `--fetch` fetches OpenRouter/AA/LMArena bodies and then throws them away**
+(`commandcode_cost_benefit_analyzer.py:799-804`), so `--fetch` (and `--fetch --check`)
+silently uses stale cache for all three benchmark sources. Everything else is
+minor: a stale "deliberate divergence" comment that overstates reality, a dead
+`ox-alpha-free` pareto id, inconsistent canonical ids across the two checkers
+(`qwen3.8-max` vs `qwen-3.8-max`, `hy4-preview` vs `tencent-hy4-preview`), an
+always-true `log()` helper, and duplicate `diff_model_catalog` passes.
 
-## 1. Executive Summary
+## 2. Correctness audit
 
-Both checkers are structurally sound: offline-by-default, pure stdlib, snapshot staleness labeled from filenames, atomic snapshot writes, fail-fast with loud WARNs (no silent `except Exception: pass` swallow sites remain), and both suites pass (27/27). The invariant "every limits view must label usage provenance" holds in code and live output (`usage: rolling 1% used ... [cached ocgo_usage_20260901.json]`).
+### 2.1 Claimed "deliberate divergences" from benchmark_common — mostly not divergent
 
-**One critical correctness defect is live and confirmed:** `ocheck` fabricates benchmark scores for models with **zero** cross-source coverage. `compute_capability_q(cz=0.0)` returns the z=0 center `78.0`, so a completely unscored free model (`ox-alpha-free`) renders as `Q(Cap)=78.0 · P(Succ)=67.3% · AVI=825.8` with a **🥇 AVI column medal** and joins the **Pareto frontier** (gold-bold) as *undominated* — a phantom ranking that beats genuinely scored models. `ccheck` contains the identical historical bug, was fixed with an explicit guard (cc lines 885–905, covered by `test_unscored_models_sort_last_and_show_dash`), and its live output shows `—` for the same class of model. The fix is known, proven, and simply was never ported back to ocheck.
+The ocheck header comment (`opencode_cost_benefit_analyzer.py:55-62`) claims
+`norm_id / parse_aa / parse_openrouter / parse_livebench / _safe_float / _safe_int /
+_safe_int_round / display_len / color_cell / C_RESET` are "redefined below with proven,
+intentional divergences" and warns never to "restore" the imports. The code contradicts
+the comment:
 
-No invariant breaches found in the scope of this audit (usage provenance, offline default, `--check` never writes, env-only keys, stdlib-only, no swallowed exceptions). The prior audit's `except Exception: pass` sites (ocheck ~1612/1663/1686–1695) have all been narrowed to `except (ValueError, TypeError)` or converted to logged WARNs.
-
-### Dimension Scores
-
-| Dimension | ocheck | ccheck |
-| :--- | :---: | :---: |
-| Correctness (parsing, ID norm, cost math, quotas, QVI/AVI/FGI) | 7.0 | 9.0 |
-| Robustness (offline, staleness, malformed HTML, error isolation) | 8.8 | 9.0 |
-| Performance (parsing throughput, memory) | 9.5 | 9.5 |
-| Security (key handling, path safety) | 9.0 | 9.5 (no keys) |
-| Complexity (main() CC, bug-coupling) | 7.0 | 8.0 |
-
----
-
-## 2. Top Findings
-
-### F1 — CRITICAL: ocheck fabricates scores for uncovered models → phantom rankings + Pareto pollution
-**File:** `checkers/opencode_cost_benefit_analyzer.py`
-**Lines:** [1785–1807](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1785-L1807) (weighted composite: `tot_w = sum(weights) or 1.0; cz = sum(z_parts) / tot_w if weights else 0.0; q_score = compute_capability_q(cz)`), driven by [1799–1801](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1799-L1801).
-
-**Evidence (live offline run, 2026-09-01 snapshots):**
+```python
+# opencode_cost_benefit_analyzer.py:429-436
+norm_id = bc.norm_id
+parse_aa = bc.parse_aa
+parse_openrouter = bc.parse_openrouter
+...
 ```
-#28 ox-alpha-free    Free   —   —   78.0   67.3%   —   0.0  825.8¹  43.1   —   —
+
+`norm_id`, `parse_aa`, `parse_openrouter`, `parse_livebench`, and all four
+`find_*_for_ocgo` helpers are **plain aliases to `bc`**, not redefinitions — there is
+zero divergence and editing `bc` *does* change this file's behavior for those paths.
+ccheck is identical (`commandcode_cost_benefit_analyzer.py:395-402`). Only `_safe_float`
+(and trivially `display_len`) are actually local. The comment is stale documentation
+drift that will mislead the next fixer into editing the wrong file or skipping a `bc`
+fix. **Remediation:** shrink the NOTE to name only `_safe_float` (+ the cosmetic
+`display_len` regex), or delete it.
+
+`_safe_float` divergence itself (`opencode…:439-453`, `commandcode…:405-419` vs
+`benchmark_common.py:171-190`):
+
+| behavior | `bc._safe_float` | local `_safe_float` |
+|---|---|---|
+| `"$3.00"` | strips `$`/`%`/`,` → `3.0` | `s.startswith("$")` → `default` (REJECT) |
+| `"50%"` | strips `%` → `50.0` | `float("50%")` raises → `default` |
+| `"1,000"` | strips `,` → `1000.0` | strips `,` → `1000.0` (same) |
+| `display_len` regex | `\x1b\[[0-9;]*m` | `(?:\033\|\x1b)\[[0-9;]*m` — `\033 == \x1b`, cosmetic only |
+
+Is the `$`-rejection load-bearing? Today, no: every docs-price cell flows through
+`parse_price` (imported from `bc` in both files), never through local `_safe_float`.
+Local `_safe_float` is applied to already-numeric benchmark fields
+(`intelligenceIndex`, `elo`, `resetsAt` percents via `float()` directly, caps via
+`bc._safe_float`). So the divergence is currently inert — but it is a trap: any future
+caller (the comment explicitly blesses `fcheck`/`scheck` reuse of `ogc.*`) passing a
+`"$12.00"` string gets `None` where `bc` gives `12.0`, silently zeroing caps/requests.
+**Remediation:** either document the rejection contract with a test
+(`assertIsNone(_safe_float("$3.00"))` + why), or drop the local and use `bc._safe_float`.
+
+`display_len` divergence is nil: the two regexes match the same language; wide/emoji
+handling is line-identical to `bc.display_len` (`benchmark_common.py:943-959`). Keep or
+dedup freely — no behavioral risk.
+
+`parse_aa` / `parse_openrouter`: no divergence (aliases). The one genuine parser
+difference is that ccheck adds its own `parse_cc_docs` RSC intel extractor
+(`commandcode…:212-271`) — new code, not a divergence — reviewed in §2.5.
+
+### 2.2 AVI cost-basis change — consistent with Eff c/r (correct)
+
+Both files compute (ocheck `1883-1892`, ccheck `1063-1072`):
+
+```python
+toks_tot = est_input + est_cached + est_output
+avi_cost = eff_c_req * 1_000_000 / toks_tot   # eff_c_req = cost_req * t_mult
+avi = compute_avi(q_score, avi_cost)
 ```
-- `compute_capability_q(0.0)` = `78.0` (bc [284–291](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L284-L291)) — the z=0 center, semantically "average model", here meaning "no data".
-- Downstream: `p_success=67.3`, `t_mult=2.07`, `AVI=825.8` — reproduced deterministically in a standalone script; the 🥇 AVI medal comes from `compute_column_medals` over the row set.
-- Pareto sweep (`cand` includes rows with `capability_q is not None`, [1875](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1875)): reproduced `ox-alpha-free` as **undominated** at (cost=0.0, Q=78.0) against glm-5.3/mimo-v2.5 → gold-bold frontier membership.
-- Because `ox-alpha-free` has no price, `_eff_cost` gives it `0.0` (real-cost rule [1860–1861](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1860-L1861)), which is correct *only if* its score is genuine — it isn't.
-- `role recommendations` pick `muse-spark-1.2-contributor` (Q=78, TPS-heavy) as "Fast Boilerplate" — Q=78 is itself the unscored center bleeding into a scored-looking row for a real model that only has TPS coverage. Same root cause.
 
-**Known-fixed in sibling:** ccheck [885–905](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L885-L905) (`if not weights:` → set every Q/AVI/FGI/P score to None, `continue`), tested by `test_unscored_models_sort_last_and_show_dash` (cc test [141–159](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/test_commandcode_cost_benefit_analyzer.py#L141-L159)). Not ported to ocheck.
+The inline comment ("NOT the 80/20 fresh blended rate … flips AVI rank order against
+the Eff c/r column for cache-heavy models") is accurate: Eff c/r is
+`c_req * t_mult` where `c_req = compute_cost(...)` already prices cached reads at the
+discounted rate, so normalizing it back to $/1M of the model's *own* token mix keeps
+AVI rank-monotone with Eff c/r. The alternative 80/20 `blended_price`
+(`0.80*pin + 0.20*pout`, ocheck `1858-1864`, ccheck `1044-1049`) ignores the
+~50-89k cached-token leg that dominates every `FALLBACK_TOKENS` row and would indeed
+invert cache-heavy ordering. Unknown price → `eff_c_req None` → no AVI (no ~900
+noise): correct. One asymmetry to be aware of (not a bug): `BFI` still uses the 80/20
+`blended_price` via `compute_bfi(q_score, speed, blended_price)` per the shared
+formula, so BFI rank *can* diverge from Eff c/r on cache-heavy models — that is the
+`bc` contract, and both checkers apply it identically.
 
----
+### 2.3 Pooled-cap math — correct within each file, one out-of-pool fallback value
 
-### F2 — HIGH: ocheck usage percent unit mismatch — "79% remaining" rendered when 79% is *used*
-**File:** `checkers/opencode_cost_benefit_analyzer.py`
-**Lines:** [1679–1701](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1679-L1701) (remaining built from `usage_percents`), display [798–812](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L798-L812), header label at [665–669](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L665-L669) and [677–686](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L677-L686).
+- ocheck (`1647-1653`): `cap_mo = usage; cap_wk = cap_mo*0.50; cap_5h = cap_mo*0.20`.
+  With pools `ACC_5H/WK/MO = 12/30/60` (`:205`), `0.50 == 30/60` and `0.20 == 12/60`,
+  so `cap_5h == 12 × (usage/60)` exactly as the `:108` comment states. ✔
+- ccheck (`907-913`): `cap_wk = credits*(35/70)`, `cap_5h = credits*(14/70)` from
+  `ACC_* = 14/35/70` (`:126`) — same shape, but expressed via the constants so a pool
+  change propagates (ocheck's literals would not). Recommend ocheck adopt the
+  `ACC_WK/ACC_MO` form for parity. Minor.
+- Out-of-pool value: ocheck `FALLBACK_PRICING["omen-alpha"]["usage"] = 100` (`:137`)
+  yields `cap_5h = $20 > $12` pool. The formula is applied faithfully
+  (`12 × 100/60 = 20`), so this is a *data* question (does the docs table really grant
+  Omen Alpha $100/mo headroom against a $60 pool?), not a code bug — but it should be
+  confirmed on next docs re-fetch; if `usage` means something other than pool share,
+  the cap model overstates Omen throughput by 67%.
 
-**Evidence (live offline run):** `usage: rolling 1% used, weekly 0% used, monthly 79% used` (cached `ocgo_usage_20260901.json`), yet every row's Remain column shows **`21%(…)`**. The cached payload (raw `ocgo_usage_20260901.json`) is `percent: 79` for monthly = **used**, and the code *correctly* computes `pct_rem = 100 − pct_used` for the internal `remaining[]` — but the **header label** "Remain" (percent) plus the row format `{overall:.0f}%` [803](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L803) and the color gate `overall > 50 → green` [849](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L849) all read naturally as *remaining*. With 79% of the monthly quota already consumed, showing a green `21%` in a "Remain" column is a materially misleading signal for quota planning — the only way to catch it is to cross-read the header line above the table.
-**Suggested one-line fix:** display `Remain: {overall:.0f}%` → `{100-overall:.0f}% used` (or label the column "Used"), and note it in the metric guide. The `render_limits_table` variant already does the math correctly (balance = `w_cap * (100−used)/100`).
+### 2.4 FALLBACK_PRICING freshness vs live docs
 
----
+Both catalogs are stamped 2026-09-08 (ocheck `:106`, ccheck `:72`). Staleness handling
+is asymmetric: *snapshots* older than 24h get WARN banners (`offline_data_note`,
+ocheck `:70-93`, ccheck `:156-175`), but the *fallback itself* never warns — a fully
+offline run on month-old fallback prints no fallback-age notice. Acceptable (fallback
+is last resort after snapshot), but recommend embedding the fallback date in the banner
+when the fallback path is taken (`using fallback catalog`, ocheck `:1448`, ccheck
+`:827`). Specific freshness risks to re-verify on next `--fetch`:
 
-### F3 — MEDIUM: ccheck `--fetch` never fetches (and no offline-write discipline for it)
-**File:** `checkers/commandcode_cost_benefit_analyzer.py`
-**Lines:** [661–684](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L661-L684).
+- ocheck carries 7 API-served-but-undocumented ids (`:138-150`, e.g. `grok-4.5`,
+  `glm-5`, `qwen3.5-plus`, `hy3-preview`) with a "drop once the API stops serving it"
+  note — good hygiene, but nothing enforces the drop; a removed API id lingers
+  forever via the `for k in FALLBACK_PRICING: append` merge (`:1450-1452`).
+- ccheck `FALLBACK_PRICING` has 48 entries with per-model `credits` up to 70 and two
+  `None`-priced free tiers; the `"Older models also available → $20"` paragraph patch
+  (`:362-369`) hardcodes 8 model names — a docs rewording silently disables it
+  (falls back to per-model fallback credits via `:842-847`, so impact is bounded).
+- Cross-file price drift (same model, different file): `mimo-v2.5-pro` cached_read is
+  `0.003625` in ocheck (`:120`) vs `0.0036` in ccheck (`:111`); `qwen-3.8-flash`
+  input `0.15` (ocheck `:127`) vs `0.16` (ccheck `:81`); `grok-4.5` cached_read `0.30`
+  vs `0.5`. These are different-vendor docs so exact parity isn't expected, but the
+  `mimo-v2.5-pro` 4th-decimal truncation looks like a copy slip — verify on re-fetch.
 
-The `--fetch` branch only ever runs when `pricing_live` is empty (the `if not pricing_live:` guard at [686](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L686) is checked after the fetch block, but the fetch block *itself* is conditioned on `if do_fetch:` **and** the docs fetch is inside it, so the code path exists). Verified issue: OpenRouter/AA/LMArena are fetched **only when `do_fetch` and the writes go to raw/ unconditionally when `do_write`** — this part is fine — **but** there is no `--fetch`-only gating of the *docs* re-parse, and more importantly the checker has **no usage endpoint at all** (GOAT has no public usage API in scope), so `--fetch` fetches 4 URLs with a UA header and no keys — safe, but the CLI help overstates parity. The real divergence is the **contract drift**: like ocheck, ccheck writes `cc_live.json`/`cc_cost_benefit.json`/HTML on **every run unless `--check`** — the module docstring admits this is intentional drift vs bcheck/fcheck/scheck ([18–19](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L18-L19)). Combined with the stale baseline it is a write-on-run-every-time behavior that repeatedly mutates tracked files (see F4).
+### 2.5 Docs-vs-API id aliasing
 
----
+- ocheck `model_to_id` (`:357-426`): explicit display-name map + generic
+  space→dash fallback + dot/dash-insensitive fallback-key match + permissive
+  `^[a-z0-9][a-z0-9\.\-]*$` accept. Reasonable; the `if "/" in part: continue` guard
+  after splitting on `/` (`:335`) is dead code (split output never contains `/`) but
+  harmless. Duplicate-tier dedup keeps the *first* table row (`:277-278`) on the
+  assumption docs list the cheaper tier first — undocumented order dependence; a docs
+  reorder silently picks the peak price. Prefer `min` by computed cost or assert.
+- ccheck `_norm_cc_id` (`:191-201`) + `_ID_ALIASES` (`:129-149`): strips parens,
+  `Off-peak`, trailing `-N%`, normalizes separators, then alias-resolves. Sound.
+  The catalog parser's tag-stripping uses `" "` replacement (`:320`) specifically so
+  `"LongCat 2.0"+"Free"` don't fuse — a real bug class, correctly handled.
+- **Cross-checker canonicalization split (the actual aliasing breach):** ocheck ids
+  use `qwen3.8-max / qwen3.8-flash / qwen3.7-max / qwen3.7-plus / qwen3.6-plus /
+  hy4-preview / hy3 / longcat-2.0` while ccheck uses `qwen-3.8-max(-0902) /
+  qwen-3.8-flash / qwen-3.7-max / qwen-3.7-plus / qwen-3.6-plus /
+  tencent-hy4-preview / tencent-hy3 / longcat-2.0-free`. `norm_id` does not unify
+  `qwen3.8-max` with `qwen-3.8-max`, so any downstream join on `model_id` across
+  ocheck/ccheck treats the same vendor model as two models. Within each checker the
+  ids are self-consistent (fallback keys match `model_to_id`/`_norm_cc_id` output),
+  so tables render correctly — the blast radius is cross-checker comparison only.
+  **Remediation:** adopt one canonical form (recommend hyphenated `qwen-3.8-max`,
+  vendor-prefixed `tencent-hy*` to match ccheck/docs slugs) and add an alias test.
+- Dead pareto id: ocheck `:1922` unions `{"ox-alpha-free"} if "ox-alpha-free" in
+  ocgo_api_ids`, but the canonical id everywhere else (fallback `:137`, DOCS_IDS
+  `:162`, mapping `:410`) is `omen-alpha` — the condition is never true. `omen-alpha`
+  is still covered via `DOCS_IDS`, so no ranking harm, but the branch is misleading;
+  replace with `omen-alpha` or delete.
 
-### F4 — MEDIUM: O(n²) cross-matcher on every row build (perf), plus baseline-write churn
-**File:** `checkers/opencode_cost_benefit_analyzer.py`
-**Lines:** [1601–1613](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1601-L1613).
+### 2.6 P0/P1 correctness bug: ccheck `--fetch` discards live benchmark payloads
 
-For every model with `None` pricing, the loop iterates **all 425 OpenRouter records** with a substring test per record (`norm_id(mid) in norm_id(or_id) or ...`), and the same O(n·m) pattern runs through `find_aa_for_ocgo`/`find_lm_for_ocgo`/`find_livebench_for_ocgo` (all bc `norm_model_slug`-based, [831–877](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L831-L877) etc.). Measured end-to-end runtime is still only **~1.0s** (52 MB RSS, both checkers) because the catalogs are small; this is a scaling hazard, not a current bottleneck — P3.
+`commandcode_cost_benefit_analyzer.py:799-804`:
 
-Also confirmed: `main()` writes `ocgo_live.json` on every non-`--check` run, so `docs/data/ocgo_live.json` and the three report outputs are **modified in the worktree on every invocation** (git status shows them dirty) — the exact contract drift flagged in the prior scope-2 audit (checker_scope_2_ocheck.md F3) and still open.
+```python
+for url, tag in [(OPENROUTER_API, ...), (AA_URL, ...), (LMARENA_URL, ...)]:
+    body = fetch(url, verbose=verbose)
+    if body and do_write:          # save only; never parsed into or_map/aa_map/lm_map
+        snap = RAW / f"{tag}_..."
+        bc.atomic_write_text(...)
+```
 
----
+Compare ocheck `:1476-1531`, which parses each fetched body into `or_map`/`aa_map`/
+`lm_map` immediately (`or_map = parse_openrouter(j, …)`) and only *additionally*
+saves the snapshot. In ccheck the fetched bytes are used for nothing except the
+snapshot write; the maps are populated later exclusively from
+`pick_latest_raw(...)` (`:849-875`). Consequences:
 
-### F5 — LOW: `--podium` and `--json`/`--html` flags are no-ops in both checkers
-**Files:** ocheck [1309–1314](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1309-L1314), ccheck [637–639](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L637-L639).
-`--podium` is accepted and never referenced; `--json`/`--html` are documented in ocheck's help as "Output to docs/data/…" but outputs are written regardless of the flags (only `--check` gates writes). Harmless but misleading CLI surface; cc's help text already admits it ("Accepted for parity").
+1. `--fetch --check` (do_write=False): network is hit three times and every byte is
+   discarded — the run reports "fetch (network)" but scores entirely from stale
+   cache. The docs payload *is* parsed live (`:779-795`), so the run is half-live,
+   half-stale with no banner distinguishing them.
+2. `--fetch` with `do_write=True` still works (the just-written snapshot is
+   re-read as newest), but pays a redundant serialize→write→read→parse round trip
+   and breaks if the write fails while the fetch succeeded.
+3. The docstring itself flags drift: "Like ocheck, --json/--html are accepted but all
+   outputs are always written unless --check (documented contract drift vs
+   bcheck/fcheck)" (`:18-19`) — the fetch-parse gap is presumably part of that drift.
 
----
+**Remediation:** mirror ocheck — parse each fetched body into its map inline (guard
+JSON decode for OpenRouter as ocheck `:1479-1487` does; note ccheck's saver at `:803`
+calls `json.loads(body)` without try/except, so a truncated OpenRouter payload
+currently raises out of `main` instead of WARN-and-cache).
 
-## 3. Verified-OK Items (regression sweep vs prior audit)
+## 3. Robustness
 
-- **No `except Exception: pass` swallow sites remain.** Prior-audit lines ~1612/1663/1686–1695 are now `except (ValueError, TypeError)` with `continue`/`pass` in narrow conversion contexts; all network/parse failures print loud `WARN … <e>` to stderr ([204–206](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L204-L206), [1387–1388](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1387-L1388), [1460–1461](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1460-L1461), etc.). The prior "swallowed exception" finding is **resolved**.
-- **Variant-matching fixed**: `find_or_for_ocgo`/`find_aa_for_ocgo`/`find_lm_for_ocgo`/`find_livebench_for_ocgo` are now bc aliases ([429–436](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L429-L436)) using `norm_model_slug` + `variant_conflict` ([831–877](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L831-L877)); the scope-2 naive-substring finding (checker_scope_2_ocheck.md F1) is resolved.
-- **Cached-write cost now modeled**: `compute_cost` takes `cached_write_per_1m` ([439–445](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L439-L445)); both checkers pass it (cc always `est_cached_write=0`; oc merges `cw` from docs). Scope-2 F2 resolved. Note: oc's `compute_cost` is called without the write price at [1619](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1619) — cached writes never actually enter ocheck's per-request cost (est_cached_write defaults 0) — cosmetic, P3.
-- **Usage provenance invariant holds**: `usage_note` is `"live (fetched now)"` or `f"cached {name}{staleness_tag}"` or absent; every render path (CLI header [715](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L715), limits table [990](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L990), HTML [2130](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L2130), JSON `usage_source` [1950](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1950)) carries it. No bare percentages without provenance.
-- **Keys are env/agent-store only, never logged or written**: `get_api_key` reads `OPENCODE_GO_API_KEY`/`OPENCODE_API_KEY`/`OPENCODE_GO_KEY` then targeted `~/.pi/agent/auth.json` / opencode auth stores with a *provider-scoped* lookup (`_lookup_provider_key` reads only the `opencode-go`/`opencode` entry, [480–494](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L480-L494)) — never dumps the store, and the usage snapshot write ([1556–1557](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1556-L1557)) stores only the numeric `usage` object, no Authorization header content. `fetch_usage` failure messages carry HTTP status and a 200-char body slice, never the key ([543–550](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L543-L550)). ccheck needs no key at all.
-- **Snapshot writes are atomic + dated**: `bc.atomic_write_text` (tmp sibling + fsync + `os.replace`, bc [147–163](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L147-L163)); filenames embed `YYYYMMDD`; staleness is judged from the **filename date**, not mtime (bc [218–266](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/benchmark_common.py#L218-L266)); >24h sources produce the WARN banner in `offline_data_note()` ([69–92](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L69-L92)). Path safety: all snapshot paths are constructed from `RAW = ROOT/docs/data/raw` plus fixed name parts — no user-controlled path components.
-- **Malformed-HTML tolerance**: table selection is header-phrase matched (`_table_with`), not positional ([221–229](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L221-L229)); both test suites include header-matched fixtures (oc test [261–278](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/test_opencode_cost_benefit_analyzer.py#L261-L278), cc test [92–107](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/test_commandcode_cost_benefit_analyzer.py#L92-L107)). Parsers return empty dicts on garbage (no crash).
-- **Error isolation**: every snapshot loader is wrapped in try/except with a stderr WARN and falls back to the next source / FALLBACK_PRICING (oc [1392–1516](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1392-L1516)); corrupt LiveBench CSVs are skipped loudly, never silently (oc [1521–1535](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1521-L1535)).
-- **Quota math**: cap scaling `cap_5h = usage × (12/60)`, `cap_wk = usage × 0.5`, `cap_mo = usage` (oc [1622–1627](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1622-L1627)); cc uses `credits × 14/70`, `× 35/70`, `credits` ([786–789](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L786-L789)) — both consistent with docs, and cc's `test_cost_sanity_against_docs_requests` cross-checks computed request counts against documented values (cc test [36–45](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/test_commandcode_cost_benefit_analyzer.py#L36-L45)).
-- **`_safe_float` strictness divergence is intentional and documented** (memory.md S1-M3 note, module comments oc [54–61](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L54-L61)); `parse_price` handles `$`/`,`/`—` in docs tables. Not a defect.
-- **ccheck's unscored-guard is itself a correctness win** (F1's fixed side): verified live — `deepseek-v4-flash-fast`, `glm-5.2-fast`, `laguna-s-2.1-free`, `muse-spark-1.2-contributor`, `qwen-3.7-flash` all render `—` and sort last, and `test_unscored_models_sort_last_and_show_dash` locks it.
+- **Offline cache:** both checkers default offline, order by filename-embedded date
+  via `bc.pick_latest_raw` (mtime fallback), WARN past-24h sources and reuse them.
+  ocheck additionally falls back through snapshot → `FALLBACK_PRICING`/`FALLBACK_TOKENS`
+  → `(500, 60000, 200)` median tokens (`:1454-1472`); ccheck snapshot → fallback →
+  `credits: 20.0` default (`:833-840`) + fallback-credit patch (`:842-847`). New
+  unknown API ids get `None` pricing (ocheck `:1463`, ccheck `:840`) and render
+  `—`/Unlimited paths instead of crashing. Good.
+- **`--check` never writes:** verified by reading every write site. ocheck gates docs
+  (`:1382`), API (`:1403`), OpenRouter (`:1481`), AA (`:1504`), LMArena (`:1527`),
+  usage (`:1581`) snapshots and all three outputs (`:1988-2033`) on `do_write`;
+  the tail prints `(check-only, no files written)` (`:2035`). ccheck gates docs
+  (`:782`), OR/AA/LM (`:801`), outputs (`:1117-1146`) identically. `load_previous_snapshot`
+  / `diff_model_catalog` are read/pure (shared). One wrinkle: ccheck's
+  `if body and do_write` (`:801`) skips even the *save*, which is correct for `--check`
+  but is also the line that causes the §2.6 discard — fix by parsing regardless of
+  `do_write`, saving only when set.
+- **Corrupt snapshot handling:** ocheck wraps docs (`:1421-1432`), API JSON
+  (`:1437-1444`), OR (`:1491-1496`), AA (`:1514-1519`), LM (`:1537-1542`), usage
+  (`:1599-1604`) parses in try/except → WARN on stderr, continue on fallback; the
+  LiveBench loop (`:1544-1563`) skips per-file with a never-silent WARN (S1-C3).
+  ccheck mirrors this for docs (`:810-821`), OR/AA/LM (`:852-875`), LiveBench
+  (`:879-892`). The two gaps: (a) ccheck's `json.loads(body)` inside the *fetch-save*
+  path (`:803`) is unguarded — a 200-with-garbage OpenRouter response crashes `--fetch`
+  instead of WARN-and-cache (ocheck guards it, `:1479-1487`); (b) neither checker
+  validates that a parsed snapshot is non-empty before accepting it over fallback
+  (ocheck checks `if pl:` for docs but accepts empty `ids` silently at `:1440`).
 
----
+## 4. Performance
 
-## 4. Performance Notes
+No blocking issues at these catalog sizes (28–48 models). Three polish items:
 
-- End-to-end offline runs: **ocheck ~1.03 s, ccheck ~0.4 s** (52 MB RSS), both `--check --plain`. Parsing (regex table extraction, AA 625 entries, OR 425, LM 120, LiveBench 150) is sub-100 ms; the O(n·m) matchers and the pareto sweep are negligible at current catalog sizes. No memory issue (single-pass row build; snapshots streamed per-file).
-- F4's O(n·m) matcher loops are the only scaling smell; with 10× catalog growth the per-row OR scan becomes the hot path. Precompute a `norm_model_slug → record` index once per run (P3).
+1. **Double `diff_model_catalog` pass** — ocheck `:1943` diffs full `rows_sorted`
+   (result's added/removed discarded; only `["rows"]` kept), then `:1951` diffs
+   `docs_rows` again. ccheck `:1104` + `:1108` identical. Each pass is O(n·m) against
+   the baseline; halve it by diffing once and deriving `docs_rows` by filter.
+2. **Redundant fetch→save→reload in ccheck** (§2.6): after fixing to parse inline,
+   the snapshot re-read becomes unnecessary on fetch runs.
+3. **Render cost** — `render_cli_table` recomputes `display_len` per character per
+   cell plus `compute_column_medals` sorts per scored column; fine for <100 rows but
+   the per-char `display_len(ch)` inner loop in `pad_display` truncation is O(w²)
+   worst-case on adversarially long model ids — bounded in practice by docs ids.
+   The `for k in FALLBACK: if k not in ocgo_api_ids: append` merges are O(n²) list
+   scans on ≤48 ids — negligible, but a set would express intent.
 
----
+## 5. Security
 
-## 5. Complexity
+- **Docs HTML scraping:** pure `re` extraction + `html_lib.escape` on every
+  interpolated id/slug in `render_html` (ocheck `:2060-2061`, ccheck `:1171`);
+  no `eval`/shell/template injection surface. The `<table.*?</table>` and
+  bracket-depth RSC scans operate on untrusted page bytes but only build strings/
+  dicts; worst case is CPU on a pathological page (see §4), not code execution.
+  `fetch()` uses `urllib` with a static UA, no redirect/auth handling, no shell.
+- **Price parsing injection:** `parse_price` (`bc`) strips `$`/`,` and `float()`s;
+  ccheck `_eff_price` (`:303-310`) allowlists `\$([\d\.]+)` and takes the *last*
+  match (handles `$20 → $14` discount cells by design). A hostile cell can at most
+  yield `None` or a float — no format-string or SQL sink exists downstream
+  (JSON/HTML outputs are escaped/serialized).
+- **Secrets:** ocheck `get_api_key` (`:488-518`) reads three env names + targeted
+  `auth.json` provider lookup, sends the key only as `Bearer` to `OCGO_USAGE_API`
+  (`:524`), and explicitly warns when no opencode entry exists rather than shipping
+  another provider's key (`:517`). No key is logged or persisted except the *usage
+  response* snapshot (contains quota percentages, not the key — verify the usage
+  payload has no token echo on next API change).
+- Minor: `fetch()` prints `WARN fetch {url}: {e}` to stderr including the full URL —
+  no secret is in these URLs today, but keep keys out of future query strings.
 
-- ocheck `main()` spans [1301–1984](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1301-L1984) (~680 lines, CC-class 139–205 per prior audits); ccheck `main()` [633–1012](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L633-L1012) (~380 lines). Verified current state: **both mains are still oversized**, and the complexity now demonstrably couples to real bugs:
-  - F1 exists because the scoring block was appended to `main()` without the coverage guard that the sibling module added when *its* same code was fixed — the duplicated ~200-line scoring/merge block in two files has already drifted (one has the guard, the other doesn't).
-  - F2's unit inversion lives in the same long block (`remaining` built at [1679–1701](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1679-L1701), displayed ~200 lines later with no shared constant for "used vs remaining").
-  - Recommendation: extract `build_rows()` + `score_rows()` into module-level functions (mirroring cc's guard), and add a `--json`/`--html`/`--podium`-free write gate. This is a **P2 maintainability** item with a **P1 correctness** sub-item (port the guard).
+## 6. Test files
 
----
+`test_opencode_cost_benefit_analyzer.py` (335 lines) and
+`test_commandcode_cost_benefit_analyzer.py` (~247 lines) cover: fallback catalog size,
+`compute_cost` spot values, quality-vs-cap sort distinction + bogus-mode `ValueError`,
+snapshot discovery, offline AA/LMArena parsing, LiveBench CSV (ocheck `:74-83`),
+header-matched (non-positional) docs tables, usage-window shapes, limits-table notes,
+CLI/HTML diff rendering incl. `[-]/❌` removals, unscored-models-sort-last (no fake
+Q=78), and color/plain alignment uniformity. Gaps (recommend, do not require):
 
-## 6. Remediations
+- No test pins `--check` writes nothing (temp `OUT`/`DATA` + assert no new files).
+- No corrupt-snapshot test (write garbage `*_docs_*.html`/bad JSON, assert WARN +
+  fallback path) despite the S1-C3 comments claiming the behavior.
+- No test pins the `$`-rejection `_safe_float` contract or the AVI own-mix basis
+  (cache-heavy model ranks above its 80/20 position).
+- No test covers ccheck §2.6 (mock `fetch`, assert maps populated without `do_write`).
+- Snapshot-dependent tests (`test_snapshot_discovery`, `test_offline_parsing`)
+  require a populated `docs/data/raw/` — they fail on a fresh clone; consider
+  `skipUnless` guards.
 
-### P1 (correctness — do first)
-1. **Port ccheck's no-coverage guard to ocheck** (`opencode_cost_benefit_analyzer.py:1799`): when `weights` is empty, set `capability_q`, `p_success`, `token_multiplier`, all `effective_*`, `qvi/avi/fgi/bfi` to `None` and `continue`, mirroring cc [885–905](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/commandcode_cost_benefit_analyzer.py#L885-L905). Add ocheck's own `test_unscored_models_sort_last_and_show_dash`-style test (assert `ox-alpha-free` renders `—` and never wins a medal / never joins pareto). This removes the fabricated Q=78/AVI=825.8/🥇 and the phantom Pareto member.
+## 7. Findings (patch-anchored)
 
-### P2 (correctness/UX — next release)
-2. **Fix the Remain column unit inversion** (`opencode_cost_benefit_analyzer.py:798–812` + header): either relabel the column "Used" and show `pct_used`, or keep "Remain" and format `(100−pct_used)%` with a distinct marker; update `_pct_color` gating and the metric guide so the semantics are self-evident. The raw 20260901 snapshot shows monthly 79% used → today's table shows green `21%`, which is read as 21% remaining.
-3. **Extract the `main()` scoring/merge block** into module-level `build_rows()`/`score_rows()` in both files so the coverage guard can never drift again; add the extraction to both test modules.
+**P1 — ccheck `--fetch` discards live OpenRouter/AA/LMArena payloads.**
+`commandcode_cost_benefit_analyzer.py:799-804` saves but never parses the three
+fetched bodies; maps come only from `pick_latest_raw` (`:849-875`). `--fetch --check`
+does network I/O for zero effect; `--fetch` re-reads its own write. Mirror ocheck
+`:1476-1531`: parse inline, save iff `do_write`.
 
-### P3 (hygiene — backlog)
-4. **Stop unconditional output writes**: honor `--json`/`--html` in both checkers (or accept `--podium`), so a plain `python3 …/analyzer.py` run doesn't dirty `docs/data/*_live.json` + `docs/reports/*` on every invocation (currently mutates tracked files even in offline mode). Note the intentional-drift comment in cc's docstring should be resolved in the same change.
-5. **Precompute a normalized-slug index** for `find_*_for_*` and the OR pricing fallback loop (`opencode_cost_benefit_analyzer.py:1601`) to remove the O(n·m) scan (today ~1 s total, so low urgency).
-6. **Pass `cached_write_per_1m` into ocheck's `compute_cost` call** ([1619](file:///home/devhax/projects/fusuyfusuy/llm-benchyyyy/checkers/opencode_cost_benefit_analyzer.py#L1619)) so docs cached-write prices actually enter per-request cost, or delete the now-unused parameter from the call to avoid the false impression it is modeled.
+**P2 — Unguarded `json.loads(body)` in ccheck fetch-save.**
+`commandcode_cost_benefit_analyzer.py:803` raises out of `main` on a truncated
+OpenRouter 200. Wrap like ocheck `:1479-1487` (try/except → WARN → snapshot path).
 
----
+**P2 — Cross-checker canonical id split.**
+ocheck `:126-137` (`qwen3.8-max`, `hy4-preview`, `hy3`) vs ccheck `:77-101`
+(`qwen-3.8-max-0902`, `tencent-hy4-preview`, `tencent-hy3`) never unify under
+`norm_id`. Self-consistent per checker; breaks cross-checker joins. Canonicalize
+once + alias test.
 
-## 7. Prior-Audit Reconciliation
+**P3 — Stale "deliberate divergence" NOTE.**
+`opencode_cost_benefit_analyzer.py:55-62` claims local redefinitions that are actually
+`bc` aliases (`:429-436`). Shrinks trust in the one real divergence (`_safe_float`
+`$`-rejection, `:439-453`). Trim to `_safe_float` only.
 
-| Prior finding (checker_scope_2_ocheck.md) | Status |
-| :--- | :--- |
-| Naive substring OR matching (L583–584) | **Resolved** — bc aliases with `variant_conflict` |
-| Missing cached-write cost factor (L680–685) | **Resolved** — `compute_cost` models it (oc call still passes 0 — see P3-6) |
-| CLI contract drift: always writes unless `--check` | **Still open** (documented drift) — see F4/P3-4 |
-| Duplicate shadowed primitives | **Won't fix by design** — intentional, documented local contracts (memory.md S1-M3) |
-| `except Exception: pass` swallow sites (~1612/1663/1686–1695) | **Resolved** — narrowed to `(ValueError, TypeError)` or logged WARNs |
+**P3 — Dead pareto id `ox-alpha-free`.**
+`opencode_cost_benefit_analyzer.py:1922`; canonical id is `omen-alpha`
+(`:137,162,410`). Harmless (covered via `DOCS_IDS`) but misleading — fix or delete.
 
----
+**P3 — `log()` ignores `verbose`.**
+`opencode_cost_benefit_analyzer.py:208-210`: `if verbose or True` always prints.
+Gate on `verbose` or delete the helper (only used sparingly).
 
-## 8. Verdict
+**P3 — First-row-wins duplicate-tier assumption.**
+`opencode_cost_benefit_analyzer.py:277-280` keeps the first docs row as "cheaper".
+Order-dependent; prefer min-cost or an assertion. ccheck `:326-327` same pattern.
 
-| Tool | Health | Assessment |
-| :--- | :---: | :--- |
-| ocheck | 7.2 / 10 | Sound architecture and invariants; one critical fabricated-score bug + one misleading quota display. |
-| ccheck | 8.8 / 10 | Clean, tested, guard present; CLI/write drift and no-usage-provenance are its only marks. |
-| Combined | **7.8 / 10 (Moderate)** | Port the proven guard; fix the Remain unit; extract the shared scoring block. |
+**P3 — ocheck header-phrase brittleness.**
+`opencode_cost_benefit_analyzer.py:249` matches only `"requests per 5 hour"`;
+ccheck `:283` also tries `"requests / 5 hour"`. Adopt the fallback in ocheck.
 
-**Bottom line:** the two files are the same program with a known fix applied to only one half. The top remediation is a ~15-line port plus one test.
+**P3 — `omen-alpha` usage 100 exceeds $60 pool.**
+`opencode_cost_benefit_analyzer.py:137` → `cap_5h = $20` (`:1657`). Confirm against
+live docs; if `usage` is not pool share, cap model overstates throughput.
+
+**P3 — Double diff + unused imports.**
+Double `diff_model_catalog` (ocheck `:1943,1951`; ccheck `:1104,1108`); ocheck
+imports `statistics` (`:22`) with no use; ocheck mixes `bc._safe_float` (`:1648`)
+with local `_safe_float` (`:1898`) for the same semantic. Cleanup only.
+
+## 8. Remediation list
+
+1. ccheck: parse fetched OR/AA/LM bodies inline (P1); guard OpenRouter decode (P2).
+2. Canonicalize `qwen3.*`/`hy*` ids across both checkers + alias test (P2).
+3. Trim the divergence NOTE to `_safe_float`-only; add `$`-rejection test or unify (P3).
+4. Fix `ox-alpha-free` → `omen-alpha`, `log()` gating, header-phrase fallback,
+   first-row-wins → min-cost, single diff pass (P3).
+5. Confirm `omen-alpha` usage-100 and `mimo-v2.5-pro` 0.003625-vs-0.0036 drift on next
+   `--fetch`; surface fallback age in the banner when fallback path is taken.
+6. Add tests: `--check` writes nothing, corrupt snapshot → WARN+fallback, AVI own-mix
+   ordering, ccheck fetch-parse without write.

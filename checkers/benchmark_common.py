@@ -115,7 +115,11 @@ VARIANT_TOKENS = frozenset({
 def strip_tier_tokens(s: str) -> str:
     """Strip trailing effort/tier tokens from a normalized slug."""
     s_norm = norm_model_slug(s) or ""
-    s_norm = re.sub(r"(\d+)(xhigh|high|medium|low|minimal|max)$", r"\1-\2", s_norm)
+    # Split 1.2-style digit+suffix glued tokens without catastrophic backtracking:
+    # "model1.2xhigh" -> "model1.2-xhigh" via a single linear scan, no (\d+)(alt)$ regex.
+    m = re.match(r"^(.*\d)[-_ ]?(xhigh|high|medium|low|minimal|max)$", s_norm)
+    if m:
+        s_norm = f"{m.group(1)}-{m.group(2)}"
     toks = s_norm.split("-")
     while toks and toks[-1] in TIER_TOKENS:
         toks.pop()
@@ -284,10 +288,11 @@ def pick_latest_raw(raw_dir: pathlib.Path, name_part: str) -> pathlib.Path | Non
 
     return pathlib.Path(max(matches, key=_rank))
 
+def _is_num(v) -> bool:
+    """Real number for scoring: int/float, not bool, finite (no NaN/Inf)."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
-# ==============================================================================
-# 3. STATISTICAL & COMPOSITE SCORING FORMULAS
-# ==============================================================================
+
 def get_z_scores(values: list) -> list[float]:
     """Compute z-scores for a list of values (ignoring None / non-numeric entries).
 
@@ -296,14 +301,31 @@ def get_z_scores(values: list) -> list[float]:
     compute_meanfill_composite and the aggregator's z-scores. Constant or
     single-value cohorts fall back to zero z-scores.
     """
-    valid = [v for v in values if isinstance(v, (int, float))]
+    valid = [v for v in values if _is_num(v)]
     if len(valid) < 2:
         return [0.0] * len(values)
     mean_val = statistics.mean(valid)
     std_val = statistics.pstdev(valid) if len(valid) > 1 else 1.0
     if std_val == 0.0:
         std_val = 1.0
-    return [(v - mean_val) / std_val if isinstance(v, (int, float)) else 0.0 for v in values]
+    return [(v - mean_val) / std_val if _is_num(v) else 0.0 for v in values]
+
+
+def z_scores_none(values: list) -> list[float | None]:
+    """Z-scores with None passthrough: missing stays None (never cohort-mean 0.0).
+
+    Aggregator-canonical semantics for role-style weighted sums: callers skip
+    None legs and renormalize over present signals. get_z_scores zero-fills
+    (legacy ocheck/ccheck contract) — use this for any new weighted-sum path.
+    """
+    valid = [v for v in values if _is_num(v)]
+    if len(valid) < 2:
+        return [0.0 if _is_num(v) else None for v in values]
+    mean_val = statistics.mean(valid)
+    std_val = statistics.pstdev(valid) if len(valid) > 1 else 1.0
+    if std_val == 0.0:
+        std_val = 1.0
+    return [(v - mean_val) / std_val if _is_num(v) else None for v in values]
 
 
 def compute_capability_q(cz: float | None) -> float:
@@ -311,7 +333,7 @@ def compute_capability_q(cz: float | None) -> float:
     Compute Normalized Composite Capability Q ∈ [40.0, 99.9].
     Base centered at 78.0 with 8.5 standard deviation scale factor.
     """
-    if cz is None:
+    if not _is_num(cz):
         return 78.0
     return round(max(40.0, min(99.9, 78.0 + (float(cz) * 8.5))), 1)
 
@@ -321,7 +343,7 @@ def compute_p_success(q_score: float | None) -> float:
     Compute task pass probability P_succ(Q) ∈ (0.0, 100.0)% on non-trivial agentic task.
     Sigmoid model centered at Q=72.0 with slope k=0.12, numerically clamped.
     """
-    if q_score is None:
+    if not _is_num(q_score):
         return 0.0
     exponent = max(-50.0, min(50.0, -0.12 * (float(q_score) - 72.0)))
     p_succ = 1.0 / (1.0 + math.exp(exponent))
@@ -333,7 +355,9 @@ def compute_token_multiplier(p_success_pct: float | None, alpha: float = 1.2) ->
     Compute Token Multiplier T_mult = (1 + α * (1 - P)) / P.
     Accounts for expected retry and debugging token burn on autonomous failures.
     """
-    if p_success_pct is None or p_success_pct <= 0.0:
+    if not _is_num(p_success_pct) or not _is_num(alpha) or alpha <= 0:
+        return 100.0
+    if p_success_pct <= 0.0:
         return 100.0
     p_succ = max(0.02, min(1.0, float(p_success_pct) / 100.0))
     t_mult = (1.0 + alpha * (1.0 - p_succ)) / p_succ
@@ -342,7 +366,7 @@ def compute_token_multiplier(p_success_pct: float | None, alpha: float = 1.2) ->
 
 def compute_effective_cost(blended_price: float | None, token_multiplier: float | None) -> float | None:
     """Compute effective cost per verified completed task."""
-    if blended_price is None or token_multiplier is None:
+    if not _is_num(blended_price) or not _is_num(token_multiplier):
         return None
     return round(float(blended_price) * float(token_multiplier), 2)
 
@@ -358,16 +382,15 @@ def compute_avi(q_score: float | None, effective_cost: float | None) -> float:
     unknown costs are excluded by callers: the log10(+1.5) floor would otherwise
     pin every free model at ~Q^2.2/17.6 regardless of quality.
     """
-    if q_score is None or effective_cost is None:
+    if not _is_num(q_score) or not _is_num(effective_cost):
         return 0.0
     return round((float(q_score) ** 2.2) / (100.0 * math.log10(max(0.0, float(effective_cost)) + 1.5)), 1)
-
 def compute_fgi(q_score: float | None, p_success_pct: float | None) -> float:
     """
     Frontier Gate Index (FGI): High-difficulty architectural gating index.
     Formula: Q * (P_succ ^ 1.5)
     """
-    if q_score is None or p_success_pct is None:
+    if not _is_num(q_score) or not _is_num(p_success_pct):
         return 0.0
     p_succ = max(0.0, min(1.0, float(p_success_pct) / 100.0))
     return round(float(q_score) * (p_succ ** 1.5), 1)
@@ -378,7 +401,7 @@ def compute_bfi(q_score: float | None, speed_tps: float | None, blended_price: f
     Bulk Fill Index (BFI): Throughput and raw cost efficiency on bounded tasks.
     Formula: (Q * speed) / (100 * ((blended_price ^ 0.8) + 0.1))
     """
-    if q_score is None or speed_tps is None or blended_price is None:
+    if not _is_num(q_score) or not _is_num(speed_tps) or not _is_num(blended_price):
         return 0.0
     return round((float(q_score) * float(speed_tps)) / (100.0 * ((max(0.0, float(blended_price)) ** 0.8) + 0.1)), 1)
 
@@ -388,7 +411,7 @@ def compute_qvi(q_score: float | None, n_eff_tasks: float | None) -> float:
     Quota Value Index (QVI): Total delivered utility under allowed plan quota headroom.
     Formula: log10(N_eff + 1) * (Q / 70.0)^2.4 * 100
     """
-    if q_score is None or n_eff_tasks is None or n_eff_tasks <= 0:
+    if not _is_num(q_score) or not _is_num(n_eff_tasks) or n_eff_tasks <= 0:
         return 0.0
     quality_mult = (max(0.0, float(q_score)) / 70.0) ** 2.4
     task_log = math.log10(max(0.0, float(n_eff_tasks)) + 1.0)
@@ -424,9 +447,9 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
         # fully-unknown cost gets the 999 sentinel. Missing/None price parts
         # are skipped instead of TypeError-ing on None + float.
         c = a.get("effective_cost")
-        if c is not None:
+        if _is_num(c):
             return c
-        parts = [p for p in (a.get("price_in"), a.get("price_out")) if p is not None]
+        parts = [p for p in (a.get("price_in"), a.get("price_out")) if _is_num(p)]
         return sum(parts) if parts else 999
 
     def _row_ids(a):
@@ -438,7 +461,7 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
         return ids
 
     costs = [_row_cost(a) for a in models_list]
-    quals = [a.get("capability_q") or 0.0 for a in models_list]
+    quals = [a.get("capability_q") if _is_num(a.get("capability_q")) else 0.0 for a in models_list]
     pareto_set = set()
     for i, a in enumerate(models_list):
         a_cost = costs[i]
@@ -597,6 +620,8 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
     with automatic fallback to static HTML table parsing.
     Returns: dict[model_slug -> {rank, elo, votes, price_raw, context_raw, score_raw}]
     """
+    if not html_text or not isinstance(html_text, str):
+        return {}
     out = {}
     unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
     pos = 0
@@ -610,19 +635,29 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
         json_str = '{"entries":' + unescaped[idx + 10 : end_idx + 2] + "}"
         try:
             data = json.loads(json_str)
-            for e in data.get("entries", []):
+        except Exception:
+            pos = end_idx + 2
+            continue
+        entries = data.get("entries", [])
+        if not isinstance(entries, list):
+            pos = end_idx + 2
+            continue
+        for e in entries:
+            try:
+                if not isinstance(e, dict):
+                    continue
                 name = e.get("modelDisplayName") or e.get("modelKey")
                 if not name:
                     continue
                 slug = norm_model_slug(name)
                 rank = _safe_int(e.get("rank"))
-                rating = e.get("rating")
-                elo = round(float(rating), 0) if rating is not None else None
+                elo = _safe_float(e.get("rating"))
+                elo = round(elo, 0) if elo is not None else None
                 votes = _safe_int(e.get("votes"))
                 p_in = e.get("inputPricePerMillion")
                 p_out = e.get("outputPricePerMillion")
                 p_str = f"${p_in} / ${p_out}" if p_in is not None else ""
-                ctx = e.get("contextLength")
+                ctx = _safe_int(e.get("contextLength"))
                 ctx_str = f"{ctx//1000}k" if ctx else ""
                 if slug not in out:
                     out[slug] = {
@@ -633,14 +668,9 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
                         "context_raw": ctx_str,
                         "score_raw": str(int(elo)) if elo else "",
                     }
-        except Exception:
-            pass
+            except Exception:
+                continue
         pos = end_idx + 2
-
-    if out:
-        if verbose:
-            print(f"  LMArena: parsed {len(out)} entries from Next.js payload")
-        return out
 
     # Legacy HTML table fallback
     trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
@@ -1515,24 +1545,30 @@ def compute_role_recommendations(models_list: list[dict], context: str = "bcheck
     if len(feats) < 2:
         return {}
 
-    # Calculate baseline Z-scores
-    z_q = get_z_scores([f["q"] for f in feats])
-    z_fgi = get_z_scores([f["fgi"] for f in feats])
-    z_avi = get_z_scores([f["avi"] for f in feats])
-    z_bfi = get_z_scores([f["bfi"] for f in feats])
-    z_psucc = get_z_scores([f["psucc"] for f in feats])
-    z_speed = get_z_scores([f["speed"] for f in feats])
+    # None-passthrough z + renormalized weighted sums (aggregator semantics):
+    # a missing leg is skipped, never banked at the cohort mean.
+    z_q = z_scores_none([f["q"] for f in feats])
+    z_fgi = z_scores_none([f["fgi"] for f in feats])
+    z_avi = z_scores_none([f["avi"] for f in feats])
+    z_bfi = z_scores_none([f["bfi"] for f in feats])
+    z_psucc = z_scores_none([f["psucc"] for f in feats])
+    z_speed = z_scores_none([f["speed"] for f in feats])
 
     # Invert log cost so lower cost gives higher score
     inv_log_costs = [-math.log10(max(0.00001, f["eff_cost"])) if f["eff_cost"] is not None else None for f in feats]
-    z_cost = get_z_scores(inv_log_costs)
+    z_cost = z_scores_none(inv_log_costs)
 
     # Fill missing coding / reasoning with z_q
     cod_vals = [f["coding"] if f["coding"] is not None else f["q"] for f in feats]
-    z_coding = get_z_scores(cod_vals)
+    z_coding = z_scores_none(cod_vals)
 
     reas_vals = [f["reasoning"] if f["reasoning"] is not None else f["q"] for f in feats]
-    z_reasoning = get_z_scores(reas_vals)
+    z_reasoning = z_scores_none(reas_vals)
+
+    def _wsum(pairs) -> float:
+        num = sum(w * z for w, z in pairs if z is not None)
+        den = sum(w for w, z in pairs if z is not None)
+        return num / den if den > 0 else 0.0
 
     scored_arch = []
     scored_pair = []
@@ -1541,23 +1577,23 @@ def compute_role_recommendations(models_list: list[dict], context: str = "bcheck
 
     for i, f in enumerate(feats):
         # 1. Architecture: High FGI + Q + Reasoning
-        s_arch_raw = (0.40 * z_fgi[i]) + (0.30 * z_q[i]) + (0.30 * z_reasoning[i])
+        s_arch_raw = _wsum([(0.40, z_fgi[i]), (0.30, z_q[i]), (0.30, z_reasoning[i])])
         s_arch = round(max(50.0, min(99.9, 80.0 + (s_arch_raw * 7.0))), 1)
         scored_arch.append((s_arch, f))
 
         # 2. Pair Programming: Coding performance + Q + AVI + P_succ
-        s_pair_raw = (0.35 * z_coding[i]) + (0.30 * z_q[i]) + (0.20 * z_avi[i]) + (0.15 * z_psucc[i])
+        s_pair_raw = _wsum([(0.35, z_coding[i]), (0.30, z_q[i]), (0.20, z_avi[i]), (0.15, z_psucc[i])])
         s_pair = round(max(50.0, min(99.9, 80.0 + (s_pair_raw * 7.0))), 1)
         scored_pair.append((s_pair, f))
 
         # 3. Daily Driver Workhorse: High AVI ROI + Q + Cost Efficiency
-        s_driver_raw = (0.50 * z_avi[i]) + (0.30 * z_q[i]) + (0.20 * z_cost[i])
+        s_driver_raw = _wsum([(0.50, z_avi[i]), (0.30, z_q[i]), (0.20, z_cost[i])])
         s_driver = round(max(50.0, min(99.9, 80.0 + (s_driver_raw * 7.0))), 1)
         scored_driver.append((s_driver, f))
 
         # 4. Boilerplate & Fast Fill: BFI + Speed + Cost (gated to Q >= 64 to avoid corrupt code)
         if f["q"] >= 64.0:
-            s_boiler_raw = (0.45 * z_bfi[i]) + (0.30 * z_speed[i]) + (0.25 * z_cost[i])
+            s_boiler_raw = _wsum([(0.45, z_bfi[i]), (0.30, z_speed[i]), (0.25, z_cost[i])])
             s_boiler = round(max(50.0, min(99.9, 80.0 + (s_boiler_raw * 7.0))), 1)
         else:
             s_boiler = 45.0
@@ -1821,7 +1857,17 @@ def diff_model_catalog(
     def _extract_id(r: dict) -> str | None:
         if not isinstance(r, dict):
             return None
-        return r.get(id_key) or r.get("model_id") or r.get("display") or r.get("or_slug") or r.get("id")
+        # Stable-first: upstream slugs survive AA display renames. Aliases
+        # beat id_key when id_key is display: bcheck diffs id_key=display
+        # but rows carry aa_aliases[0] as the rename-proof identity.
+        aliases = r.get("aa_aliases") or r.get("lm_aliases") or r.get("live_aliases") or []
+        if isinstance(aliases, list) and aliases and aliases[0]:
+            return aliases[0]
+        for k in (id_key, "model_id", "or_slug", "aa_slug", "lm_slug"):
+            v = r.get(k)
+            if v:
+                return v
+        return r.get("display") or r.get("id")
 
     prev_models_map = {}  # docs-filtered display set: added/removed pass
     prev_seen_map = {}    # catalog-wide: first_seen carry-over + brand-new check (S1-M1)
@@ -1912,6 +1958,25 @@ def diff_model_catalog(
         "removed_models": removed_models,
         "rows": out_rows,
     }
+
+
+def stable_diff_id(row: dict) -> str:
+    """Stable identity for diff/added sets: first alias slug, else display.
+
+    Renders check every alias leg plus display (aggregator is_added/is_pareto
+    pattern), so a slug-keyed added set still lights the renamed row.
+    """
+    if not isinstance(row, dict):
+        return ""
+    for k in ("aa_aliases", "lm_aliases", "live_aliases"):
+        v = row.get(k)
+        if isinstance(v, list) and v and v[0]:
+            return str(v[0])
+    for k in ("model_id", "or_slug", "aa_slug", "lm_slug", "display", "id"):
+        v = row.get(k)
+        if v:
+            return str(v)
+    return ""
 
 
 def render_removed_models_cli(removed_models: list[dict], color: bool = True, is_slim: bool = False, id_key: str = "model_id") -> list[str]:
