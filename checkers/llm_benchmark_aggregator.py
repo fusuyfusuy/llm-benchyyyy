@@ -52,15 +52,16 @@ from benchmark_common import (
     norm_model_slug,
     compute_capability_q, compute_p_success, compute_token_multiplier,
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
-    compute_pareto_frontier,
+    compute_pareto_frontier, compute_priced_pareto_frontier,
     parse_livebench, parse_lmarena, parse_aa,
-    display_len, color_cell, medal_badge, pool_badge,
+    display_len, pad_display, color_cell, medal_badge, pool_badge,
     compute_column_medals, render_banner_box, render_metric_guide_cli,
     score_color_q, score_color_p, score_color_avi, score_color_fgi,
     HTML_CSS_COMMON, HTML_SORT_SCRIPT,
     compute_role_recommendations, render_role_recommendations_cli,
     render_role_recommendations_md, render_role_recommendations_html,
     load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
+    format_context_window, extract_capability_pillars,
 )
 
 UA = bc.UA
@@ -773,6 +774,7 @@ def load_openrouter_pricing_data():
                     "price_in": pin,
                     "price_out": pout,
                     "name": item.get("name") or mid,
+                    "context_length": item.get("context_length"),
                 }
                 or_pricing[bc.norm_id(mid)] = pricing
                 bare_id = mid.split("/", 1)[-1].split(":", 1)[0]
@@ -780,6 +782,23 @@ def load_openrouter_pricing_data():
         except Exception:
             pass
     return or_pricing
+
+
+def _resolve_prices(nid: str, or_pricing: dict, aa_norm: dict) -> tuple:
+    """Real per-1M prices for a model id: OpenRouter first, Artificial Analysis second, None when truly unknown.
+
+    Never invents a price (previously OR/AA-absent rows silently got $1.00/$3.00,
+    fabricating effective costs, AVI, and Pareto membership for ~200 catalog rows).
+    """
+    or_p = or_pricing.get(nid) or {}
+    pi, po = or_p.get("price_in"), or_p.get("price_out")
+    if pi is None or po is None:
+        aa_rec = aa_norm.get(nid) or {}
+        if pi is None:
+            pi = aa_rec.get("price_in")
+        if po is None:
+            po = aa_rec.get("price_out")
+    return pi, po
 
 
 # Trailing effort/tier hyphen-tokens stripped for LiveBench base-name matching
@@ -873,7 +892,6 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
         for a in info.get("aa_aliases", []):
             key_index[bc.norm_id(a)] = cid
             key_index[bc.norm_id(strip_effort_suffix(a))] = cid
-
     # 1. Ingest from Artificial Analysis (intelligence index, coding index, speed, pricing)
     if aa_map:
         for slug, aa_info in aa_map.items():
@@ -888,9 +906,7 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
             p_in = aa_info.get("price_in")
             p_out = aa_info.get("price_out")
             if p_in is None or p_out is None:
-                or_p = or_pricing.get(nid) or {}
-                p_in = or_p.get("price_in", 1.0)
-                p_out = or_p.get("price_out", 3.0)
+                p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
 
             catalog[nid] = {
                 "display": disp,
@@ -918,17 +934,15 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
             if nid in key_index or base_nid in key_index:
                 continue
             disp_formatted, prov = format_model_display_name(slug)
-            or_p = or_pricing.get(nid) or {}
+            p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
             catalog[nid] = {
                 "display": disp_formatted,
                 "provider": prov,
                 "pool": "api",
                 "tier": "Benchmark Model",
                 "sub_cost": "API",
-                "price_in": or_p.get("price_in", 1.0),
-                "price_out": or_p.get("price_out", 3.0),
-                "live_aliases": [slug],
-                "lm_aliases": [slug],
+                "price_in": p_in,
+                "price_out": p_out,
                 "aa_aliases": [slug],
                 "base_metrics": {},
             }
@@ -943,15 +957,15 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
             if nid in key_index or base_nid in key_index:
                 continue
             disp_formatted, prov = format_model_display_name(slug)
-            or_p = or_pricing.get(nid) or {}
+            p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
             catalog[nid] = {
                 "display": disp_formatted,
                 "provider": prov,
                 "pool": "api",
                 "tier": "Arena Model",
                 "sub_cost": "API",
-                "price_in": or_p.get("price_in", 1.0),
-                "price_out": or_p.get("price_out", 3.0),
+                "price_in": p_in,
+                "price_out": p_out,
                 "live_aliases": [slug],
                 "lm_aliases": [slug],
                 "aa_aliases": [slug],
@@ -1035,6 +1049,22 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                         m["aa_live_coding"] = matched_rec["codingIndex"]
                     if matched_rec.get("medianTps") is not None:
                         bm["speed_tps"] = matched_rec["medianTps"]
+                    break
+
+        # Context length resolution (OpenRouter / AA / Catalog)
+        if m.get("context_length") is None:
+            cands_ctx = [mid, m.get("display")] + m.get("live_aliases", []) + m.get("lm_aliases", []) + m.get("aa_aliases", [])
+            for c in cands_ctx:
+                if not c:
+                    continue
+                cn = bc.norm_id(c)
+                or_info = or_pricing.get(cn) or or_pricing.get(bc.norm_id(strip_effort_suffix(c)))
+                if or_info and or_info.get("context_length"):
+                    m["context_length"] = or_info["context_length"]
+                    break
+                aa_rec = aa_norm.get(cn) or aa_base.get(cn)
+                if aa_rec and aa_rec.get("contextWindowTokens"):
+                    m["context_length"] = aa_rec["contextWindowTokens"]
                     break
 
     return catalog
@@ -1193,7 +1223,7 @@ def _z_scores(values: list) -> list:
     if len(valid) < 2:
         return [0.0 if isinstance(v, (int, float)) else None for v in values]
     mean_val = statistics.mean(valid)
-    std_val = statistics.stdev(valid)
+    std_val = statistics.pstdev(valid)
     if std_val == 0.0:
         std_val = 1.0
     return [(v - mean_val) / std_val if isinstance(v, (int, float)) else None for v in values]
@@ -1223,13 +1253,21 @@ def calculate_composite_scores(models_dict):
     keys = list(models_dict.keys())
     m_list = [models_dict[k] for k in keys]
 
-    # Calculate z-scores across verified upstream benchmark signals only.
-    # Never fabricate fallback cohorts or dummy placeholder scores ("See Something, Say Something").
-    live_q = [m.get("aa_live_quality") if m.get("aa_live_quality") is not None else m.get("base_metrics", {}).get("aa_quality") for m in m_list]
-    z_aa_qual = _z_scores(live_q)
-
-    live_c = [m.get("aa_live_coding") if m.get("aa_live_coding") is not None else m.get("base_metrics", {}).get("aa_coding") for m in m_list]
-    z_aa_cod = _z_scores(live_c)
+    # AA live/static cohort split (89ce1fa): live intelligenceIndex/codingIndex
+    # (new scale, today ~4-53) must never share a z-distribution with retired
+    # static old-AA-Quality seeds (~93-96). Prefer the live cohort whenever any
+    # live match exists; uniform static cohort only when fully offline.
+    # ponytail: AA live/static cohort split <- old-vs-new scale drift -> remove split when AA restores a unified live quality index
+    live_q = [m.get("aa_live_quality") for m in m_list]
+    if any(v is not None for v in live_q):
+        z_aa_qual = _z_scores(live_q)
+    else:
+        z_aa_qual = _z_scores([m.get("base_metrics", {}).get("aa_quality") for m in m_list])
+    live_c = [m.get("aa_live_coding") for m in m_list]
+    if any(v is not None for v in live_c):
+        z_aa_cod = _z_scores(live_c)
+    else:
+        z_aa_cod = _z_scores([m.get("base_metrics", {}).get("aa_coding") for m in m_list])
 
     z_lm_elo = _z_scores([m.get("base_metrics", {}).get("lm_elo") for m in m_list])
     z_lm_cod = _z_scores([m.get("base_metrics", {}).get("lm_coding") for m in m_list])
@@ -1288,20 +1326,32 @@ def calculate_composite_scores(models_dict):
         t_mult = compute_token_multiplier(p_succ_pct)
         m["token_multiplier"] = t_mult
 
-        pin = bc._safe_float(m.get("price_in"), 0.0)
-        pin = 0.0 if pin is None else pin
-        pout = bc._safe_float(m.get("price_out"), 0.0)
-        pout = 0.0 if pout is None else pout
-        blended_price = (0.80 * pin) + (0.20 * pout)
-        m["blended_price"] = round(blended_price, 2)
-        effective_cost = compute_effective_cost(blended_price, t_mult)
-        m["effective_cost"] = effective_cost
+        # Price resolution: unknown price stays None (never 0.0 — that would
+        # conflate "unpriced" with "free" and fabricate an effective cost);
+        # a real 0.0 is a genuine free tier and keeps its 0.0 effective cost.
+        pin = bc._safe_float(m.get("price_in"))
+        pout = bc._safe_float(m.get("price_out"))
+        if pin is None or pout is None:
+            m["blended_price"] = None
+            m["effective_cost"] = None
+            m["avi_score"] = None
+            m["bfi_score"] = None
+        else:
+            blended_price = (0.80 * pin) + (0.20 * pout)
+            m["blended_price"] = round(blended_price, 2)
+            effective_cost = compute_effective_cost(blended_price, t_mult)
+            m["effective_cost"] = effective_cost
+            # AVI requires a strictly positive cost basis: free (0.0) and
+            # unknown rows report no AVI — the log-floor would otherwise pin
+            # every free model at ~900 regardless of quality (fcheck parity).
+            if effective_cost is not None and effective_cost > 0.0:
+                m["avi_score"] = compute_avi(q_score, effective_cost)
+            else:
+                m["avi_score"] = None
+            speed = bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 60.0) or 60.0
+            m["bfi_score"] = compute_bfi(q_score, speed, blended_price)
 
-        m["avi_score"] = compute_avi(q_score, effective_cost)
         m["fgi_score"] = compute_fgi(q_score, p_succ_pct)
-
-        speed = bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 60.0) or 60.0
-        m["bfi_score"] = compute_bfi(q_score, speed, blended_price)
 
 
 def format_compact_price(p_in, p_out):
@@ -1509,7 +1559,7 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
                 color_cell(p_badge_str, "", width=5, align="^", bg=bg),
                 color_cell(f"{q:.1f}", score_color_q(q), width=6, align=">", bg=bg),
                 color_cell(f"{p:.1f}%", score_color_p(p), width=7, align=">", bg=bg),
-                color_cell(f"${c:.2f}", C_CYAN if c < 10 else C_YELLOW, width=7, align=">", bg=bg),
+                color_cell(f"${c:.2f}" if c is not None else "—", C_CYAN if (c is not None and c < 10) else C_YELLOW, width=7, align=">", bg=bg),
                 color_cell(lb_val, C_GREEN if isinstance(lb_res, (int, float)) and lb_res >= 75 else C_GRAY, width=6, align=">", bg=bg),
                 color_cell(elo_val, C_GREEN if isinstance(elo, (int, float)) and elo >= 1480 else C_GRAY, width=6, align=">", bg=bg),
                 color_cell(aa_val, C_GREEN if isinstance(aa, (int, float)) and aa >= 50 else C_GRAY, width=10, align=">", bg=bg),
@@ -1535,7 +1585,8 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
             elo_val = _int_str(elo)
             aa = m.get("aa_live_quality")
             aa_val = f"{aa:.1f}" if isinstance(aa, (int, float)) else "—"
-            out.append(f"#{i:<3} {mid:<24} {p_badge_str:^5} {q:>6.1f} {p:>6.1f}% ${c:>7.2f} {lb_val:>6} {elo_val:>6} {aa_val:>10}")
+            eff_cell = f"${c:.2f}" if c is not None else "—"
+            out.append(f"#{i:<3} {mid:<24} {p_badge_str:^5} {q:>6.1f} {p:>6.1f}% {eff_cell:>8} {lb_val:>6} {elo_val:>6} {aa_val:>10}")
         out.append("-" * (w_total + 2))
     return "\n".join(out)
 
@@ -1546,7 +1597,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         color = not os.getenv("NO_COLOR")
 
     if pareto_ids is None:
-        pareto_ids = compute_pareto_frontier(models_list)
+        pareto_ids = compute_priced_pareto_frontier(models_list)
 
     if added_ids is None:
         added_ids = set()
@@ -1657,7 +1708,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
         out.append("-" * (inner_w + 2))
-        hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
+        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
 
@@ -1688,7 +1739,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
 
         q_badge = medal_badge(meds.get("q"), color=color)
         psucc_badge = medal_badge(meds.get("psucc"), color=color)
-        eff_badge = medal_badge(meds.get("eff_cost"), color=color)
+        eff_badge = medal_badge(meds.get("cost"), color=color)
         avi_badge = medal_badge(meds.get("avi"), color=color)
         fgi_badge = medal_badge(meds.get("fgi"), color=color)
         live_badge = medal_badge(meds.get("live"), color=color)
@@ -1757,21 +1808,21 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
             row_items = [
-                f"{rank_str:^4}",
-                f"{mid:<{m_name_w}}",
-                f"{pool_badge_str:^5}",
-                f"{q_disp:>6}",
-                f"{p_disp:>7}",
-                f"{eff_disp:>8}",
-                f"{avi_disp:>6}",
-                f"{fgi_disp:>5}",
-                f"{lb_disp:>6}",
+                pad_display(rank_str, 4, "^"),
+                pad_display(mid, m_name_w, "<"),
+                pad_display(pool_badge_str, 5, "^"),
+                pad_display(q_disp, 6, ">"),
+                pad_display(p_disp, 7, ">"),
+                pad_display(eff_disp, 8, ">"),
+                pad_display(avi_disp, 6, ">"),
+                pad_display(fgi_disp, 5, ">"),
+                pad_display(lb_disp, 6, ">"),
             ]
             if not is_slim:
                 row_items.extend([
-                    f"{elo_disp:>6}",
-                    f"{spd_disp:>7}",
-                    f"{price_disp:>12}",
+                    pad_display(elo_disp, 6, ">"),
+                    pad_display(spd_disp, 7, ">"),
+                    pad_display(price_disp, 12, ">"),
                 ])
             out.append(" ".join(row_items))
 
@@ -1830,6 +1881,353 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     ))
 
     role_recs = compute_role_recommendations(primary_models, context="bcheck")
+    if role_recs:
+        out.append("")
+        out.extend(render_role_recommendations_cli(role_recs, color=color, is_slim=is_slim, width=inner_w))
+
+    return "\n".join(out)
+
+
+def render_one_shot_cli_table(
+    models_list,
+    color=None,
+    slim=None,
+    wide=False,
+    pareto_ids=None,
+    added_ids=None,
+    removed_models=None,
+    stale_note=None,
+    top_n: int | None = 30,
+    unmatched_models=None,
+):
+    """Render unified one-shot capability table merging all models with explicit capability pillars."""
+    if color is None:
+        color = not os.getenv("NO_COLOR")
+
+    if pareto_ids is None:
+        pareto_ids = compute_priced_pareto_frontier(models_list)
+
+    if added_ids is None:
+        added_ids = set()
+    if removed_models is None:
+        removed_models = []
+
+    total_models = len(models_list)
+    display_models = models_list[:top_n] if (top_n and len(models_list) > top_n) else models_list
+    shown_models = len(display_models)
+
+    # Adaptive width detection
+    term_cols = shutil.get_terminal_size((120, 24)).columns
+    is_slim = slim if slim is not None else (term_cols < 120 and not wide)
+
+    out = []
+
+    # Table Column Dimensions
+    if is_slim:
+        headers = [
+            ("Rank", 4, "^"),
+            ("Model", 20, "<"),
+            ("Pool", 5, "^"),
+            ("Conf", 5, "^"),
+            ("Q(Cap)", 6, ">"),
+            ("Reason", 6, ">"),
+            ("Coding", 6, ">"),
+            ("Speed", 6, ">"),
+            ("Ctx", 5, ">"),
+        ]
+    elif wide:
+        headers = [
+            ("Rank", 4, "^"),
+            ("Model", 22, "<"),
+            ("Pool", 5, "^"),
+            ("Conf", 5, "^"),
+            ("Q(Cap)", 6, ">"),
+            ("P(Succ)", 7, ">"),
+            ("Reason", 6, ">"),
+            ("Coding", 6, ">"),
+            ("Speed", 6, ">"),
+            ("Ctx", 6, ">"),
+            ("Eff $/M", 8, ">"),
+            ("Price", 11, ">"),
+            ("Best Role", 13, "<"),
+        ]
+    else:
+        headers = [
+            ("Rank", 4, "^"),
+            ("Model", 22, "<"),
+            ("Pool", 5, "^"),
+            ("Conf", 5, "^"),
+            ("Q(Cap)", 6, ">"),
+            ("Reason", 6, ">"),
+            ("Coding", 6, ">"),
+            ("Speed", 6, ">"),
+            ("Ctx", 5, ">"),
+            ("Price", 11, ">"),
+            ("Best Role", 13, "<"),
+        ]
+
+    # Pre-extract pillars for banner & medals
+    pillars_map = {}
+    for m in models_list:
+        mid_k = m.get("display") or m.get("model_id") or ""
+        pillars_map[mid_k] = extract_capability_pillars(m)
+
+    # Leaders for executive banner
+    top_cap = max(models_list, key=lambda m: m.get("capability_q") or 0.0) if models_list else None
+    top_reas = max(models_list, key=lambda m: pillars_map.get(m.get("display", ""), {}).get("reasoning") or 0.0) if models_list else None
+    top_cod = max(models_list, key=lambda m: pillars_map.get(m.get("display", ""), {}).get("coding") or 0.0) if models_list else None
+    top_speed = max(models_list, key=lambda m: pillars_map.get(m.get("display", ""), {}).get("speed") or 0.0) if models_list else None
+
+    # Compute column medals
+    medal_metrics = {
+        "q": (lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None),
+        "reason": (lambda m: pillars_map.get(m.get("display", ""), {}).get("reasoning") or 0.0, True, lambda m: pillars_map.get(m.get("display", ""), {}).get("reasoning") is not None),
+        "coding": (lambda m: pillars_map.get(m.get("display", ""), {}).get("coding") or 0.0, True, lambda m: pillars_map.get(m.get("display", ""), {}).get("coding") is not None),
+        "speed": (lambda m: pillars_map.get(m.get("display", ""), {}).get("speed") or 0.0, True, lambda m: pillars_map.get(m.get("display", ""), {}).get("speed") is not None),
+    }
+    col_medals = compute_column_medals(models_list, medal_metrics, id_key="display")
+
+    inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
+
+    # 1. Executive Summary Banner
+    title_str = "🎯 ONE-SHOT MODEL CAPABILITIES RADAR (LiveBench · Arena · AA)"
+    c_info = f"Top Cap: {top_cap['display'][:12]} ({top_cap.get('capability_q') or 0.0:.1f})" if top_cap and top_cap.get("capability_q") is not None else ""
+    r_info = f"Reason: {top_reas['display'][:12]} ({pillars_map[top_reas['display']]['reasoning']:.1f}%)" if top_reas and pillars_map.get(top_reas.get("display", ""), {}).get("reasoning") is not None else ""
+    cd_info = f"Coding: {top_cod['display'][:12]} ({pillars_map[top_cod['display']]['coding']:.1f}%)" if top_cod and pillars_map.get(top_cod.get("display", ""), {}).get("coding") is not None else ""
+    s_info = f"Fastest: {top_speed['display'][:12]} ({pillars_map[top_speed['display']]['speed']:.0f}t/s)" if top_speed and pillars_map.get(top_speed.get("display", ""), {}).get("speed") is not None else ""
+
+    count_label = f"Catalog: {total_models} models (Top {shown_models} shown)" if shown_models < total_models else f"Catalog: {total_models} models"
+    if is_slim:
+        summary_str = f" {count_label} │ {c_info} │ {cd_info}"
+    else:
+        summary_str = f" {count_label} │ {c_info} │ {r_info} │ {cd_info} │ {s_info}"
+
+    diff_notices = []
+    diff_parts = []
+    if added_ids:
+        diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
+        diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
+    if removed_models:
+        rem_names = [m.get("display") or m.get("model_id", "unknown") for m in removed_models]
+        diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
+        diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
+    if stale_note:
+        diff_notices.append(f"{C_BOLD}{C_YELLOW}⚠ {stale_note}{C_RESET}")
+        diff_parts.append(f"[!] {stale_note}")
+
+    out.extend(render_banner_box(
+        title_str,
+        summary_lines=[summary_str],
+        diff_notices=diff_notices,
+        inner_w=inner_w,
+        color=color,
+        plain_title_line=f" ONE-SHOT CAPABILITIES RADAR (LiveBench · Arena · AA) — {count_label}",
+        plain_diff_parts=diff_parts,
+    ))
+
+    # Borders
+    bot_border = ""
+    if color:
+        top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
+        mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
+        bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in headers) + "┘"
+
+        out.append(f"{C_DIM}{top_border}{C_RESET}")
+        hdr_cells = [color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER) for h, w, a in headers]
+        out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
+        out.append(f"{C_DIM}{mid_border}{C_RESET}")
+    else:
+        out.append("-" * (inner_w + 2))
+        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in headers])
+        out.append(hdr_str)
+        out.append("-" * (inner_w + 2))
+
+    # Data Rows
+    for idx, m in enumerate(display_models):
+        rank_num = idx + 1
+        bg = BG_ODD if (idx % 2 == 1) else BG_EVEN
+
+        if rank_num == 1:
+            rank_str = "🥇#1"
+        elif rank_num == 2:
+            rank_str = "🥈#2"
+        elif rank_num == 3:
+            rank_str = "🥉#3"
+        else:
+            rank_str = f" #{rank_num}"
+
+        mid_raw = m.get("display") or m.get("model_id", "Unknown")
+        is_added = (mid_raw in added_ids) or (m.get("model_id") in added_ids) or (m.get("or_slug") in added_ids) or (m.get("aa_slug") in added_ids)
+        is_pareto = (mid_raw in pareto_ids) or (m.get("aa_slug") in pareto_ids) or (m.get("lm_slug") in pareto_ids) or (m.get("model_id") in pareto_ids) or (m.get("or_slug") in pareto_ids)
+
+        m_name_w = headers[1][1]
+        mid = (("+" if is_added else "") + mid_raw)[:m_name_w]
+        pool_badge_str = pool_badge(m.get("pool", "api"), color=color)
+
+        pl = pillars_map.get(mid_raw) or extract_capability_pillars(m)
+        meds = col_medals.get(mid_raw, {})
+
+        q_badge = medal_badge(meds.get("q"), color=color)
+        r_badge = medal_badge(meds.get("reason"), color=color)
+        c_badge = medal_badge(meds.get("coding"), color=color)
+        s_badge = medal_badge(meds.get("speed"), color=color)
+
+        cov = pl["coverage_count"]
+        if cov == 3:
+            conf_str = "[3/3]"
+            conf_color = C_GREEN
+        elif cov == 2:
+            conf_str = "[2/3]"
+            conf_color = C_YELLOW
+        elif cov == 1:
+            conf_str = "[1/3]*"
+            conf_color = C_MAGENTA
+        else:
+            conf_str = "[0/3]"
+            conf_color = C_GRAY
+
+        q_val = m.get("capability_q")
+        q_disp = (f"{q_val:.1f}" if q_val is not None else "—") + q_badge
+
+        r_val = pl.get("reasoning")
+        r_disp = (f"{r_val:.1f}%" if r_val is not None else "—") + r_badge
+
+        c_val = pl.get("coding")
+        c_disp = (f"{c_val:.1f}%" if c_val is not None else "—") + c_badge
+
+        s_val = pl.get("speed")
+        s_disp = (f"{s_val:.0f}t/s" if s_val is not None else "—") + s_badge
+
+        ctx_disp = format_context_window(pl.get("context_length"))
+
+        pin = m.get("price_in", 0.0)
+        pout = m.get("price_out", 0.0)
+        price_disp = format_compact_price(pin, pout)
+
+        best_role = pl.get("best_role", "—")
+
+        if color:
+            if is_added:
+                mid_color = C_BOLD + C_GREEN
+            elif is_pareto:
+                mid_color = C_BOLD + C_GOLD
+            else:
+                mid_color = C_WHITE
+
+            rank_cell = color_cell(rank_str, C_YELLOW if rank_num <= 3 else C_GRAY, width=headers[0][1], align="^", bg=bg)
+            model_cell = color_cell(mid, mid_color, width=headers[1][1], align="<", bg=bg)
+            pool_cell = color_cell(pool_badge_str, "", width=headers[2][1], align="^", bg=bg)
+            conf_cell = color_cell(conf_str, conf_color, width=headers[3][1], align="^", bg=bg)
+            q_cell = color_cell(q_disp, score_color_q(q_val or 0.0), width=headers[4][1], align=">", bg=bg)
+            reas_cell = color_cell(r_disp, C_GREEN if (r_val and r_val >= 85.0) else (C_CYAN if (r_val and r_val >= 75.0) else C_WHITE), width=headers[5][1], align=">", bg=bg)
+            cod_cell = color_cell(c_disp, C_GREEN if (c_val and c_val >= 80.0) else (C_CYAN if (c_val and c_val >= 70.0) else C_WHITE), width=headers[6][1], align=">", bg=bg)
+            speed_cell = color_cell(s_disp, C_GREEN if (s_val and s_val >= 150) else (C_CYAN if (s_val and s_val >= 70) else C_WHITE), width=headers[7][1], align=">", bg=bg)
+
+            if is_slim:
+                ctx_cell = color_cell(ctx_disp, C_WHITE, width=headers[8][1], align=">", bg=bg)
+                row_cells = [rank_cell, model_cell, pool_cell, conf_cell, q_cell, reas_cell, cod_cell, speed_cell, ctx_cell]
+            elif wide:
+                p_val = m.get("p_success")
+                p_disp = (f"{p_val:.1f}%" if p_val is not None else "—") + medal_badge(meds.get("psucc"), color=color)
+                eff_cost = m.get("effective_cost")
+                eff_disp = (f"${eff_cost:.2f}" if eff_cost is not None else "—") + medal_badge(meds.get("cost"), color=color)
+                p_cell = color_cell(p_disp, score_color_p(p_val or 0.0), width=headers[5][1], align=">", bg=bg)
+                ctx_cell = color_cell(ctx_disp, C_WHITE, width=headers[9][1], align=">", bg=bg)
+                eff_cell = color_cell(eff_disp, C_GREEN if (eff_cost is not None and eff_cost < 2.0) else (C_CYAN if (eff_cost is not None and eff_cost < 10.0) else C_WHITE), width=headers[10][1], align=">", bg=bg)
+                price_cell = color_cell(price_disp, C_WHITE, width=headers[11][1], align=">", bg=bg)
+                role_cell = color_cell(best_role, C_CYAN, width=headers[12][1], align="<", bg=bg)
+                row_cells = [rank_cell, model_cell, pool_cell, conf_cell, q_cell, p_cell, reas_cell, cod_cell, speed_cell, ctx_cell, eff_cell, price_cell, role_cell]
+            else:
+                ctx_cell = color_cell(ctx_disp, C_WHITE, width=headers[8][1], align=">", bg=bg)
+                price_cell = color_cell(price_disp, C_WHITE, width=headers[9][1], align=">", bg=bg)
+                role_cell = color_cell(best_role, C_CYAN, width=headers[10][1], align="<", bg=bg)
+                row_cells = [rank_cell, model_cell, pool_cell, conf_cell, q_cell, reas_cell, cod_cell, speed_cell, ctx_cell, price_cell, role_cell]
+
+            out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
+        else:
+            if is_slim:
+                row_items = [
+                    pad_display(rank_str, headers[0][1], "^"),
+                    pad_display(mid, headers[1][1], "<"),
+                    pad_display(m.get('pool', 'api'), headers[2][1], "^"),
+                    pad_display(conf_str, headers[3][1], "^"),
+                    pad_display(q_disp, headers[4][1], ">"),
+                    pad_display(r_disp, headers[5][1], ">"),
+                    pad_display(c_disp, headers[6][1], ">"),
+                    pad_display(s_disp, headers[7][1], ">"),
+                    pad_display(ctx_disp, headers[8][1], ">"),
+                ]
+            elif wide:
+                p_val = m.get("p_success")
+                p_disp = f"{p_val:.1f}%" if p_val is not None else "—"
+                eff_cost = m.get("effective_cost")
+                eff_disp = f"${eff_cost:.2f}" if eff_cost is not None else "—"
+                row_items = [
+                    pad_display(rank_str, headers[0][1], "^"),
+                    pad_display(mid, headers[1][1], "<"),
+                    pad_display(m.get('pool', 'api'), headers[2][1], "^"),
+                    pad_display(conf_str, headers[3][1], "^"),
+                    pad_display(q_disp, headers[4][1], ">"),
+                    pad_display(p_disp, headers[5][1], ">"),
+                    pad_display(r_disp, headers[6][1], ">"),
+                    pad_display(c_disp, headers[7][1], ">"),
+                    pad_display(s_disp, headers[8][1], ">"),
+                    pad_display(ctx_disp, headers[9][1], ">"),
+                    pad_display(eff_disp, headers[10][1], ">"),
+                    pad_display(price_disp, headers[11][1], ">"),
+                    pad_display(best_role, headers[12][1], "<"),
+                ]
+            else:
+                row_items = [
+                    pad_display(rank_str, headers[0][1], "^"),
+                    pad_display(mid, headers[1][1], "<"),
+                    pad_display(m.get('pool', 'api'), headers[2][1], "^"),
+                    pad_display(conf_str, headers[3][1], "^"),
+                    pad_display(q_disp, headers[4][1], ">"),
+                    pad_display(r_disp, headers[5][1], ">"),
+                    pad_display(c_disp, headers[6][1], ">"),
+                    pad_display(s_disp, headers[7][1], ">"),
+                    pad_display(ctx_disp, headers[8][1], ">"),
+                    pad_display(price_disp, headers[9][1], ">"),
+                    pad_display(best_role, headers[10][1], "<"),
+                ]
+            out.append(" ".join(row_items))
+
+    if color:
+        out.append(f"{C_DIM}{bot_border}{C_RESET}")
+    else:
+        out.append("-" * (inner_w + 2))
+
+    # Removed models display
+    if removed_models:
+        out.append("")
+        out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="display"))
+
+    # Unmatched models alert
+    if unmatched_models:
+        sub_t = render_unmatched_models_cli(unmatched_models, color=color)
+        if sub_t:
+            out.append(sub_t)
+
+    # Metric guide
+    out.append("")
+    out.extend(render_metric_guide_cli(
+        "One-Shot Capabilities Guide",
+        [
+            ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
+            ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
+            ("Conf [3/3]", "Tri-Verified across Arena.ai + LiveBench + Artificial Analysis.", C_GREEN),
+            ("Conf [2/3]", "Dual-Evaluated across 2 upstream benchmark authorities.", C_YELLOW),
+            ("Conf [1/3]*", "Single-Benchmark or emerging model (use with awareness).", C_MAGENTA),
+            ("Reason", "Decontaminated Reasoning capability % (LiveBench / AA).", C_GREEN),
+            ("Coding", "Decontaminated Coding capability % (LiveBench / LMSYS Arena).", C_GREEN),
+            ("Speed", "Hardware generation throughput in tokens/second.", C_CYAN),
+            ("Ctx", "Active context window size (tokens).", C_WHITE),
+        ],
+        color=color,
+    ))
+
+    role_recs = compute_role_recommendations(models_list, context="bcheck")
     if role_recs:
         out.append("")
         out.extend(render_role_recommendations_cli(role_recs, color=color, is_slim=is_slim, width=inner_w))
@@ -1909,13 +2307,13 @@ def render_podium_table(models_list, color=None):
         out.append("=" * (inner_w + 2))
         out.append(" COLUMN WINNERS & PODIUM LEADERS (1st 🥇 · 2nd 🥈 · 3rd 🥉)")
         out.append("=" * (inner_w + 2))
-        hdr_str = " ".join([f"{h:<{w}}" for h, w, a in headers])
+        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
         for idx, (col_label, key_fn, rev, filt, fmt_fn) in enumerate(cols):
             valid = [m for m in models_list if filt(m)] if filt else models_list
             sorted_m = sorted(valid, key=key_fn, reverse=rev)[:3]
-            row_items = [f"{col_label:<26}"]
+            row_items = [pad_display(col_label, 26, "<")]
             for pos in range(3):
                 if pos < len(sorted_m):
                     m = sorted_m[pos]
@@ -1925,7 +2323,7 @@ def render_podium_table(models_list, color=None):
                     txt = f"{disp_name} {p_badge} ({val})"
                 else:
                     txt = "—"
-                row_items.append(f"{txt:<30}")
+                row_items.append(pad_display(txt, 30, "<"))
             out.append(" ".join(row_items))
     return "\n".join(out)
 
@@ -1946,14 +2344,14 @@ def render_sub_table_md(sub_models, title, top_n=10):
         sub = f"`{m['pool'].upper()}` ({m['tier']})"
         q = f"**{m.get('capability_q', 0):.1f}**"
         psucc = f"{m.get('p_success', 0):.1f}%"
-        eff_cost = f"${m.get('effective_cost', 0):.2f}"
+        eff_cost = f"${m.get('effective_cost'):.2f}" if m.get("effective_cost") is not None else "—"
         lb = m.get("livebench")
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
         elo_str = _int_str(bm.get("lm_elo"))
         aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
-        cost = f"${m['price_in']:.2f} / ${m['price_out']:.2f}"
+        cost = format_compact_price(m.get("price_in"), m.get("price_out"))
         lines.append(f"| #{i} | **{mid_raw}** | {sub} | {q} | {psucc} | {eff_cost} | {lb_str} | {elo_str} | {aa_str} | {cost} |")
     lines.append("")
     return "\n".join(lines)
@@ -1981,11 +2379,11 @@ def render_sub_table_html(sub_models, title, top_n=10):
             <td>{html.escape(m['tier'])}</td>
             <td style="font-weight:700; color:#2563eb;">{m.get('capability_q', 0):.1f}</td>
             <td>{m.get('p_success', 0):.1f}%</td>
-            <td>${m.get('effective_cost', 0):.2f}</td>
+            <td>{f"${m.get('effective_cost'):.2f}" if m.get('effective_cost') is not None else '—'}</td>
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
             <td>{elo_str}</td>
             <td>{aa_str}</td>
-            <td>${m['price_in']:.2f} / ${m['price_out']:.2f}</td>
+            <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
         </tr>
         """)
     return f"""
@@ -2016,7 +2414,7 @@ def render_sub_table_html(sub_models, title, top_n=10):
 def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int | None = 30, unmatched_models=None):
     """Render detailed Markdown report with tri-verified master leaderboard, partial benchmark sub-tables, and unmatched models."""
     if pareto_ids is None:
-        pareto_ids = compute_pareto_frontier(models_list)
+        pareto_ids = compute_priced_pareto_frontier(models_list)
 
     if not title:
         title = f"Consolidated LLM Benchmark & Agentic Cost-Benefit Report ({dt.date.today().isoformat()})"
@@ -2068,7 +2466,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
         elo_str = _int_str(bm.get("lm_elo"))
         aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
-        cost = f"${m['price_in']:.2f} / ${m['price_out']:.2f}"
+        cost = format_compact_price(m.get("price_in"), m.get("price_out"))
 
         lines.append(
             f"| {mid} | {sub} | {q} | {psucc} | {eff_cost} | {avi} | {fgi} | {lb_str} | {elo_str} | {aa_str} | {cost} |"
@@ -2157,7 +2555,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
 def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_models=None, stale_note=None, top_n: int | None = 30, unmatched_models=None):
     """Render standalone HTML dashboard with tri-verified table, sub-tables, and unmatched models."""
     if pareto_ids is None:
-        pareto_ids = compute_pareto_frontier(models_list)
+        pareto_ids = compute_priced_pareto_frontier(models_list)
 
     if added_ids is None:
         added_ids = set()
@@ -2226,7 +2624,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
             <td>{bm.get('lm_coding', '—')}</td>
             <td>{bm.get('speed_tps', '—')} t/s</td>
-            <td>${m['price_in']:.2f} / ${m['price_out']:.2f}</td>
+            <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
         </tr>
         """)
 
@@ -2414,6 +2812,8 @@ def main():
     parser.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     parser.add_argument("--slim", action="store_true", help="Force compact 95-column table layout (for split panes)")
     parser.add_argument("--wide", action="store_true", help="Force full 125-column table layout")
+    parser.add_argument("-1", "--one-shot", action="store_true", help="Display unified one-shot capabilities table merging all models with explicit capability pillars (Reasoning, Coding, Speed, Context, Pool)")
+    parser.add_argument("-i", "--tui", "--interactive", action="store_true", help="Launch interactive curses TUI dashboard")
 
     args = parser.parse_args()
 
@@ -2467,7 +2867,7 @@ def main():
     elif args.sort == "coding":
         models.sort(key=lambda m: (m.get("base_metrics", {}).get("lm_coding") or m.get("aa_live_coding") or 0.0), reverse=True)
     elif args.sort == "reasoning":
-        models.sort(key=lambda m: (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else 0.0) or 0.0, reverse=True)
+        models.sort(key=lambda m: (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None) or m.get("base_metrics", {}).get("aa_reasoning") or m.get("aa_live_reasoning") or 0.0, reverse=True)
     elif args.sort == "speed":
         models.sort(key=lambda m: (m.get("base_metrics", {}).get("speed_tps") or 0.0), reverse=True)
     elif args.sort == "live":
@@ -2500,11 +2900,30 @@ def main():
         return
 
     use_color = False if args.plain else None
+    if args.tui:
+        from benchmark_tui import run_tui
+        run_tui(models, color=use_color, unmatched_models=unmatched_catalog)
+        return
+
     if args.podium:
         print(render_podium_table(models, color=use_color))
         return
 
     slim_opt = True if args.slim else (False if args.wide else None)
+    if args.one_shot:
+        print(render_one_shot_cli_table(
+            models,
+            color=use_color,
+            slim=slim_opt,
+            wide=args.wide,
+            added_ids=added_ids,
+            removed_models=removed_models,
+            stale_note=stale_note,
+            top_n=top_n,
+            unmatched_models=unmatched_catalog,
+        ))
+        return
+
     print(render_cli_table(models, color=use_color, slim=slim_opt, wide=args.wide, added_ids=added_ids, removed_models=removed_models, stale_note=stale_note, top_n=top_n, unmatched_models=unmatched_catalog))
 
 

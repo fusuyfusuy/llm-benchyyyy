@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T00:10:47.234205+00:00",
+  "generated_at": "2026-09-09T12:29:48.062010+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "opencode_zen_api": "https://opencode.ai/zen/v1/models",
@@ -7,73 +7,23 @@
     "cline_recommended_models_api": "https://api.cline.bot/api/v1/ai/cline/recommended-models",
     "cline_freemodel_api": "https://api.cline.bot/api/v1/ai/cline/recommended-models",
     "artificial_analysis": "https://artificialanalysis.ai/leaderboards/models",
-    "lmarena": "https://lmarena.ai/?leaderboard",
+    "lmarena": "https://arena.ai/leaderboard/code/webdev",
     "note": "free = OpenCode Zen/Go -free tiers + Cline Free tier (OpenRouter list NOT shown; OR catalog fetched only to validate Cline free claims + price/context); composite = mean of per-source z-scores (AA Intelligence Index, LMArena ELO); cross-source scales incomparable"
   },
   "catalog_diff": {
     "added": [],
     "removed": [
-      "cohere/north-mini-code:free",
-      "dots-studio/dots-3-note-preview:free",
-      "google/gemma-4-26b-a4b-it:free",
-      "google/gemma-4-31b-it:free",
-      "google/lyria-3-clip-preview",
-      "google/lyria-3-pro-preview",
-      "inclusionai/ling-3.0-flash-fin:free",
-      "liquid/lfm-2.5-2.6b:free",
-      "minimax/minimax-m2.7:free",
-      "minimax/minimax-m3:free",
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-      "nvidia/nemotron-3-super-120b-a12b:free",
-      "nvidia/nemotron-3-ultra-550b-a55b:free",
-      "nvidia/nemotron-3.5-content-safety:free",
-      "nvidia/nemotron-3.5-lightning:free",
-      "openrouter/free",
-      "poolside/laguna-s-2.1:free",
-      "poolside/laguna-xs-2.1:free",
-      "thinkingmachines/inkling-small:free",
-      "thinkingmachines/inkling:free",
-      "z-ai/glm-5.2:free"
+      "cline-free/longcat-2.0",
+      "hy3-free",
+      "z-ai/glm-5.3-flash"
     ],
-    "total_current": 11,
-    "total_previous": 28
+    "total_current": 8,
+    "total_previous": 11
   },
-  "n_free": 11,
-  "n_with_aa": 5,
-  "n_with_lm": 3,
+  "n_free": 8,
+  "n_with_aa": 3,
+  "n_with_lm": 2,
   "models": [
-    {
-      "model_id": "hy3-free",
-      "display": "hy3",
-      "display_full": "hy3",
-      "provider": "opencode",
-      "source": "oc",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": "hy3",
-        "aa_intelligence": 42.2134908724756,
-        "aa_coding": 58.8027985851019,
-        "aa_agentic": 31.4171993127148,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": 59,
-        "lmarena_elo": 1456.0,
-        "lmarena_votes": 6466,
-        "openrouter_context": null,
-        "capability_q": 85.9,
-        "p_success": 84.1,
-        "token_multiplier": 1.42,
-        "fgi_score": 66.3
-      },
-      "coverage": [
-        "AA",
-        "LM"
-      ],
-      "composite": 0.93,
-      "first_seen": null,
-      "is_new": false
-    },
     {
       "model_id": "deepseek-v4-flash-free",
       "display": "deepseek-v4-flash",
@@ -86,26 +36,25 @@
       ],
       "benchmarks": {
         "aa_slug": "deepseek-v4-flash",
-        "aa_intelligence": 51.7665776089032,
+        "aa_intelligence": 34.5281879347816,
         "aa_coding": 69.062543348592,
-        "aa_agentic": 48.414147766323,
+        "aa_agentic": 41.6754905498282,
         "aa_median_tps": null,
         "aa_context": null,
-        "lmarena_rank": 83,
-        "lmarena_elo": 1438.0,
-        "lmarena_votes": 48660,
+        "lmarena_rank": 20,
+        "lmarena_elo": 1582.0,
+        "lmarena_votes": 4410,
         "openrouter_context": null,
-        "capability_q": 82.3,
-        "p_success": 77.5,
-        "token_multiplier": 1.64,
-        "fgi_score": 56.2
+        "capability_q": 87.3,
+        "p_success": 86.2,
+        "token_multiplier": 1.35,
+        "fgi_score": 69.9
       },
       "coverage": [
         "AA",
         "LM"
       ],
-      "composite": 0.505,
-      "first_seen": null,
+      "composite": 1.095,
       "is_new": false
     },
     {
@@ -118,56 +67,24 @@
       "also_listed": [],
       "benchmarks": {
         "aa_slug": "ling-3-0-flash",
-        "aa_intelligence": 37.820825176113,
+        "aa_intelligence": 24.9392319530441,
         "aa_coding": 50.6497953946456,
-        "aa_agentic": 29.3111649484536,
+        "aa_agentic": 20.9667491408935,
         "aa_median_tps": null,
         "aa_context": null,
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
-        "openrouter_context": null,
-        "capability_q": 77.9,
-        "p_success": 67.0,
-        "token_multiplier": 2.08,
-        "fgi_score": 42.7
+        "openrouter_context": 262144,
+        "capability_q": 78.6,
+        "p_success": 68.8,
+        "token_multiplier": 2.0,
+        "fgi_score": 44.9
       },
       "coverage": [
         "AA"
       ],
-      "composite": -0.006,
-      "first_seen": null,
-      "is_new": false
-    },
-    {
-      "model_id": "cline-free/longcat-2.0",
-      "display": "longcat-2.0",
-      "display_full": "longcat-2.0",
-      "provider": "cline",
-      "source": "cln",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": "longcat-2-0",
-        "aa_intelligence": 33.9692584853255,
-        "aa_coding": 45.2637328339576,
-        "aa_agentic": 21.9579587628866,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": null,
-        "capability_q": 74.4,
-        "p_success": 57.2,
-        "token_multiplier": 2.65,
-        "fgi_score": 32.2
-      },
-      "coverage": [
-        "AA"
-      ],
-      "composite": -0.421,
-      "first_seen": null,
+      "composite": 0.067,
       "is_new": false
     },
     {
@@ -185,20 +102,19 @@
         "aa_agentic": null,
         "aa_median_tps": null,
         "aa_context": null,
-        "lmarena_rank": 92,
-        "lmarena_elo": 1434.0,
-        "lmarena_votes": 44515,
+        "lmarena_rank": 62,
+        "lmarena_elo": 1437.0,
+        "lmarena_votes": 14116,
         "openrouter_context": null,
-        "capability_q": 70.3,
-        "p_success": 44.9,
-        "token_multiplier": 3.7,
-        "fgi_score": 21.2
+        "capability_q": 69.5,
+        "p_success": 42.6,
+        "token_multiplier": 3.96,
+        "fgi_score": 19.3
       },
       "coverage": [
         "LM"
       ],
-      "composite": -0.906,
-      "first_seen": null,
+      "composite": -1.0,
       "is_new": false
     },
     {
@@ -211,25 +127,24 @@
       "also_listed": [],
       "benchmarks": {
         "aa_slug": "nemotron-3-5-lightning",
-        "aa_intelligence": 23.606237599256,
+        "aa_intelligence": 13.6352556217144,
         "aa_coding": 26.7621202663337,
-        "aa_agentic": 13.7616597938144,
+        "aa_agentic": 6.14032989690722,
         "aa_median_tps": null,
         "aa_context": null,
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
-        "openrouter_context": null,
-        "capability_q": 64.9,
-        "p_success": 29.9,
-        "token_multiplier": 6.16,
-        "fgi_score": 10.6
+        "openrouter_context": 1000000,
+        "capability_q": 67.3,
+        "p_success": 36.3,
+        "token_multiplier": 4.86,
+        "fgi_score": 14.7
       },
       "coverage": [
         "AA"
       ],
-      "composite": -1.538,
-      "first_seen": null,
+      "composite": -1.257,
       "is_new": false
     },
     {
@@ -260,7 +175,6 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": null,
       "is_new": false
     },
     {
@@ -283,7 +197,7 @@
         "lmarena_rank": null,
         "lmarena_elo": null,
         "lmarena_votes": null,
-        "openrouter_context": null,
+        "openrouter_context": 262144,
         "capability_q": null,
         "p_success": null,
         "token_multiplier": null,
@@ -293,7 +207,6 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": null,
       "is_new": false
     },
     {
@@ -324,7 +237,6 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": null,
       "is_new": false
     },
     {
@@ -355,38 +267,6 @@
         "\u2014"
       ],
       "composite": null,
-      "first_seen": null,
-      "is_new": false
-    },
-    {
-      "model_id": "z-ai/glm-5.3-flash",
-      "display": "glm-5.3-flash",
-      "display_full": "z-ai/glm-5.3-flash",
-      "provider": "cline",
-      "source": "cln",
-      "stealth": false,
-      "also_listed": [],
-      "benchmarks": {
-        "aa_slug": null,
-        "aa_intelligence": null,
-        "aa_coding": null,
-        "aa_agentic": null,
-        "aa_median_tps": null,
-        "aa_context": null,
-        "lmarena_rank": null,
-        "lmarena_elo": null,
-        "lmarena_votes": null,
-        "openrouter_context": null,
-        "capability_q": null,
-        "p_success": null,
-        "token_multiplier": null,
-        "fgi_score": null
-      },
-      "coverage": [
-        "\u2014"
-      ],
-      "composite": null,
-      "first_seen": null,
       "is_new": false
     }
   ]

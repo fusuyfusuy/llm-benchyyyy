@@ -21,6 +21,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import unicodedata
 
 # ==============================================================================
 # 1. ANSI COLOR CODES & THEME CONSTANTS
@@ -350,11 +351,16 @@ def compute_avi(q_score: float | None, effective_cost: float | None) -> float:
     """
     Agentic Value Index (AVI): Super-linear capability vs log effective cost ROI.
     Formula: Q^2.2 / (100 * log10(effective_cost + 1.5))
+
+    Cost basis: effective $ per 1M tokens — bcheck feeds the 80/20 fresh-input
+    blended price; ocheck/ccheck feed the cache-aware per-1M price of the model's
+    own request mix so AVI agrees with their Eff c/r column. Free (0.0) and
+    unknown costs are excluded by callers: the log10(+1.5) floor would otherwise
+    pin every free model at ~Q^2.2/17.6 regardless of quality.
     """
     if q_score is None or effective_cost is None:
         return 0.0
     return round((float(q_score) ** 2.2) / (100.0 * math.log10(max(0.0, float(effective_cost)) + 1.5)), 1)
-
 
 def compute_fgi(q_score: float | None, p_success_pct: float | None) -> float:
     """
@@ -441,6 +447,20 @@ def compute_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
         if not pareto_dominated(a_cost, a_q, candidates, q_tolerance, cost_tolerance):
             pareto_set.update(_row_ids(a))
     return pareto_set
+
+
+def compute_priced_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=0.20):
+    """Pareto frontier over PRICED rows only (effective_cost is not None).
+
+    Unpriced high-Q rows enter compute_pareto_frontier via the 999 sentinel
+    and render "—" in every cost cell — a "cheapest at quality X" claim on a
+    row with no price is noise. Free (0.0) stays eligible: real free tiers
+    dominate the frontier (S2-M1). Returns the same stable-ID set shape.
+    """
+    priced = [a for a in (models_list or []) if a.get("effective_cost") is not None]
+    if not priced:
+        return set()
+    return compute_pareto_frontier(priced, q_tolerance=q_tolerance, cost_tolerance=cost_tolerance)
 
 
 def compute_meanfill_composite(rows):
@@ -925,26 +945,55 @@ def display_len(text: str) -> int:
     clean = re.sub(r"\x1b\[[0-9;]*m", "", str(text))
     w = 0
     for ch in clean:
-        if ord(ch) in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1) or (0x1F300 <= ord(ch) <= 0x1FAFF):
+        code = ord(ch)
+        if code in (0xFE0F, 0x200D, 0x200B):  # Variation selector, ZWJ, zero-width space
+            continue
+        if (
+            unicodedata.east_asian_width(ch) in ("W", "F")
+            or (0x1F300 <= code <= 0x1FAFF)
+            or code in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1, 0x2B50)
+        ):
             w += 2
         else:
             w += 1
     return w
 
 
-def color_cell(text, color: str = "", width: int | None = None, align: str = "<", bg: str = "") -> str:
-    """Format and align text cell with background/foreground color and exact padding."""
-    raw_w = display_len(text)
-    pad_needed = max(0, (width if width is not None else 0) - raw_w)
+def pad_display(text: str, width: int, align: str = "<") -> str:
+    """
+    Pad string to exact display width using display_len, safely truncating if too long
+    without cutting wide/emoji glyphs in half.
+    """
+    dlen = display_len(text)
+    if dlen > width:
+        cur = ""
+        cur_w = 0
+        for ch in str(text):
+            ch_w = display_len(ch)
+            if cur_w + ch_w > width:
+                break
+            cur += ch
+            cur_w += ch_w
+        pad_needed = max(0, width - cur_w)
+        return cur + (" " * pad_needed)
 
+    pad_needed = max(0, width - dlen)
     if align == ">":
-        padded = (" " * pad_needed) + str(text)
+        return (" " * pad_needed) + str(text)
     elif align == "^":
         left_pad = pad_needed // 2
         right_pad = pad_needed - left_pad
-        padded = (" " * left_pad) + str(text) + (" " * right_pad)
+        return (" " * left_pad) + str(text) + (" " * right_pad)
     else:
-        padded = str(text) + (" " * pad_needed)
+        return str(text) + (" " * pad_needed)
+
+
+def color_cell(text, color: str = "", width: int | None = None, align: str = "<", bg: str = "") -> str:
+    """Format and align text cell with background/foreground color and exact padding."""
+    if width is not None:
+        padded = pad_display(str(text), width, align)
+    else:
+        padded = str(text)
 
     bg_p = bg if bg else ""
     return f"{bg_p}{color} {padded} {C_RESET}"
@@ -1012,15 +1061,18 @@ def score_color_p(p_val: float | None) -> str:
 
 
 def score_color_avi(avi_val: float | None) -> str:
-    """Return color for Agentic Value Index (AVI). Calibrated against AVI's
-    real ~100-600 output range (Q^2.2/log(effective_cost) formula)."""
+    """Return color for Agentic Value Index (AVI). Bands follow the merged
+    ~50-1050 output range across tools (bcheck blended $/M basis; ocheck/ccheck
+    cache-aware mix $/M basis — 2026-09 quantiles: p20~200 p40~290 p60~370 p80~540)."""
     if avi_val is None:
         return C_DIM
-    if avi_val >= 300.0:
+    if avi_val >= 540.0:
+        return C_BOLD + C_GREEN
+    if avi_val >= 370.0:
         return C_GREEN
-    if avi_val >= 200.0:
+    if avi_val >= 290.0:
         return C_CYAN
-    if avi_val >= 140.0:
+    if avi_val >= 200.0:
         return C_YELLOW
     return C_WHITE
 
@@ -1387,14 +1439,20 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
         p = (m.get("pool") or "").upper()
         pool_str = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(p, f"[{p[:3]}]" if p else "[API]")
 
-    q = _safe_float(m.get("capability_q") or m.get("benchmarks", {}).get("capability_q") or m.get("composite_score"), default=70.0)
-    fgi = _safe_float(m.get("fgi_score") or m.get("value", {}).get("fgi_score") or m.get("benchmarks", {}).get("fgi_score"), default=30.0)
-    avi = _safe_float(m.get("avi_score") or m.get("value", {}).get("avi_score") or m.get("benchmarks", {}).get("avi_score"), default=150.0)
-    bfi = _safe_float(m.get("bfi_score") or m.get("value", {}).get("bfi_score") or m.get("benchmarks", {}).get("bfi_score"), default=150.0)
-    psucc = _safe_float(m.get("p_success") or m.get("benchmarks", {}).get("p_success"), default=50.0)
-    
-    eff_cost = _safe_float(m.get("effective_cost") or m.get("value", {}).get("effective_cost_per_request") or m.get("cost_per_request_usd"), default=10.0)
-    if eff_cost is None or eff_cost <= 0.0:
+    # Role scoring runs ONLY on benchmarked models (compute_role_recommendations
+    # filters on real capability_q below). No fabricated mid-range defaults:
+    # a model that renders "—" in the table must not silently win a role on
+    # invented q/fgi/avi/bfi/psucc values (S1 "See Something, Say Something").
+    q = _safe_float(m.get("capability_q") or m.get("benchmarks", {}).get("capability_q") or m.get("composite_score"))
+    fgi = _safe_float(m.get("fgi_score") or m.get("value", {}).get("fgi_score") or m.get("benchmarks", {}).get("fgi_score"))
+    avi = _safe_float(m.get("avi_score") or m.get("value", {}).get("avi_score") or m.get("benchmarks", {}).get("avi_score"))
+    bfi = _safe_float(m.get("bfi_score") or m.get("value", {}).get("bfi_score") or m.get("benchmarks", {}).get("bfi_score"))
+    psucc = _safe_float(m.get("p_success") or m.get("benchmarks", {}).get("p_success"))
+
+    eff_cost = _safe_float(m.get("effective_cost") or m.get("value", {}).get("effective_cost_per_request") or m.get("cost_per_request_usd"))
+    if eff_cost == 0.0:
+        # Real free tier: log-safe positive marker so free models win the cost z.
+        # Unknown (None) stays None — neutral cohort position, never a $10 guess.
         eff_cost = 0.0001
         
     coding = _safe_float(
@@ -1412,12 +1470,12 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
         default=None,
     )
     
-    req_cnt = (m.get("requests", {}).get("per_5h_docs") or m.get("requests", {}).get("per_5h_computed") or 0) if m.get("requests") else 0
+    # Speed = real benchmark throughput only. The old req_cnt/100 fallback
+    # fabricated "TPS" from request-quota math (e.g. 453 TPS for a 45k-req/5h
+    # model) and let unbenchmarked bulk models win the boilerplate role.
     speed = _safe_float(
         m.get("base_metrics", {}).get("speed_tps")
         or m.get("benchmarks", {}).get("aa_median_tps")
-        or (req_cnt / 100.0 if req_cnt else None),
-        default=60.0,
     )
 
     return {
@@ -1450,7 +1508,13 @@ def compute_role_recommendations(models_list: list[dict], context: str = "bcheck
         return {}
 
     feats = [_extract_model_role_features(m, context=context) for m in models_list]
-    
+    # Eligibility: real capability signal required. Models that render "—" in
+    # the table (no verified benchmarks) are excluded from role scoring — they
+    # previously entered with fabricated q=70 priors and could WIN roles.
+    feats = [f for f in feats if f["q"] is not None]
+    if len(feats) < 2:
+        return {}
+
     # Calculate baseline Z-scores
     z_q = get_z_scores([f["q"] for f in feats])
     z_fgi = get_z_scores([f["fgi"] for f in feats])
@@ -1458,15 +1522,15 @@ def compute_role_recommendations(models_list: list[dict], context: str = "bcheck
     z_bfi = get_z_scores([f["bfi"] for f in feats])
     z_psucc = get_z_scores([f["psucc"] for f in feats])
     z_speed = get_z_scores([f["speed"] for f in feats])
-    
+
     # Invert log cost so lower cost gives higher score
     inv_log_costs = [-math.log10(max(0.00001, f["eff_cost"])) if f["eff_cost"] is not None else None for f in feats]
     z_cost = get_z_scores(inv_log_costs)
-    
+
     # Fill missing coding / reasoning with z_q
     cod_vals = [f["coding"] if f["coding"] is not None else f["q"] for f in feats]
     z_coding = get_z_scores(cod_vals)
-    
+
     reas_vals = [f["reasoning"] if f["reasoning"] is not None else f["q"] for f in feats]
     z_reasoning = get_z_scores(reas_vals)
 
@@ -1918,4 +1982,71 @@ def render_removed_models_cli(removed_models: list[dict], color: bool = True, is
             lines.append(f"  [-] {mid:<22}{detail_str}")
 
     return lines
+
+
+def format_context_window(tokens: int | float | None) -> str:
+    """Format token count into compact human-readable string (e.g. 1.0M, 200k, 128k, 64k, —)."""
+    if tokens is None or not isinstance(tokens, (int, float)) or tokens <= 0:
+        return "—"
+    t = int(tokens)
+    if t >= 1_000_000:
+        val = t / 1_000_000
+        return f"{val:.1f}M" if (val % 1 != 0) else f"{int(val)}M"
+    elif t >= 1000:
+        return f"{t // 1000}k"
+    return str(t)
+
+
+def extract_capability_pillars(m: dict) -> dict:
+    """Extract normalized capability dimensions across LiveBench, LMSYS Arena, and Artificial Analysis."""
+    bm = m.get("base_metrics", {})
+    lb = m.get("livebench", {}) if isinstance(m.get("livebench"), dict) else {}
+    lb_cats = lb.get("categories", {}) if isinstance(lb, dict) else {}
+
+    reason = lb_cats.get("Reasoning") or lb.get("reasoning") or bm.get("aa_reasoning")
+    coding = lb_cats.get("Coding") or lb.get("coding") or bm.get("aa_coding")
+    coding_elo = bm.get("lm_coding")
+    speed = bm.get("speed_tps")
+    ctx = m.get("context_length") or bm.get("context_length")
+
+    has_live = (lb.get("overall") is not None) if lb else (m.get("livebench") is not None)
+    has_arena = bm.get("lm_elo") is not None
+    has_aa = (m.get("aa_live_quality") is not None) or (bm.get("aa_quality") is not None)
+    coverage_count = (1 if has_live else 0) + (1 if has_arena else 0) + (1 if has_aa else 0)
+
+    # Determine recommended role archetype
+    q_val = _safe_float(m.get("capability_q") or m.get("composite_score"))
+    fgi_val = _safe_float(m.get("fgi_score"))
+    avi_val = _safe_float(m.get("avi_score"))
+    r_float = _safe_float(reason)
+    c_float = _safe_float(coding)
+    s_float = _safe_float(speed)
+
+    if q_val is None or coverage_count == 0:
+        best_role = "—"
+    elif fgi_val is not None and (fgi_val >= 60.0 or (r_float is not None and r_float >= 88.0)):
+        best_role = "🏗️ Architect"
+    elif (c_float is not None and c_float >= 78.0) or (coding_elo is not None and coding_elo >= 1470):
+        best_role = "💻 Pair Coder"
+    elif s_float is not None and s_float >= 180.0:
+        best_role = "⚡ Fast Fill"
+    elif avi_val is not None and avi_val >= 250.0:
+        best_role = "🔄 Workhorse"
+    elif q_val >= 75.0:
+        best_role = "💻 Generalist"
+    else:
+        best_role = "⚡ Lightweight"
+
+    return {
+        "reasoning": _safe_float(reason),
+        "coding": _safe_float(coding),
+        "coding_elo": _safe_int_round(coding_elo),
+        "speed": _safe_float(speed),
+        "context_length": _safe_int(ctx),
+        "coverage_count": coverage_count,
+        "has_live": has_live,
+        "has_arena": has_arena,
+        "has_aa": has_aa,
+        "best_role": best_role,
+    }
 

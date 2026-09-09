@@ -223,6 +223,25 @@ class TestCcCheck(unittest.TestCase):
         self.assertEqual(diff["added_ids"], {"grok-4.6"})
         self.assertEqual(diff["removed_ids"], {"legacy-v1"})
 
+    def test_plain_and_color_table_alignment(self):
+        rows = [
+            {"model_id": "m1", "pricing": {"monthly_credits": 60}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 90.0, "p_success": 80.0}, "value": {"qvi_score": 568.0, "avi_score": 984.7, "fgi_score": 67.1, "effective_cost_per_request": 0.0014}},
+            {"model_id": "m2", "pricing": {"monthly_credits": 60}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 85.0, "p_success": 75.0}, "value": {"qvi_score": 537.4, "avi_score": 893.2, "fgi_score": 60.5, "effective_cost_per_request": 0.0026}},
+            {"model_id": "m3", "pricing": {"monthly_credits": 60}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 80.0, "p_success": 70.0}, "value": {"qvi_score": 513.2, "avi_score": 795.0, "fgi_score": 43.3, "effective_cost_per_request": 0.0013}},
+            {"model_id": "m4", "pricing": {"monthly_credits": 60}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 75.0, "p_success": 65.0}, "value": {"qvi_score": 497.5, "avi_score": 859.2, "fgi_score": 51.4, "effective_cost_per_request": 0.0011}},
+        ]
+        # Plain mode check
+        plain = ccc.render_cli_table(rows, color=False)
+        p_rows = [l for l in plain.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        p_lens = {ccc.display_len(l) for l in p_rows}
+        self.assertEqual(len(p_lens), 1, f"Plain table rows must have uniform display width: {p_lens}")
+
+        # Color mode check (inner border lines between vertical bars)
+        colored = ccc.render_cli_table(rows, color=True)
+        c_rows = [l for l in colored.split("\n") if "🥇#1" in l or "🥈#2" in l or "🥉#3" in l or "#4" in l]
+        c_lens = {ccc.display_len(l) for l in c_rows}
+        self.assertEqual(len(c_lens), 1, f"Color table rows must have uniform display width: {c_lens}")
+
 
 if __name__ == "__main__":
     unittest.main()

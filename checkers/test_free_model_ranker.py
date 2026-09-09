@@ -9,6 +9,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import free_model_ranker as fmr
+import benchmark_common as bc
 
 
 class TestFreeModelRanker(unittest.TestCase):
@@ -233,6 +234,23 @@ class TestFreeModelRanker(unittest.TestCase):
         self.assertEqual(fmr._free_key("laguna-s-2.1-free"), fmr._free_key("poolside/laguna-s-2.1:free"))
         # distinct models must NOT collapse
         self.assertNotEqual(fmr._free_key("nemotron-3.5-lightning-free"), fmr._free_key("deepseek-v4-flash-free"))
+
+    def test_plain_and_color_table_alignment(self):
+        dummy_rows = [
+            {"model_id": "m1", "display": "m1", "benchmarks": {"capability_q": 90.0, "p_success": 80.0, "fgi_score": 50.0, "aa_intelligence": 70.0, "lmarena_elo": 1400.0}, "coverage": ["AA", "LM"], "context": 128000, "source": "cline", "provider": "p1"},
+            {"model_id": "m2", "display": "m2", "benchmarks": {"capability_q": 85.0, "p_success": 75.0, "fgi_score": 45.0, "aa_intelligence": 65.0, "lmarena_elo": 1350.0}, "coverage": ["AA", "LM"], "context": 128000, "source": "cline", "provider": "p2"},
+            {"model_id": "m3", "display": "m3", "benchmarks": {"capability_q": 80.0, "p_success": 70.0, "fgi_score": 40.0, "aa_intelligence": 60.0, "lmarena_elo": 1300.0}, "coverage": ["AA", "LM"], "context": 128000, "source": "cline", "provider": "p3"},
+            {"model_id": "m4", "display": "m4", "benchmarks": {"capability_q": 75.0, "p_success": 65.0, "fgi_score": 35.0, "aa_intelligence": 55.0, "lmarena_elo": 1250.0}, "coverage": ["AA", "LM"], "context": 128000, "source": "cline", "provider": "p4"},
+        ]
+        plain = fmr.render_cli_table(dummy_rows, color=False)
+        p_rows = [l for l in plain.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        p_lens = {bc.display_len(l) for l in p_rows}
+        self.assertEqual(len(p_lens), 1, f"Plain table rows must have uniform display width: {p_lens}")
+
+        colored = fmr.render_cli_table(dummy_rows, color=True)
+        c_rows = [l for l in colored.split("\n") if "🥇#1" in l or "🥈#2" in l or "🥉#3" in l or "#4" in l]
+        c_lens = {bc.display_len(l) for l in c_rows}
+        self.assertEqual(len(c_lens), 1, f"Color table rows must have uniform display width: {c_lens}")
 
 
 if __name__ == "__main__":

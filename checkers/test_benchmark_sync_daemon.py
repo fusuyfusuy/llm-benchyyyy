@@ -4,6 +4,7 @@ test_benchmark_sync_daemon.py — Unit tests for 08:00 daily sync daemon and cac
 """
 import datetime as dt
 import io
+import json
 import os
 import pathlib
 import sys
@@ -60,19 +61,76 @@ class TestBenchmarkSyncDaemon(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_raw = pathlib.Path(tmpdir) / "raw"
             tmp_data = pathlib.Path(tmpdir)
+            fake_cat = {
+                f"m{i}": {"display": f"Model {i}", "pool": "api",
+                          "livebench": {"overall": 80.0 + i},
+                          "base_metrics": {}}
+                for i in range(3)
+            }
             with patch.object(bsd, "RAW", tmp_raw), patch.object(bsd, "DATA", tmp_data), patch.object(lba, "DATA", tmp_data):
-                with patch.object(bsd, "fetch_url_content", return_value="<mock content>"):
+                with patch.object(bsd, "fetch_url_content", return_value=("x" * 600_000)):
+                    with patch("llm_benchmark_aggregator.load_livebench_data", return_value={}):
+                        with patch("llm_benchmark_aggregator.load_lmarena_data", return_value={}):
+                            with patch("llm_benchmark_aggregator.load_aa_data", return_value={}):
+                                with patch("llm_benchmark_aggregator.build_universal_catalog", return_value=dict(fake_cat)):
+                                    res = bsd.sync_all_sources(verbose=False, force=True)
+                                    self.assertIn("livebench_csv", res)
+                                    self.assertIn("lmarena", res)
+                                    self.assertIn("artificial_analysis", res)
+                                    self.assertIn("openrouter", res)
+                                    self.assertIn("commandcode_goat", res)
+                                    self.assertIn("cline_models", res)
+                                    self.assertTrue((tmp_data / "benchmarks.json").exists())
+
+    def test_fetch_failure_keeps_cache(self):
+        # Failure bodies must never overwrite good cache; 0-model runs must not touch the baseline.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_raw = pathlib.Path(tmpdir) / "raw"
+            tmp_raw.mkdir()
+            tmp_data = pathlib.Path(tmpdir)
+            today = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d")
+            good = "GOOD" * 30_000
+            p = tmp_raw / f"lmarena_{today}.html"
+            p.write_text(good)
+            with patch.object(bsd, "RAW", tmp_raw), patch.object(bsd, "DATA", tmp_data), patch.object(lba, "DATA", tmp_data):
+                with patch.object(bsd, "fetch_url_content", return_value="oops"):
                     with patch("llm_benchmark_aggregator.load_livebench_data", return_value={}):
                         with patch("llm_benchmark_aggregator.load_lmarena_data", return_value={}):
                             with patch("llm_benchmark_aggregator.load_aa_data", return_value={}):
                                 res = bsd.sync_all_sources(verbose=False, force=True)
-                                self.assertIn("livebench_csv", res)
-                                self.assertIn("lmarena", res)
-                                self.assertIn("artificial_analysis", res)
-                                self.assertIn("openrouter", res)
-                                self.assertIn("commandcode_goat", res)
-                                self.assertIn("cline_models", res)
-                                self.assertTrue((tmp_data / "benchmarks.json").exists())
+            self.assertEqual(p.read_text(), good)
+            self.assertEqual(res["lmarena"], p)
+            self.assertIsNone(res["livebench_csv"])
+            self.assertNotIn("baseline_json", res)
+            self.assertFalse((tmp_data / "benchmarks.json").exists())
+
+    def test_collapsed_baseline_refused(self):
+        # 3 evaluated vs 200 prev (<50%) must keep benchmarks.json byte-identical.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_raw = pathlib.Path(tmpdir) / "raw"
+            tmp_raw.mkdir()
+            tmp_data = pathlib.Path(tmpdir)
+            prev_models = [{"display": f"Prev {i}", "pool": "api"} for i in range(200)]
+            prev = {"generated_at": "2026-09-01T00:00:00+00:00",
+                    "catalog_diff": {"added": [], "removed": [], "total_current": 200},
+                    "models": prev_models}
+            (tmp_data / "benchmarks.json").write_text(json.dumps(prev))
+            small_cat = {
+                f"m{i}": {"display": f"Model {i}", "pool": "api",
+                          "livebench": {"overall": 80.0 + i},
+                          "base_metrics": {}}
+                for i in range(3)
+            }
+            with patch.object(bsd, "RAW", tmp_raw), patch.object(bsd, "DATA", tmp_data), patch.object(lba, "DATA", tmp_data):
+                with patch.object(bsd, "fetch_url_content", return_value=("x" * 600_000)):
+                    with patch("llm_benchmark_aggregator.load_livebench_data", return_value={}):
+                        with patch("llm_benchmark_aggregator.load_lmarena_data", return_value={}):
+                            with patch("llm_benchmark_aggregator.load_aa_data", return_value={}):
+                                with patch("llm_benchmark_aggregator.build_universal_catalog", return_value=dict(small_cat)):
+                                    res = bsd.sync_all_sources(verbose=False, force=True)
+            self.assertNotIn("baseline_json", res)
+            kept = json.loads((tmp_data / "benchmarks.json").read_text())
+            self.assertEqual(len(kept["models"]), 200)
 
     def test_fetch_rejects_tiny_error_body(self):
         response = MagicMock()

@@ -321,7 +321,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
         out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
-        hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
+        hdr_str = " ".join([bc.pad_display(h, w, a) for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
 
@@ -412,26 +412,26 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, is_wide=False, n_aa
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
             row_items = [
-                f"{rank_str:^4}",
-                f"{m_name:<{m_w}}",
+                bc.pad_display(rank_str, 4, "^"),
+                bc.pad_display(m_name, m_w, "<"),
             ]
             if p_w > 0:
-                row_items.append(f"{prov_name:<{p_w}}")
+                row_items.append(bc.pad_display(prov_name, p_w, "<"))
             row_items.extend([
-                f"{src_badge_str:^5}",
-                f"{q_s:>6}",
-                f"{p_s:>7}",
-                f"{fgi_s:>5}",
+                bc.pad_display(src_badge_str, 5, "^"),
+                bc.pad_display(q_s, 6, ">"),
+                bc.pad_display(p_s, 7, ">"),
+                bc.pad_display(fgi_s, 5, ">"),
             ])
             if is_wide:
                 row_items.extend([
-                    f"{aa_s:>8}",
-                    f"{lm_s:>7}",
-                    f"{comp_s:>6}",
+                    bc.pad_display(aa_s, 8, ">"),
+                    bc.pad_display(lm_s, 7, ">"),
+                    bc.pad_display(comp_s, 6, ">"),
                 ])
             row_items.extend([
-                f"{cov_s:^5}",
-                f"{ctx_s:>5}",
+                bc.pad_display(cov_s, 5, "^"),
+                bc.pad_display(ctx_s, 5, ">"),
             ])
             out.append(" ".join(row_items))
 

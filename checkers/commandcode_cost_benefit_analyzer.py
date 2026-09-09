@@ -29,6 +29,7 @@ import pathlib
 import re
 import shutil
 import sys
+import unicodedata
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -435,27 +436,54 @@ def _safe_int_round(v):
 C_RESET = "\033[0m"
 
 def display_len(s):
-    clean = re.sub(r"\033\[[0-9;]*m", "", str(s))
+    clean = re.sub(r"(?:\033|\x1b)\[[0-9;]*m", "", str(s))
     w = 0
     for ch in clean:
-        if ord(ch) in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1) or (0x1F300 <= ord(ch) <= 0x1FAFF):
+        code = ord(ch)
+        if code in (0xFE0F, 0x200D, 0x200B):
+            continue
+        if (
+            unicodedata.east_asian_width(ch) in ("W", "F")
+            or (0x1F300 <= code <= 0x1FAFF)
+            or code in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1, 0x2B50)
+        ):
             w += 2
         else:
             w += 1
     return w
 
 
-def color_cell(text, color="", width=None, align="<", bg=""):
-    raw_w = display_len(text)
-    pad_needed = max(0, (width if width is not None else 0) - raw_w)
+def pad_display(text, width, align="<"):
+    """Pad string to exact display width using display_len, safely truncating if too long."""
+    dlen = display_len(text)
+    if dlen > width:
+        cur = ""
+        cur_w = 0
+        for ch in str(text):
+            ch_w = display_len(ch)
+            if cur_w + ch_w > width:
+                break
+            cur += ch
+            cur_w += ch_w
+        pad_needed = max(0, width - cur_w)
+        return cur + (" " * pad_needed)
+
+    pad_needed = max(0, width - dlen)
     if align == ">":
-        padded = (" " * pad_needed) + str(text)
+        return (" " * pad_needed) + str(text)
     elif align == "^":
         left_pad = pad_needed // 2
         right_pad = pad_needed - left_pad
-        padded = (" " * left_pad) + str(text) + (" " * right_pad)
+        return (" " * left_pad) + str(text) + (" " * right_pad)
     else:
-        padded = str(text) + (" " * pad_needed)
+        return str(text) + (" " * pad_needed)
+
+
+def color_cell(text, color="", width=None, align="<", bg=""):
+    if width is not None:
+        padded = pad_display(str(text), width, align)
+    else:
+        padded = str(text)
     bg_p = bg if bg else ""
     return f"{bg_p}{color} {padded} {C_RESET}"
 
@@ -487,12 +515,12 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
     if is_slim:
         headers = [
             ("Rank", 4, "^"), ("Model", 20, "<"), ("Credits", 8, "^"), ("Req/5h", 6, ">"),
-            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Val", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"),
+            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Val", 6, ">"), ("AVI", 7, ">"), ("FGI", 5, ">"),
         ]
     else:
         headers = [
             ("Rank", 4, "^"), ("Model", 22, "<"), ("Credits", 8, "^"), ("5h Cap", 7, ">"), ("Req/5h", 7, ">"),
-            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 5, ">"), ("AVI", 5, ">"), ("FGI", 4, ">"), ("CC-Int", 6, ">"), ("Lev", 5, ">"),
+            ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 6, ">"), ("AVI", 7, ">"), ("FGI", 5, ">"), ("CC-Int", 6, ">"), ("Lev", 5, ">"),
         ]
     total_models = len(models_list)
     scored = [m for m in models_list if m["benchmarks"].get("capability_q") is not None]
@@ -546,7 +574,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
         out.append("-" * (inner_w + 2))
-        hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
+        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
     for idx, r in enumerate(models_list):
@@ -623,23 +651,36 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
                 color_cell(q_disp, q_color, width=6, align=">", bg=bg),
                 color_cell(p_disp, p_color, width=7, align=">", bg=bg),
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
-                color_cell(qvi_disp, qvi_color, width=5, align=">", bg=bg),
-                color_cell(avi_disp, avi_color, width=5, align=">", bg=bg),
+                color_cell(qvi_disp, qvi_color, width=6, align=">", bg=bg),
+                color_cell(avi_disp, avi_color, width=7, align=">", bg=bg),
+                color_cell(fgi_disp, fgi_color, width=5, align=">", bg=bg),
             ])
             if not is_slim:
-                row_cells.append(color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg))
                 row_cells.append(color_cell(cc_int_str, C_DIM if cc_int_val is None else C_CYAN, width=6, align=">", bg=bg))
                 row_cells.append(color_cell(lev_str, C_DIM, width=5, align=">", bg=bg))
-            else:
-                row_cells.append(color_cell(fgi_disp, fgi_color, width=4, align=">", bg=bg))
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
-            row_items = [f"{rank_str:^4}", f"{mid_display:<{m_name_w}}", f"{credits_str:^8}"]
+            row_items = [
+                pad_display(rank_str, 4, "^"),
+                pad_display(mid_display, m_name_w, "<"),
+                pad_display(credits_str, 8, "^"),
+            ]
             if not is_slim:
-                row_items.append(f"{cap_5h_str:>7}")
-            row_items.extend([f"{req5_str:>{7 if not is_slim else 6}}", f"{q_disp:>6}", f"{p_disp:>7}", f"{eff_c_str:>7}", f"{qvi_disp:>5}", f"{avi_disp:>5}", f"{fgi_disp:>4}"])
+                row_items.append(pad_display(cap_5h_str, 7, ">"))
+            row_items.extend([
+                pad_display(req5_str, 7 if not is_slim else 6, ">"),
+                pad_display(q_disp, 6, ">"),
+                pad_display(p_disp, 7, ">"),
+                pad_display(eff_c_str, 7, ">"),
+                pad_display(qvi_disp, 6, ">"),
+                pad_display(avi_disp, 7, ">"),
+                pad_display(fgi_disp, 5, ">"),
+            ])
             if not is_slim:
-                row_items.extend([f"{cc_int_str:>6}", f"{lev_str:>5}"])
+                row_items.extend([
+                    pad_display(cc_int_str, 6, ">"),
+                    pad_display(lev_str, 5, ">"),
+                ])
             out.append(" ".join(row_items))
     if color:
         out.append(f"{C_DIM}{bot_border}{C_RESET}")
@@ -1019,7 +1060,14 @@ def main():
         b["qvi_score"] = qvi
         v["qvi_score"] = qvi
         v["value_score"] = qvi
-        avi = compute_avi(q_score, effective_blended_price)
+        # AVI cost basis: cache-aware effective $/1M of the model's OWN request
+        # mix (eff cost per request / est tokens × 1M) — NOT the 80/20 fresh
+        # blended rate, which ignores cached-read discounts and flips AVI rank
+        # order against the Eff c/r column for cache-heavy models. Unknown
+        # price → eff_c_req None → no AVI (free/unknown never score ~900 noise).
+        toks_tot = (r["tokens"].get("est_input", 0) or 0) + (r["tokens"].get("est_cached", 0) or 0) + (r["tokens"].get("est_output", 0) or 0)
+        avi_cost = (eff_c_req * 1_000_000.0 / toks_tot) if (eff_c_req is not None and eff_c_req > 0 and toks_tot > 0) else None
+        avi = compute_avi(q_score, avi_cost) if avi_cost is not None else None
         b["avi_score"] = avi
         v["avi_score"] = avi
         fgi = compute_fgi(q_score, p_succ)

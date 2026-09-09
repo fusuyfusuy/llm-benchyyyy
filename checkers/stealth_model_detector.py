@@ -182,7 +182,7 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
         out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
         out.append(f"{C_DIM}{mid_border}{C_RESET}")
     else:
-        hdr_str = " ".join([f"{h:^{w}}" if a == "^" else (f"{h:>{w}}" if a == ">" else f"{h:<{w}}") for h, w, a in headers])
+        hdr_str = " ".join([bc.pad_display(h, w, a) for h, w, a in headers])
         out.append(hdr_str)
         out.append("-" * (inner_w + 2))
 
@@ -247,25 +247,25 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
             row_items = [
-                f"{rank_str:^4}",
-                f"{m_name:<{m_w}}",
-                f"{q_s:>6}",
+                bc.pad_display(rank_str, 4, "^"),
+                bc.pad_display(m_name, m_w, "<"),
+                bc.pad_display(q_s, 6, ">"),
             ]
             if not is_slim:
                 row_items.extend([
-                    f"{aa_s:>8}",
-                    f"{lm_s:>7}",
+                    bc.pad_display(aa_s, 8, ">"),
+                    bc.pad_display(lm_s, 7, ">"),
                 ])
             row_items.extend([
-                f"{comp_s:>6}",
-                f"{cov_s:^8}",
-                f"{ctx_s:>5}",
+                bc.pad_display(comp_s, 6, ">"),
+                bc.pad_display(cov_s, 8, "^"),
+                bc.pad_display(ctx_s, 5, ">"),
             ])
             if not is_slim:
-                row_items.append(f"{mod_str:<12}")
+                row_items.append(bc.pad_display(mod_str, 12, "<"))
             row_items.extend([
-                f"{price_str:>12}",
-                f"{created_str:^10}",
+                bc.pad_display(price_str, 12, ">"),
+                bc.pad_display(created_str, 10, "^"),
             ])
             out.append(" ".join(row_items))
 

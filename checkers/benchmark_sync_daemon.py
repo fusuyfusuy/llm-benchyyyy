@@ -92,6 +92,58 @@ def fetch_url_content(url: str, timeout: int = 20, max_retries: int = 3) -> str 
     return None
 
 
+MIN_SNAPSHOT_BYTES = {
+    "livebench_csv": 2000,
+    "livebench_categories": 200,
+    "lmarena": 100_000,
+    "artificial_analysis": 500_000,
+    "openrouter": 100_000,
+    "commandcode_goat": 50_000,
+    "cline_models": 1000,
+}
+
+
+def _fetch_and_save(name: str, url: str, path: pathlib.Path, min_bytes: int, force: bool, verbose: bool = True) -> pathlib.Path | None:
+    """Fetch url and save dated snapshot. Never overwrites good cache with failure bodies.
+
+    Returns path on fresh save or KEEP-existing cache, None when no usable cache exists.
+    Failure (None/tiny body) with existing cache logs KEEP and reuses it; without
+    cache logs MISSING. Callers must treat None as missing, never as empty data.
+    """
+    if path.exists() and not force:
+        if verbose:
+            log(f"  {name} cached -> {path.name}")
+        return path
+    txt = fetch_url_content(url)
+    if txt and len(txt) >= min_bytes:
+        bc.atomic_write_text(path, txt)
+        log(f"  Saved {name} -> {path.name} ({len(txt):,} bytes)")
+        return path
+    if path.exists():
+        have = path.stat().st_size
+        log(f"  KEEP {name} -> {path.name} ({have:,} bytes, fetch failed — keeping cache)")
+        return path
+    got = 0 if not txt else len(txt)
+    log(f"  MISSING {name} (no cache, fetch failed — got {got} bytes, need {min_bytes:,})")
+    return None
+
+
+def _baseline_collapsed(models: list, prev_snapshot) -> tuple[bool, int]:
+    """True when saving would wipe real history: new count < max(50, 50% of prev)."""
+    n = len(models)
+    if isinstance(prev_snapshot, dict):
+        prev_n = len(prev_snapshot.get("models", []) or [])
+    elif isinstance(prev_snapshot, list):
+        prev_n = len(prev_snapshot)
+    else:
+        prev_n = 0
+    if prev_n <= 0:
+        return False, 0
+    if n < max(50, int(prev_n * 0.5)):
+        return True, prev_n
+    return False, prev_n
+
+
 @contextmanager
 def sync_lock():
     LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -113,98 +165,20 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
 
     log("=== Starting Upstream Benchmark Synchronization ===")
 
-    # 1. LiveBench CSV
-    lb_csv_path = RAW / f"livebench_{today}.csv"
-    if lb_csv_path.exists() and not force:
-        results["livebench_csv"] = lb_csv_path
-        if verbose:
-            log(f"  LiveBench CSV cached -> {lb_csv_path.name}")
-    else:
-        txt = fetch_url_content(LIVEBENCH_CSV)
-        if txt:
-            bc.atomic_write_text(lb_csv_path, txt)
-            results["livebench_csv"] = lb_csv_path
-            log(f"  Saved LiveBench CSV -> {lb_csv_path.name} ({len(txt):,} bytes)")
+    # 1-7. Fetch each feed via the guarded helper: failure KEEPs cache, never writes it.
+    results["livebench_csv"] = _fetch_and_save("LiveBench CSV", LIVEBENCH_CSV, RAW / f"livebench_{today}.csv", MIN_SNAPSHOT_BYTES["livebench_csv"], force, verbose)
+    results["livebench_categories"] = _fetch_and_save("LiveBench Categories", LIVEBENCH_CAT, RAW / f"livebench_categories_{today}.json", MIN_SNAPSHOT_BYTES["livebench_categories"], force, verbose)
+    results["lmarena"] = _fetch_and_save("LMArena HTML", LMARENA_URL, RAW / f"lmarena_{today}.html", MIN_SNAPSHOT_BYTES["lmarena"], force, verbose)
+    results["artificial_analysis"] = _fetch_and_save("Artificial Analysis HTML", AA_URL, RAW / f"artificial_analysis_{today}.html", MIN_SNAPSHOT_BYTES["artificial_analysis"], force, verbose)
+    results["openrouter"] = _fetch_and_save("OpenRouter JSON", OPENROUTER_API, RAW / f"openrouter_models_{today}.json", MIN_SNAPSHOT_BYTES["openrouter"], force, verbose)
+    results["commandcode_goat"] = _fetch_and_save("CommandCode GOAT HTML", CC_GOAT_DOCS, RAW / f"cc_goat_docs_{today}.html", MIN_SNAPSHOT_BYTES["commandcode_goat"], force, verbose)
+    results["cline_models"] = _fetch_and_save("Cline Models JSON", CLINE_MODELS_URL, RAW / f"cline_models_{today}.json", MIN_SNAPSHOT_BYTES["cline_models"], force, verbose)
+    missing = sorted(k for k, v in results.items() if v is None)
+    if missing:
+        log(f"  WARN {len(missing)} feed(s) missing with no usable cache: {', '.join(missing)}")
 
-    # 2. LiveBench Categories JSON
-    lb_cat_path = RAW / f"livebench_categories_{today}.json"
-    if lb_cat_path.exists() and not force:
-        results["livebench_categories"] = lb_cat_path
-        if verbose:
-            log(f"  LiveBench Categories cached -> {lb_cat_path.name}")
-    else:
-        txt = fetch_url_content(LIVEBENCH_CAT)
-        if txt:
-            bc.atomic_write_text(lb_cat_path, txt)
-            results["livebench_categories"] = lb_cat_path
-            log(f"  Saved LiveBench Categories -> {lb_cat_path.name} ({len(txt):,} bytes)")
-
-    # 3. LMArena HTML
-    lm_path = RAW / f"lmarena_{today}.html"
-    if lm_path.exists() and not force:
-        results["lmarena"] = lm_path
-        if verbose:
-            log(f"  LMArena HTML cached -> {lm_path.name}")
-    else:
-        txt = fetch_url_content(LMARENA_URL)
-        if txt:
-            bc.atomic_write_text(lm_path, txt)
-            results["lmarena"] = lm_path
-            log(f"  Saved LMArena HTML -> {lm_path.name} ({len(txt):,} bytes)")
-
-    # 4. Artificial Analysis HTML
-    aa_path = RAW / f"artificial_analysis_{today}.html"
-    if aa_path.exists() and not force:
-        results["artificial_analysis"] = aa_path
-        if verbose:
-            log(f"  Artificial Analysis HTML cached -> {aa_path.name}")
-    else:
-        txt = fetch_url_content(AA_URL)
-        if txt:
-            bc.atomic_write_text(aa_path, txt)
-            results["artificial_analysis"] = aa_path
-            log(f"  Saved Artificial Analysis HTML -> {aa_path.name} ({len(txt):,} bytes)")
-
-    # 5. OpenRouter API JSON
-    or_path = RAW / f"openrouter_models_{today}.json"
-    if or_path.exists() and not force:
-        results["openrouter"] = or_path
-        if verbose:
-            log(f"  OpenRouter JSON cached -> {or_path.name}")
-    else:
-        txt = fetch_url_content(OPENROUTER_API)
-        if txt:
-            bc.atomic_write_text(or_path, txt)
-            results["openrouter"] = or_path
-            log(f"  Saved OpenRouter JSON -> {or_path.name} ({len(txt):,} bytes)")
-
-    # 6. CommandCode GOAT Docs HTML
-    cc_path = RAW / f"cc_goat_docs_{today}.html"
-    if cc_path.exists() and not force:
-        results["commandcode_goat"] = cc_path
-        if verbose:
-            log(f"  CommandCode GOAT HTML cached -> {cc_path.name}")
-    else:
-        txt = fetch_url_content(CC_GOAT_DOCS)
-        if txt:
-            bc.atomic_write_text(cc_path, txt)
-            results["commandcode_goat"] = cc_path
-            log(f"  Saved CommandCode GOAT HTML -> {cc_path.name} ({len(txt):,} bytes)")
-
-    # 7. Cline Models JSON
-    cln_path = RAW / f"cline_models_{today}.json"
-    if cln_path.exists() and not force:
-        results["cline_models"] = cln_path
-        if verbose:
-            log(f"  Cline Models JSON cached -> {cln_path.name}")
-    else:
-        txt = fetch_url_content(CLINE_MODELS_URL)
-        if txt:
-            bc.atomic_write_text(cln_path, txt)
-            results["cline_models"] = cln_path
-            log(f"  Saved Cline Models JSON -> {cln_path.name} ({len(txt):,} bytes)")
-
-    # 8. Trigger Suite Baseline Refresh
+    # 8. Trigger Suite Baseline Refresh (refuse to persist a collapsed catalog).
+    baseline_ok = False
     try:
         import llm_benchmark_aggregator as lba
         live_map = lba.load_livebench_data(fetch=False)
@@ -214,15 +188,24 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
         lba.calculate_composite_scores(cat)
         models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo")]
         prev_snap = lba.load_previous_snapshot(DATA / "benchmarks.json")
-        diff = lba.diff_model_catalog(models, prev_snap, id_key="display")
-        models = diff["rows"]
-        base_p = lba.save_baseline(models, diff)
-        results["baseline_json"] = base_p
-        log(f"  Refreshed Master Baseline -> {base_p.name} ({len(models)} evaluated models)")
+        if not models:
+            log("  REFUSE baseline rewrite: 0 evaluated models — keeping benchmarks.json")
+        else:
+            collapsed, prev_n = _baseline_collapsed(models, prev_snap)
+            if collapsed:
+                log(f"  REFUSE baseline rewrite: {len(models)} evaluated vs {prev_n} prev — keeping benchmarks.json")
+            else:
+                diff = lba.diff_model_catalog(models, prev_snap, id_key="display")
+                models = diff["rows"]
+                base_p = lba.save_baseline(models, diff)
+                results["baseline_json"] = base_p
+                baseline_ok = True
+                log(f"  Refreshed Master Baseline -> {base_p.name} ({len(models)} evaluated models)")
     except Exception as e:
         log(f"  WARN: Failed to refresh master baseline: {e}")
 
-    log(f"=== Sync Completed: {len(results)} items updated/verified ===")
+    kept = sum(1 for v in results.values() if v is not None)
+    log(f"=== Sync Completed: {kept} items updated/verified (baseline: {'ok' if baseline_ok else 'kept'}) ===")
     return results
 
 

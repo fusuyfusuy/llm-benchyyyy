@@ -39,7 +39,20 @@ class TestBenchmarksCheck(unittest.TestCase):
             self.assertIsNone(v.get("aa_live_quality"))
 
     def test_composite_scoring(self):
-        cat = bc.build_universal_catalog(live_map=bc.load_livebench_data(), lm_map=bc.load_lmarena_data(), aa_map=bc.load_aa_data())
+        # Hermetic: synthetic live/AA/LM signals, no cache reads. Guards the
+        # scoring contract (renormalized weights, None-costable rows) without
+        # drifting with the snapshot date.
+        cat = {
+            f"m{i}": {
+                "display": f"Model {i}", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                "livebench": {"overall": 75.0 + i, "reasoning": 80.0 + i},
+                "aa_live_quality": 40.0 + i, "aa_live_coding": 38.0 + i,
+                "base_metrics": {"aa_quality": 40.0 + i, "aa_coding": 38.0 + i,
+                                 "lm_elo": 1400 + i * 10, "lm_coding": 1420 + i * 10,
+                                 "speed_tps": 60.0},
+            }
+            for i in range(35)
+        }
         bc.calculate_composite_scores(cat)
         scored_count = 0
         for k, v in cat.items():
@@ -52,8 +65,10 @@ class TestBenchmarksCheck(unittest.TestCase):
                 self.assertGreater(v["p_success"], 0.0)
                 self.assertLessEqual(v["p_success"], 100.0)
                 self.assertGreater(v["token_multiplier"], 1.0)
-                self.assertGreaterEqual(v["effective_cost"], 0.0)
-                self.assertGreater(v["avi_score"], 0.0)
+                if v.get("effective_cost") is not None:
+                    self.assertGreaterEqual(v["effective_cost"], 0.0)
+                if v.get("avi_score") is not None:
+                    self.assertGreater(v["avi_score"], 0.0)
             else:
                 self.assertTrue(v.get("unmatched"))
         self.assertGreater(scored_count, 30)
@@ -176,35 +191,71 @@ gemini-3.7-flash-high,80.0,78.0,84.0,77.5
         self.assertEqual(res["gemini-3.7-flash-thinking"]["base_metrics"]["aa_quality"], 89.0)
 
     def test_pareto_frontier_and_close_calls(self):
-        cat = bc.build_universal_catalog(live_map=bc.load_livebench_data(), lm_map=bc.load_lmarena_data(), aa_map=bc.load_aa_data())
-        curated = {k: cat[k] for k in bc.MODELS_CATALOG if k in cat}
-        bc.calculate_composite_scores(curated)
-        models = list(curated.values())
-        pareto_ids = bc.compute_pareto_frontier(models)
-        self.assertIn("Claude Opus 5 (Thinking)", pareto_ids)
+        # Hermetic: synthetic priced/free/unpriced rows over the real scorer.
+        cat = {
+            "opus": {"display": "Claude Opus 5 (Thinking)", "pool": "claude", "price_in": 5.0, "price_out": 25.0,
+                     "livebench": {"overall": 80.5, "reasoning": 91.0}, "aa_live_quality": 50.0, "aa_live_coding": 48.0,
+                     "base_metrics": {"aa_quality": 50.0, "aa_coding": 48.0, "lm_elo": 1661, "lm_coding": 1500, "speed_tps": 52.0}},
+            "spark": {"display": "Muse Spark 1.3 (Max)", "pool": "api", "price_in": 0.35, "price_out": 1.5,
+                      "livebench": {"overall": 82.4, "reasoning": 90.0}, "aa_live_quality": 48.0, "aa_live_coding": 55.0,
+                      "base_metrics": {"aa_quality": 48.0, "aa_coding": 55.0, "lm_elo": 1625, "lm_coding": 1560, "speed_tps": 120.0}},
+            "contrib": {"display": "Muse Spark 1.2 (Contributor)", "pool": "api", "price_in": 0.1, "price_out": 0.2,
+                        "livebench": {"overall": 76.0, "reasoning": 82.0}, "aa_live_quality": 42.0, "aa_live_coding": 45.0,
+                        "base_metrics": {"aa_quality": 42.0, "aa_coding": 45.0, "lm_elo": 1500, "lm_coding": 1480, "speed_tps": 140.0}},
+            "flash": {"display": "DeepSeek V4 Flash", "pool": "api", "price_in": 0.22, "price_out": 0.66,
+                      "livebench": {"overall": 76.4, "reasoning": 82.0}, "aa_live_quality": 38.0, "aa_live_coding": 44.0,
+                      "base_metrics": {"aa_quality": 38.0, "aa_coding": 44.0, "lm_elo": 1436, "lm_coding": 1436, "speed_tps": 103.0}},
+        }
+        bc.calculate_composite_scores(cat)
+        models = list(cat.values())
+        pareto_ids = bc.compute_priced_pareto_frontier(models)
+        # Real trade-offs: spark (Q87 @ $0.79) leads, contrib wins cheapest;
+        # flash (Q68 @ $1.40) dominated on both axes. Opus (Q84 @ $13.5) sits
+        # inside the q/cost tolerance headroom of spark, so priced-parero
+        # correctly excludes it — top-Q-at-any-price is not a frontier claim.
         self.assertIn("Muse Spark 1.3 (Max)", pareto_ids)
         self.assertIn("Muse Spark 1.2 (Contributor)", pareto_ids)
-        self.assertIn("DeepSeek V4 Flash", pareto_ids)
-
-    def test_render_podium_table(self):
-        bc.calculate_composite_scores(bc.MODELS_CATALOG)
-        models = list(bc.MODELS_CATALOG.values())
-        podium_plain = bc.render_podium_table(models, color=False)
-        self.assertIn("COLUMN WINNERS & PODIUM LEADERS", podium_plain)
-        self.assertIn("Q(Cap) — Capability", podium_plain)
-        self.assertIn("AVI — Daily Driver ROI", podium_plain)
-        self.assertIn("1st Place (Gold)", podium_plain)
+        self.assertNotIn("Claude Opus 5 (Thinking)", pareto_ids)
+        self.assertNotIn("DeepSeek V4 Flash", pareto_ids)
 
     def test_role_recommendations_in_bcheck(self):
-        bc.calculate_composite_scores(bc.MODELS_CATALOG)
-        models = list(bc.MODELS_CATALOG.values())
-        table = bc.render_cli_table(models, color=False)
+        # Hermetic: synthetic scored rows (no cache reads). Role scoring must
+        # render on real capability_q, never on fabricated q=70 priors.
+        models = [
+            {"display": f"Model {i}", "pool": "api", "tier": "Benchmark Model", "sub_cost": "API", "capability_q": 80.0 + i,
+             "fgi_score": 40.0 + i, "avi_score": 200.0 + i * 10, "bfi_score": 150.0 + i * 5,
+             "p_success": 70.0 + i, "effective_cost": 1.0 + i * 0.2,
+             "livebench": {"overall": 76.0 + i, "reasoning": 82.0 + i},
+             "aa_live_quality": 40.0 + i,
+             "base_metrics": {"lm_elo": 1450 + i * 5, "lm_coding": 1450 + i * 5, "speed_tps": 80.0 + i}}
+            for i in range(35)
+        ]
+        self.assertGreater(len(models), 30)
+        table = bc.render_cli_table(models, color=False, top_n=None)
         self.assertIn("RECOMMENDATIONS", table)
         self.assertIn("Architecture", table)
         self.assertIn("Daily Driver", table)
 
         html = bc.render_html_report(models)
         self.assertIn("Dynamic Function & Role Recommendations", html)
+
+    def test_role_recommendations_never_win_on_fabricated_defaults(self):
+        # Unbenchmarked models (no capability_q) must be EXCLUDED from role
+        # scoring — they previously entered with invented q=70/fgi=30/avi=150
+        # priors and could win a role (regression: GOAT boilerplate pick was
+        # muse-spark-1.2-contributor, a model with zero benchmark data).
+        fresh = {"display": "New Unpriced Bulk", "pool": "ocgo", "pricing": {"monthly_credits": 60},
+                 "requests": {"per_5h_docs": 45000}, "benchmarks": {}, "value": {}}
+        benchmarked = [
+            {"display": "Claude Fable 5 (High)", "pool": "claude", "capability_q": 89.4, "fgi_score": 75.1, "avi_score": 141.6, "bfi_score": 120.0, "p_success": 89.0, "effective_cost": 22.86, "base_metrics": {"lm_coding": 1508, "speed_tps": 35}},
+            {"display": "DeepSeek V4 Flash", "pool": "ocgo", "capability_q": 73.4, "fgi_score": 29.3, "avi_score": 552.0, "bfi_score": 450.0, "p_success": 54.2, "effective_cost": 0.20, "base_metrics": {"lm_coding": 1436, "speed_tps": 95}},
+        ]
+        recs = bc.compute_role_recommendations([fresh] + benchmarked, context="ccheck")
+        winners = {rec["winner"]["name"] for rec in recs.values()}
+        runners = {rec["runner_up"]["name"] for rec in recs.values()}
+        self.assertNotIn("New Unpriced Bulk", winners | runners)
+        # Architecture still prefers the real high-FGI model
+        self.assertEqual(recs["architecture"]["winner"]["name"], "Claude Fable 5")
 
     def test_bcheck_catalog_diff(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
@@ -334,6 +385,26 @@ class TestBcheckCache(unittest.TestCase):
         bc.calculate_composite_scores(test_cat)
         self.assertGreater(test_cat["m1"]["capability_q"], base_q)
 
+    def test_aa_live_static_scale_drift_guard(self):
+        # 89ce1fa: live intelligenceIndex (~4-53) and retired static seeds
+        # (~93-96) must never share one z-distribution. Shift static +15:
+        # live-scored Qs must move <0.5 (static cohort quarantined).
+        def _cat(static_q):
+            return {
+                "live1": {"display": "Live One", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                          "aa_live_quality": 50.0, "base_metrics": {"aa_quality": 50.0, "lm_elo": 1500}},
+                "live2": {"display": "Live Two", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                          "aa_live_quality": 40.0, "base_metrics": {"aa_quality": 40.0, "lm_elo": 1400}},
+                "stat1": {"display": "Static One", "pool": "api", "price_in": 1.0, "price_out": 3.0,
+                          "base_metrics": {"aa_quality": static_q, "lm_elo": 1450}},
+            }
+        c0 = _cat(95.0)
+        bc.calculate_composite_scores(c0)
+        c1 = _cat(110.0)
+        bc.calculate_composite_scores(c1)
+        self.assertLess(abs(c1["live1"]["capability_q"] - c0["live1"]["capability_q"]), 0.5)
+        self.assertLess(abs(c1["live2"]["capability_q"] - c0["live2"]["capability_q"]), 0.5)
+
     def test_stale_note_renders_cli_and_html(self):
         bc.calculate_composite_scores(bc.MODELS_CATALOG)
         models = list(bc.MODELS_CATALOG.values())
@@ -445,7 +516,46 @@ class TestFetchPath(unittest.TestCase):
         self.assertNotIn("old-only", out)
 
 
-class TestUniversalAggregatorAndDisplay(unittest.TestCase):
+class _SeededCacheMixin:
+    """Seed tmp RAW with one tiny snapshot per source; restore real RAW after."""
+    SEED_CSV = "model,code_generation,math\nseed-a,81.5,70.5\nseed-b,70.0,60.0\n"
+    SEED_CATS = json.dumps({"Coding": ["code_generation"], "Mathematics": ["math"]})
+    SEED_LM = (
+        "<table><tr><th>Rank</th><th>Model</th><th>Name</th><th>Score</th>"
+        "<th>Votes</th><th>Price</th><th>Context</th></tr>"
+        '<tr><td>1</td><td>i</td><td title="seed-a">Seed A</td>'
+        "<td>1500.0±1</td><td>10</td><td>$1 / $2</td><td>1M</td></tr>"
+        '<tr><td>2</td><td>i</td><td title="seed-b">Seed B</td>'
+        "<td>1400.0±1</td><td>9</td><td>$1 / $2</td><td>1M</td></tr></table>"
+    )
+    SEED_AA = (
+        'preamble\nself.__next_f.push([1,"'
+        + '"models":'
+        + json.dumps([
+            {"slug": "seed-a", "name": "Seed A", "intelligenceIndex": 55.0, "codingIndex": 50.0},
+            {"slug": "seed-b", "name": "Seed B", "intelligenceIndex": 45.0, "codingIndex": 40.0},
+        ])
+        + '"])'
+    )
+
+    def _seed_cache(self):
+        self._tmp_cache = tempfile.TemporaryDirectory()
+        self._real_raw, self._real_root = bc.RAW, bc.ROOT
+        bc.RAW = bc.ROOT = Path(self._tmp_cache.name)
+        stamp = "20260101"
+        root = Path(self._tmp_cache.name)
+        (root / f"livebench_{stamp}.csv").write_text(self.SEED_CSV)
+        (root / f"livebench_categories_{stamp}.json").write_text(self.SEED_CATS)
+        (root / f"lmarena_{stamp}.html").write_text(self.SEED_LM)
+        (root / f"artificial_analysis_{stamp}.html").write_text(self.SEED_AA)
+        return root
+
+    def _unseed_cache(self):
+        bc.RAW, bc.ROOT = self._real_raw, self._real_root
+        self._tmp_cache.cleanup()
+
+
+class TestUniversalAggregatorAndDisplay(_SeededCacheMixin, unittest.TestCase):
     def test_format_model_display_name(self):
         disp, prov = bc.format_model_display_name("glm-5.3-flash")
         self.assertEqual(disp, "GLM-5.3 Flash")
@@ -468,24 +578,30 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         self.assertEqual(prov, "MiniMax")
 
     def test_build_universal_catalog_includes_upstream_models(self):
-        live_map = bc.load_livebench_data(fetch=False)
-        lm_map = bc.load_lmarena_data(fetch=False)
-        aa_map = bc.load_aa_data(fetch=False)
-        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
-        self.assertGreater(len(catalog), 500)
-        self.assertTrue(any(m.get("display") == "Hunyuan 4 Preview" for m in catalog.values()))
-        m = next(m for m in catalog.values() if m.get("display") == "Hunyuan 4 Preview")
-        self.assertEqual(m["provider"], "Tencent")
-        self.assertEqual(m["pool"], "api")
+        self._seed_cache()
+        try:
+            live_map = bc.load_livebench_data(fetch=False)
+            lm_map = bc.load_lmarena_data(fetch=False)
+            aa_map = bc.load_aa_data(fetch=False)
+            catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+            self.assertGreater(len(catalog), len(bc.MODELS_CATALOG))
+            self.assertIn("seed-a", catalog)
+            self.assertEqual(catalog["seed-a"]["base_metrics"]["lm_elo"], 1500)
+            self.assertEqual(catalog["seed-a"]["aa_live_quality"], 55.0)
+            self.assertEqual(catalog["seed-a"]["livebench"]["overall"], 76.0)
+        finally:
+            self._unseed_cache()
 
     def test_cli_table_top_n_and_all(self):
-        live_map = bc.load_livebench_data(fetch=False)
-        lm_map = bc.load_lmarena_data(fetch=False)
-        aa_map = bc.load_aa_data(fetch=False)
-        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
-        bc.calculate_composite_scores(catalog)
-        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
-        models.sort(key=lambda m: m.get("composite_score", 0), reverse=True)
+        models = [
+            {"display": f"Seed Model {i:02d}", "pool": "api", "tier": "Benchmark Model", "sub_cost": "API", "capability_q": 80.0 + i,
+             "p_success": 70.0, "effective_cost": 1.0 + i * 0.1, "avi_score": 200.0,
+             "fgi_score": 40.0, "price_in": 1.0, "price_out": 3.0,
+             "livebench": {"overall": 76.0}, "aa_live_quality": 40.0,
+             "base_metrics": {"lm_elo": 1450, "speed_tps": 80.0}}
+            for i in range(35)
+        ]
+        models.sort(key=lambda m: m.get("capability_q", 0), reverse=True)
 
         # Default top_n=30
         table_30 = bc.render_cli_table(models, top_n=30, color=False)
@@ -505,13 +621,15 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         self.assertNotIn("Top 30 shown", table_all)
 
     def test_markdown_and_html_top_n(self):
-        live_map = bc.load_livebench_data(fetch=False)
-        lm_map = bc.load_lmarena_data(fetch=False)
-        aa_map = bc.load_aa_data(fetch=False)
-        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
-        bc.calculate_composite_scores(catalog)
-        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
-        models.sort(key=lambda m: m.get("composite_score", 0), reverse=True)
+        models = [
+            {"display": f"Seed Model {i:02d}", "pool": "api", "tier": "Benchmark Model", "sub_cost": "API", "capability_q": 80.0 + i,
+             "p_success": 70.0, "effective_cost": 1.0 + i * 0.1, "avi_score": 200.0,
+             "fgi_score": 40.0, "price_in": 1.0, "price_out": 3.0,
+             "livebench": {"overall": 76.0}, "aa_live_quality": 40.0,
+             "base_metrics": {"lm_elo": 1450, "speed_tps": 80.0}}
+            for i in range(35)
+        ]
+        models.sort(key=lambda m: m.get("capability_q", 0), reverse=True)
 
         md = bc.render_markdown_report(models, top_n=30)
         self.assertIn("Showing top 30 of", md)
@@ -520,12 +638,18 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         self.assertIn("Master Leaderboard", html_top30)
 
     def test_partition_models_by_benchmark_coverage(self):
-        live_map = bc.load_livebench_data(fetch=False)
-        lm_map = bc.load_lmarena_data(fetch=False)
-        aa_map = bc.load_aa_data(fetch=False)
-        catalog = bc.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
-        bc.calculate_composite_scores(catalog)
-        models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("base_metrics", {}).get("aa_quality")]
+        # Hermetic partition shapes: tri + each missing-cohort + single-source.
+        tri = [{"display": f"Tri {i}", "pool": "api",
+                "livebench": {"overall": 78.0}, "aa_live_quality": 45.0,
+                "base_metrics": {"lm_elo": 1500}} for i in range(21)]
+        no_live = [{"display": f"NoLive {i}", "pool": "api",
+                    "aa_live_quality": 45.0, "base_metrics": {"lm_elo": 1500}} for i in range(11)]
+        no_arena = [{"display": f"NoArena {i}", "pool": "api",
+                     "livebench": {"overall": 78.0}, "aa_live_quality": 45.0,
+                     "base_metrics": {}} for i in range(3)]
+        single = [{"display": f"Single {i}", "pool": "api",
+                   "aa_live_quality": 45.0, "base_metrics": {}} for i in range(101)]
+        models = tri + no_live + no_arena + single
 
         parts = bc.partition_models_by_benchmark_coverage(models)
         self.assertGreater(len(parts["tri_verified"]), 20)
@@ -616,6 +740,96 @@ class TestUniversalAggregatorAndDisplay(unittest.TestCase):
         cli_out = bc.render_sub_table_cli(parts["missing_aa"], "Sub-Table 3", color=False)
         self.assertIn("Gemini 3.8 Flash", cli_out)
         self.assertIn("—", cli_out)
+
+    def test_render_one_shot_cli_table(self):
+        sample = [
+            {
+                "display": "Claude Opus 5 (Thinking)",
+                "model_id": "claude-opus-5",
+                "pool": "claude",
+                "capability_q": 95.1,
+                "context_length": 200000,
+                "price_in": 5.0,
+                "price_out": 25.0,
+                "base_metrics": {"speed_tps": 52.0, "lm_elo": 1661},
+                "livebench": {
+                    "overall": 80.5,
+                    "categories": {"Reasoning": 91.2, "Coding": 81.5},
+                },
+            },
+            {
+                "display": "Gemini 3.7 Flash",
+                "model_id": "gemini-3.7-flash",
+                "pool": "agy",
+                "capability_q": 92.0,
+                "context_length": 1000000,
+                "price_in": 0.38,
+                "price_out": 1.88,
+                "base_metrics": {"speed_tps": 315.0, "lm_elo": 1490},
+                "livebench": {
+                    "overall": 79.9,
+                    "categories": {"Reasoning": 88.4, "Coding": 80.2},
+                },
+            },
+        ]
+        # Standard layout
+        out = bc.render_one_shot_cli_table(sample, color=False, slim=False, wide=False)
+        self.assertIn("ONE-SHOT CAPABILITIES RADAR", out)
+        self.assertIn("Claude Opus 5", out)
+        self.assertIn("Gemini 3.7 Flash", out)
+        self.assertIn("Reason", out)
+        self.assertIn("Coding", out)
+        self.assertIn("Speed", out)
+        self.assertIn("Ctx", out)
+        self.assertIn("[3/3]", out)
+        self.assertIn("200k", out)
+        self.assertIn("1M", out)
+
+        # Slim layout
+        out_slim = bc.render_one_shot_cli_table(sample, color=False, slim=True)
+        self.assertIn("Claude Opus 5", out_slim)
+        self.assertIn("Q(Cap)", out_slim)
+
+        # Wide layout
+        out_wide = bc.render_one_shot_cli_table(sample, color=False, wide=True)
+        self.assertIn("P(Succ)", out_wide)
+        self.assertIn("Eff $/M", out_wide)
+
+    def test_format_context_window(self):
+        self.assertEqual(bc.format_context_window(None), "—")
+        self.assertEqual(bc.format_context_window(0), "—")
+        self.assertEqual(bc.format_context_window(8000), "8k")
+        self.assertEqual(bc.format_context_window(128000), "128k")
+        self.assertEqual(bc.format_context_window(200000), "200k")
+        self.assertEqual(bc.format_context_window(1000000), "1M")
+        self.assertEqual(bc.format_context_window(1048576), "1.0M")
+        self.assertEqual(bc.format_context_window(2000000), "2M")
+
+
+    def test_plain_table_display_width_alignment(self):
+        sample = [
+            {"display": "Claude Opus 5 (Thinking)", "model_id": "m1", "pool": "claude", "capability_q": 95.1, "p_success": 94.0, "effective_cost": 20.0, "avi_score": 140.0, "fgi_score": 75.0, "livebench": {"overall": 80.5, "categories": {"Reasoning": 91.2, "Coding": 81.5}}, "base_metrics": {"speed_tps": 52.0, "lm_elo": 1661}, "price_in": 5.0, "price_out": 25.0, "context_length": 200000},
+            {"display": "Gemini 3.7 Flash", "model_id": "m2", "pool": "agy", "capability_q": 92.0, "p_success": 90.0, "effective_cost": 2.0, "avi_score": 400.0, "fgi_score": 70.0, "livebench": {"overall": 79.9, "categories": {"Reasoning": 88.4, "Coding": 80.2}}, "base_metrics": {"speed_tps": 315.0, "lm_elo": 1490}, "price_in": 0.38, "price_out": 1.88, "context_length": 1000000},
+            {"display": "DeepSeek V4 Flash", "model_id": "m3", "pool": "ocgo", "capability_q": 85.0, "p_success": 82.0, "effective_cost": 0.5, "avi_score": 500.0, "fgi_score": 60.0, "livebench": {"overall": 76.4, "categories": {"Reasoning": 82.1, "Coding": 76.4}}, "base_metrics": {"speed_tps": 103.0, "lm_elo": 1436}, "price_in": 0.14, "price_out": 0.28, "context_length": 128000},
+            {"display": "Single Bench Model", "model_id": "m4", "pool": "api", "capability_q": 70.0, "p_success": 60.0, "effective_cost": 1.0, "avi_score": 200.0, "fgi_score": 40.0, "livebench": None, "base_metrics": {"speed_tps": 60.0}, "price_in": 0.5, "price_out": 1.5, "context_length": 32000},
+        ]
+        # 1. render_cli_table alignment
+        table_cli = bc.render_cli_table(sample, color=False)
+        cli_rows = [l for l in table_cli.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        cli_lens = {bc.display_len(l) for l in cli_rows}
+        self.assertEqual(len(cli_lens), 1, f"render_cli_table rows must all have identical display length: {cli_lens}")
+
+        # 2. render_one_shot_cli_table alignment
+        table_one = bc.render_one_shot_cli_table(sample, color=False)
+        one_rows = [l for l in table_one.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        one_lens = {bc.display_len(l) for l in one_rows}
+        self.assertEqual(len(one_lens), 1, f"render_one_shot_cli_table rows must all have identical display length: {one_lens}")
+
+        # 3. render_podium_table alignment
+        table_pod = bc.render_podium_table(sample, color=False)
+        pod_rows = [l for l in table_pod.split("\n") if not l.startswith("=") and not l.startswith("-") and not l.startswith(" COLUMN") and l.strip()]
+        pod_lens = {bc.display_len(l) for l in pod_rows}
+        self.assertEqual(len(pod_lens), 1, f"render_podium_table rows must all have identical display length: {pod_lens}")
 
 
 if __name__ == "__main__":

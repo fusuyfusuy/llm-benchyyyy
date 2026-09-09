@@ -11,6 +11,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import stealth_model_detector as smd
+import benchmark_common as bc
 
 
 class TestStealthModelDetector(unittest.TestCase):
@@ -122,6 +123,23 @@ class TestStealthModelDetector(unittest.TestCase):
         html_s = smd.render_html(dummy_rows, 1, 1)
         self.assertIn("<!DOCTYPE html>", html_s)
         self.assertIn("test-model-1", html_s)
+
+    def test_plain_and_color_table_alignment(self):
+        dummy_rows = [
+            {"model_id": "stealth/m1", "display": "stealth/m1", "benchmarks": {"capability_q": 90.0, "aa_intelligence": 70.0, "lmarena_elo": 1400.0}, "composite": 1.5, "coverage": ["AA", "LM"], "context_length": 128000, "modality": "text->text", "pricing": {"prompt": 1.0, "completion": 2.0}, "created": 1700000000},
+            {"model_id": "stealth/m2", "display": "stealth/m2", "benchmarks": {"capability_q": 85.0, "aa_intelligence": 65.0, "lmarena_elo": 1350.0}, "composite": 1.0, "coverage": ["AA", "LM"], "context_length": 128000, "modality": "text->text", "pricing": {"prompt": 1.0, "completion": 2.0}, "created": 1700000000},
+            {"model_id": "stealth/m3", "display": "stealth/m3", "benchmarks": {"capability_q": 80.0, "aa_intelligence": 60.0, "lmarena_elo": 1300.0}, "composite": 0.5, "coverage": ["AA", "LM"], "context_length": 128000, "modality": "text->text", "pricing": {"prompt": 1.0, "completion": 2.0}, "created": 1700000000},
+            {"model_id": "stealth/m4", "display": "stealth/m4", "benchmarks": {"capability_q": 75.0, "aa_intelligence": 55.0, "lmarena_elo": 1250.0}, "composite": 0.0, "coverage": ["AA", "LM"], "context_length": 128000, "modality": "text->text", "pricing": {"prompt": 1.0, "completion": 2.0}, "created": 1700000000},
+        ]
+        plain = smd.render_cli_table(dummy_rows, color=False)
+        p_rows = [l for l in plain.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        p_lens = {bc.display_len(l) for l in p_rows}
+        self.assertEqual(len(p_lens), 1, f"Plain table rows must have uniform display width: {p_lens}")
+
+        colored = smd.render_cli_table(dummy_rows, color=True)
+        c_rows = [l for l in colored.split("\n") if "🥇#1" in l or "🥈#2" in l or "🥉#3" in l or "#4" in l]
+        c_lens = {bc.display_len(l) for l in c_rows}
+        self.assertEqual(len(c_lens), 1, f"Color table rows must have uniform display width: {c_lens}")
 
 
 if __name__ == "__main__":

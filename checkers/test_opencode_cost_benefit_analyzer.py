@@ -311,6 +311,25 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertNotIn("Usage data source", out_none)
         self.assertNotIn("│ usage:", out_none)
 
+    def test_plain_and_color_table_alignment(self):
+        rows = [
+            {"model_id": "m1", "pricing": {"monthly_usage_limit_usd": 30}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 90.0, "p_success": 80.0}, "value": {"qvi_score": 627.3, "avi_score": 1037.2, "fgi_score": 71.9, "effective_cost_per_request": 0.0015}, "remaining": {"overall_pct": 21.0, "overall_req": 5300}},
+            {"model_id": "m2", "pricing": {"monthly_usage_limit_usd": 15}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 85.0, "p_success": 75.0}, "value": {"qvi_score": 583.9, "avi_score": 1030.1, "fgi_score": 69.7, "effective_cost_per_request": 0.0011}, "remaining": {"overall_pct": 21.0, "overall_req": 3700}},
+            {"model_id": "m3", "pricing": {"monthly_usage_limit_usd": 30}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 80.0, "p_success": 70.0}, "value": {"qvi_score": 519.3, "avi_score": 950.5, "fgi_score": 71.5, "effective_cost_per_request": 0.0059}, "remaining": {"overall_pct": 21.0, "overall_req": 1300}},
+            {"model_id": "m4", "pricing": {"monthly_usage_limit_usd": 30}, "requests": {"per_5h_docs": 100}, "benchmarks": {"capability_q": 75.0, "p_success": 65.0}, "value": {"qvi_score": 494.6, "avi_score": 840.2, "fgi_score": 48.6, "effective_cost_per_request": 0.0015}, "remaining": {"overall_pct": 21.0, "overall_req": 7500}},
+        ]
+        # Plain mode check
+        plain = ogc.render_cli_table(rows, color=False)
+        p_rows = [l for l in plain.split("\n") if l.startswith("🥇#1") or l.startswith("🥈#2") or l.startswith("🥉#3") or l.startswith(" #4")]
+        p_lens = {ogc.display_len(l) for l in p_rows}
+        self.assertEqual(len(p_lens), 1, f"Plain table rows must have uniform display width: {p_lens}")
+
+        # Color mode check
+        colored = ogc.render_cli_table(rows, color=True)
+        c_rows = [l for l in colored.split("\n") if "🥇#1" in l or "🥈#2" in l or "🥉#3" in l or "#4" in l]
+        c_lens = {ogc.display_len(l) for l in c_rows}
+        self.assertEqual(len(c_lens), 1, f"Color table rows must have uniform display width: {c_lens}")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -424,6 +424,18 @@ class TestParetoCostHandling(unittest.TestCase):
         self.assertIn("Low", gold)
         self.assertIn("NoCost", gold)  # 999 sentinel but top Q — still on the frontier
 
+    def test_priced_pareto_excludes_unpriced_keeps_free(self):
+        rows = [
+            {"display": "Priced Good", "capability_q": 90.0, "effective_cost": 5.0},
+            {"display": "Unpriced Great", "capability_q": 99.0, "effective_cost": None, "price_in": None, "price_out": None},
+            {"display": "Free Good", "capability_q": 85.0, "effective_cost": 0.0},
+        ]
+        priced = bc.compute_priced_pareto_frontier(rows)
+        self.assertIn("Priced Good", priced)
+        self.assertIn("Free Good", priced)  # 0.0 is a real cost (S2-M1)
+        self.assertNotIn("Unpriced Great", priced)  # "—" cost must never claim cheapest-at-X
+        self.assertEqual(bc.compute_priced_pareto_frontier([]), set())
+
 
 class TestZScoreZeroStd(unittest.TestCase):
     """S2-M3 gap 2: std=0 contract pinned (behavior was only correct by accident)."""
@@ -581,6 +593,43 @@ class TestCrossSourceFinders(unittest.TestCase):
         # Identical canonical models must not conflict
         self.assertFalse(bc.variant_conflict("gpt-5.6-luna", "gpt-5-6-luna"))
         self.assertFalse(bc.variant_conflict("glm-5.2", "glm-5-2"))
+
+
+    def test_display_len_and_pad_display_alignment(self):
+        # Medals and badges: 2 display columns each
+        self.assertEqual(bc.display_len("🥇"), 2)
+        self.assertEqual(bc.display_len("🥈"), 2)
+        self.assertEqual(bc.display_len("🥉"), 2)
+        self.assertEqual(bc.display_len("⭐"), 2)
+        self.assertEqual(bc.display_len("🏆"), 2)
+        self.assertEqual(bc.display_len("⚡"), 2)
+
+        # Zero-width characters (variation selector-16, ZWJ)
+        self.assertEqual(bc.display_len("🏗️"), 2)
+        self.assertEqual(bc.display_len("\ufe0f"), 0)
+
+        # Composite rank strings
+        self.assertEqual(bc.display_len("🥇#1"), 4)
+        self.assertEqual(bc.display_len(" #4"), 3)
+
+        # pad_display tests
+        p1 = bc.pad_display("🥇#1", 4, "^")
+        p4 = bc.pad_display(" #4", 4, "^")
+        self.assertEqual(bc.display_len(p1), 4)
+        self.assertEqual(bc.display_len(p4), 4)
+        self.assertEqual(p1, "🥇#1")
+        self.assertEqual(p4, " #4 ")
+
+        # color_cell delegates to pad_display and strictly respects width
+        cell_medal = bc.color_cell("🥇#1", width=4, align="^")
+        cell_plain = bc.color_cell(" #4", width=4, align="^")
+        self.assertEqual(bc.display_len(cell_medal), 6)  # width 4 + 2 surrounding spaces
+        self.assertEqual(bc.display_len(cell_plain), 6)
+
+        # Truncation safety on overflow
+        overflow = bc.pad_display("78.8²", 4, ">")
+        self.assertEqual(bc.display_len(overflow), 4)
+        self.assertEqual(overflow, "78.8")
 
 
 if __name__ == "__main__":
