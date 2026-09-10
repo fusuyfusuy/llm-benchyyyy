@@ -677,7 +677,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Rank", 4, "^"),
             ("Model", 20, "<"),
             ("Limit", 6, "^"),
-            ("Req/5h", 6, ">"),
+            ("Req/Mo", 7, ">"),
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
             ("Eff c/r", 7, ">"),
@@ -691,8 +691,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Rank", 4, "^"),
             ("Model", 22, "<"),
             ("Limit", 6, "^"),
-            ("5h Cap", 6, ">"),
-            ("Req/5h", 6, ">"),
+            ("Req/Mo", 7, ">"),
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
             ("Eff c/r", 7, ">"),
@@ -714,7 +713,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         key=lambda m: m["value"]["fgi_score"],
         default=None,
     )
-    top_req = max(models_list, key=lambda m: (m["requests"].get("per_5h_docs") or m["requests"].get("per_5h_computed") or 0)) if models_list else None
+    top_req = max(models_list, key=lambda m: (m["requests"].get("per_month_docs") or m["requests"].get("per_month_computed") or 0)) if models_list else None
 
     col_medals = bc.compute_column_medals(
         models_list,
@@ -734,8 +733,8 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
     title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/docs/go/#usage-limits)"
     v_info = f"Top Val: {top_val['model_id'][:14]} (Val {top_val['value'].get('qvi_score', 0):.1f})" if top_val else ""
     f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
-    top_req_cnt = top_req["requests"].get("per_5h_docs") or top_req["requests"].get("per_5h_computed") or 0 if top_req else 0
-    s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/5h)" if top_req else ""
+    top_req_cnt = top_req["requests"].get("per_month_docs") or top_req["requests"].get("per_month_computed") or 0 if top_req else 0
+    s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/mo)" if top_req else ""
     usage_part = f" │ Usage: {usage_note}" if usage_note else ""
     if is_slim:
         summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {v_info} │ {f_info}" + usage_part
@@ -800,12 +799,9 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         usage = r["pricing"]["monthly_usage_limit_usd"]
         usage_str = f"${usage:.0f}/m" if usage is not None else "Free"
 
-        cap_5h_val = r.get("caps", {}).get("cap_5h_usd")
-        cap_5h_str = f"${cap_5h_val:.2f}" if cap_5h_val is not None else "—"
-
         reqs = r.get("requests", {})
-        req5_val = reqs.get("per_5h_docs") if reqs.get("per_5h_docs") is not None else reqs.get("per_5h_computed")
-        req5_str = format_compact_num(req5_val)
+        req_mo_val = reqs.get("per_month_docs") if reqs.get("per_month_docs") is not None else reqs.get("per_month_computed")
+        req_mo_str = format_compact_num(req_mo_val)
 
         meds = col_medals.get(r["model_id"], {})
         q_val = r["benchmarks"].get("capability_q")
@@ -878,11 +874,9 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 color_cell(rank_str, C_BOLD + (C_GOLD if rank_num == 1 else (C_SILVER if rank_num == 2 else (C_BRONZE if rank_num == 3 else C_WHITE))), width=4, align="^", bg=bg),
                 color_cell(mid_display, mid_color, width=m_name_w, align="<", bg=bg),
                 color_cell(usage_str, limit_color, width=6, align="^", bg=bg),
+                color_cell(req_mo_str, C_CYAN if (req_mo_val and req_mo_val >= 15000) else C_WHITE, width=7, align=">", bg=bg),
             ]
-            if not is_slim:
-                row_cells.append(color_cell(cap_5h_str, C_WHITE, width=6, align=">", bg=bg))
             row_cells.extend([
-                color_cell(req5_str, C_CYAN if (req5_val and req5_val >= 3000) else C_WHITE, width=6, align=">", bg=bg),
                 color_cell(q_disp, q_color, width=6, align=">", bg=bg),
                 color_cell(p_disp, p_color, width=7, align=">", bg=bg),
                 color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
@@ -900,11 +894,9 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
                 pad_display(rank_str, 4, "^"),
                 pad_display(mid_display, m_name_w, "<"),
                 pad_display(usage_str, 6, "^"),
+                pad_display(req_mo_str, 7, ">"),
             ]
-            if not is_slim:
-                row_items.append(pad_display(cap_5h_str, 6, ">"))
             row_items.extend([
-                pad_display(req5_str, 6, ">"),
                 pad_display(q_disp, 6, ">"),
                 pad_display(p_disp, 7, ">"),
                 pad_display(eff_c_str, 7, ">"),
@@ -935,9 +927,9 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Green (+)", "Newly added model vs previous baseline snapshot.", C_GREEN),
             ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
             ("Quota Model", "Pooled $12/5h · $30/wk · $60/mo. Window cap = $12 × (Usage / 60).", C_WHITE),
-            ("$15/mo Tier", "($3.00/5h): GLM-5.3 (~220 req/5h), Kimi K3 (~110) — spec lock, no loops.", C_YELLOW),
-            ("$30/mo Tier", "($6.00/5h): DeepSeek V4 Flash (~7.6k req/5h) — daily driver iterative coder.", C_CYAN),
-            ("$60/mo Tier", "($12.00/5h): MiMo-V2.5 (~30k), Muse Spark (~45k), LongCat (~16k) — bulk fills.", C_GREEN),
+            ("$15/mo Tier", "GLM-5.3 (~1.1k req/mo), Kimi K3 (~550) — spec lock, no loops.", C_YELLOW),
+            ("$30/mo Tier", "DeepSeek V4 Flash (~38k req/mo) — daily driver iterative coder.", C_CYAN),
+            ("$60/mo Tier", "MiMo-V2.5 (~150k), Muse Spark (~227k), LongCat (~80k) — bulk fills.", C_GREEN),
             ("Eff c/r", "Real Cost/Task = Base cost/req × retry multiplier (T_mult).", C_WHITE),
             ("Allowed Limits", "Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.", C_WHITE),
         ],
@@ -1294,31 +1286,31 @@ def build_sort_key(sort_mode, eff_cost_fn):
     then model_id ascending — None/0-valued primaries fall to -1 (last).
     """
     def _cq(r):
-        return r["benchmarks"]["capability_q"] or -1
+        return r.get("benchmarks", {}).get("capability_q") or -1
 
     def _avi(r):
-        return r["value"]["avi_score"] or -1
+        return r.get("value", {}).get("avi_score") or -1
 
     def _qvi(r):
-        return r["value"].get("qvi_score") or -1
+        return r.get("value", {}).get("qvi_score") or -1
 
     if sort_mode in ("value", "qvi"):
         return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
     if sort_mode == "fgi":
-        return lambda r: (-(r["value"]["fgi_score"] or -1), -_cq(r), r["model_id"])
+        return lambda r: (-(r.get("value", {}).get("fgi_score") or -1), -_cq(r), r["model_id"])
     if sort_mode == "bfi":
-        return lambda r: (-(r["value"]["bfi_score"] or -1), -_cq(r), r["model_id"])
+        return lambda r: (-(r.get("value", {}).get("bfi_score") or -1), -_cq(r), r["model_id"])
     if sort_mode == "cap":
         return lambda r: (-_cq(r), -_avi(r), r["model_id"])
     if sort_mode == "quality":
         # Raw AA Quality Index (intelligenceIndex), NOT the z-derived capability_q composite
         return lambda r: (-(r["benchmarks"].get("aa_intelligence") or -1), -_cq(r), r["model_id"])
-    if sort_mode == "req5h":
-        return lambda r: (-(r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed") or 0), -_avi(r), r["model_id"])
+    if sort_mode in ("reqmo", "req5h"):
+        return lambda r: (-(r["requests"].get("per_month_docs") or r["requests"].get("per_month_computed") or 0), -_avi(r), r["model_id"])
     if sort_mode == "cost":
         return lambda r: (eff_cost_fn(r), -_cq(r), r["model_id"])
     if sort_mode == "intel":
-        return lambda r: (-(r["value"]["intelligence_per_dollar"] or -1), -_cq(r), r["model_id"])
+        return lambda r: (-(r.get("value", {}).get("intelligence_per_dollar") or -1), -_cq(r), r["model_id"])
     if sort_mode == "avi":
         return lambda r: (-_avi(r), -_cq(r), r["model_id"])
     raise ValueError(f"unknown sort mode: {sort_mode}")
@@ -1351,7 +1343,7 @@ def main():
     )
     ap.add_argument(
         "--sort",
-        choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "req5h", "cost", "intel"],
+        choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "reqmo", "req5h", "cost", "intel"],
         default="value",
         help="Sort order (default: value)",
     )
