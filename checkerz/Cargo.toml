@@ -1,0 +1,19 @@
+[package]
+name = "checkerz"
+version = "0.1.0"
+edition = "2021"
+description = "Interactive ratatui TUI for llm-benchyyyy benchmark capabilities"
+
+[[bin]]
+name = "checkerz"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+crossterm = "0.29"
+serde = { version = "1", features = ["derive"] }
+ratatui = "0.30"
+serde_json = "1"
+unicode-width = "0.2"
+
+[dev-dependencies]

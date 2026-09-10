@@ -2930,8 +2930,7 @@ def main():
 
     use_color = False if args.plain else None
     if args.tui:
-        from benchmark_tui import run_tui
-        run_tui(models, color=use_color, unmatched_models=unmatched_catalog)
+        print("bcheck --tui moved to the Rust checkerz binary: cargo run --manifest-path checkerz/Cargo.toml [-- --all -n 50]", file=sys.stderr)
         return
 
     if args.podium:

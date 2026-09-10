@@ -56,6 +56,13 @@ scheck
 scheck --html docs/reports/stealth_models.html
 ```
 
+### 5. `checkerz` — Interactive Capability TUI (Rust/ratatui)
+Offline viewer over `docs/data/benchmarks.json` (refresh with `bcheck --fetch`):
+```bash
+cargo run --manifest-path checkerz/Cargo.toml
+cargo run --manifest-path checkerz/Cargo.toml -- --all -n 30
+```
+
 ## Repository Structure
 
 - `checkers/` — Core Python analysis tools and test suite:
@@ -65,6 +72,8 @@ scheck --html docs/reports/stealth_models.html
   - `free_model_ranker.py` — Free model ranker (`fcheck`).
   - `stealth_model_detector.py` — Stealth model tracker (`scheck`).
   - `test_*.py` — Unit tests.
+- `checkerz/` — Rust ratatui TUI (`cargo test/run --manifest-path checkerz/Cargo.toml`).
+- `reviews/` — Architectural reviews and audit reports.
 - `docs/` — Datasets, models index, and generated reports:
   - `docs/data/` — Consolidated JSON databases (`benchmarks.json`, `ocgo_live.json`, `free_models.json`, `stealth_models.json`).
   - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, and OpenRouter.
