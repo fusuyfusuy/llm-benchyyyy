@@ -699,7 +699,7 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
             continue
         slug = slug.strip().lower()
         score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
-        elo = score_raw.split("±")[0].strip()
+        elo = re.split(r"[±+]", score_raw)[0].strip()
         elo_f = _safe_float(elo)
         rank_i = _safe_int(rank_raw)
         votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")

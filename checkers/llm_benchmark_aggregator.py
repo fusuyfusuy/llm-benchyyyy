@@ -447,6 +447,21 @@ MODELS_CATALOG = {
             "speed_tps": 90.0,
         },
     },
+    'deepseek-v4.1-flash': {
+        "display": 'DeepSeek V4.1 Flash',
+        "provider": 'DeepSeek',
+        "pool": 'api',
+        "tier": 'Ultra-Fast Verifier & CED',
+        "sub_cost": 'API ($0.15 / $0.60)',
+        "price_in": 0.15,
+        "price_out": 0.60,
+        "live_aliases": ['deepseek-v4.1-flash-max', 'deepseek-v4.1-flash', 'deepseek-v4-1-flash'],
+        "lm_aliases": ['deepseek-v4.1-flash-max', 'deepseek-v4.1-flash', 'deepseek-v4-1-flash'],
+        "aa_aliases": ['deepseek-v4.1-flash', 'deepseek-v4-1-flash', 'deepseek-v4.1-flash-20260910'],
+        "base_metrics": {
+            "speed_tps": 110.0,
+        },
+    },
     'deepseek-v4-flash': {
         "display": 'DeepSeek V4 Flash',
         "provider": 'DeepSeek',
@@ -686,7 +701,7 @@ def format_model_display_name(mid: str) -> tuple[str, str]:
     elif low.startswith("deepseek"):
         prov = "DeepSeek"
         disp = re.sub(r"^deepseek[-_]?", "DeepSeek ", mid, flags=re.I)
-        disp = disp.replace("-v4", " V4").replace("-v3", " V3").replace("-pro", " Pro").replace("-flash", " Flash").replace("-vision", " Vision").replace("-exp", " Exp").replace("-fast", " Fast")
+        disp = disp.replace("-v4.1", " V4.1").replace("-v4", " V4").replace("-v3", " V3").replace("-pro", " Pro").replace("-flash", " Flash").replace("-vision", " Vision").replace("-exp", " Exp").replace("-fast", " Fast")
         disp = re.sub(r"\b([kKmMvV])(\d)", lambda m: m.group(1).upper() + m.group(2), disp)
         return re.sub(r"\s+", " ", disp).strip(), prov
     elif low.startswith("kimi"):

@@ -561,6 +561,10 @@ class TestUniversalAggregatorAndDisplay(_SeededCacheMixin, unittest.TestCase):
         self.assertEqual(disp, "GLM-5.3 Flash")
         self.assertEqual(prov, "Zhipu AI")
 
+        disp, prov = bc.format_model_display_name("deepseek-v4.1-flash")
+        self.assertEqual(disp, "DeepSeek V4.1 Flash")
+        self.assertEqual(prov, "DeepSeek")
+
         disp, prov = bc.format_model_display_name("deepseek-v4-flash-vision-exp")
         self.assertEqual(disp, "DeepSeek V4 Flash Vision Exp")
         self.assertEqual(prov, "DeepSeek")

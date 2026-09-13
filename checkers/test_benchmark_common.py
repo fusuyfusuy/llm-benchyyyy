@@ -631,6 +631,38 @@ class TestCrossSourceFinders(unittest.TestCase):
         self.assertEqual(bc.display_len(overflow), 4)
         self.assertEqual(overflow, "78.8")
 
+    def test_parse_lmarena_elo_formats(self):
+        sample_html = """
+        <table>
+          <tr><th>Rank</th><th>Model</th><th>Name</th><th>Score</th><th>Votes</th><th>Price</th><th>Context</th></tr>
+          <tr>
+            <td>16</td>
+            <td>—</td>
+            <td><a href="https://www.deepseek.com/en/news/deepseek-v4-1-flash/" title="deepseek-v4.1-flash-max">DeepSeek V4.1 Flash</a></td>
+            <td>1614+17/-17</td>
+            <td>1,361</td>
+            <td>$0.30 / $1.20</td>
+            <td>1M</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td>—</td>
+            <td><a href="https://www.deepseek.com/en/news/deepseek-v4-flash/" title="deepseek-v4-flash-high">DeepSeek V4 Flash High</a></td>
+            <td>1580±10</td>
+            <td>4,723</td>
+            <td>$0.30 / $1.20</td>
+            <td>1M</td>
+          </tr>
+        </table>
+        """
+        parsed = bc.parse_lmarena(sample_html)
+        self.assertIn("deepseek-v4.1-flash-max", parsed)
+        self.assertEqual(parsed["deepseek-v4.1-flash-max"]["elo"], 1614.0)
+        self.assertEqual(parsed["deepseek-v4.1-flash-max"]["rank"], 16)
+        self.assertEqual(parsed["deepseek-v4.1-flash-max"]["votes"], 1361)
+        self.assertIn("deepseek-v4-flash-high", parsed)
+        self.assertEqual(parsed["deepseek-v4-flash-high"]["elo"], 1580.0)
+
 
 if __name__ == "__main__":
     unittest.main()

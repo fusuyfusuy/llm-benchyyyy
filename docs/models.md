@@ -89,7 +89,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 * `gpt-5.6-sol` (Flagship Frontier Reasoning)
 * `gpt-5.6-luna`
 * `qwen-3.8-27b`, `qwen-3.8-flash`, `qwen-3.8-max`
-* `deepseek-v4-flash`, `deepseek-v4-flash-fast`, `deepseek-v4-flash-vision`
+* `deepseek-v4.1-flash`, `deepseek-v4-flash`, `deepseek-v4-flash-fast`, `deepseek-v4-flash-vision`
 * `meta/muse-spark-1.3`, `meta/muse-spark-1.3-contributor` (18.2k req/5h)
 * `tencent-hy4-preview`, `tencent-hy3`
 * `kimi-k3`, `kimi-k2.7-code`
@@ -110,6 +110,7 @@ This document lists supported model identifiers, provider mappings, and reasonin
 
 #### OpenRouter Provider (Free & Key Endpoints)
 * `openrouter/free` (Free Models Router)
+* `deepseek/deepseek-v4.1-flash`
 * `meta/muse-spark-1.3`, `meta/muse-spark-1.3-contributor`
 * `openai/gpt-oss-20b:free`
 * `cohere/north-mini-code:free`
