@@ -89,6 +89,7 @@ FALLBACK_PRICING = {
     "muse-spark-1.2": {"input": 1.25, "output": 4.25, "cached_read": 0.15, "cached_write": None, "credits": 20.0},
     "muse-spark-1.2-contributor": {"input": 0.1, "output": 0.2, "cached_read": 0.002, "cached_write": None, "credits": 20.0},
     "qwen-3.8-max": {"input": 2.0, "output": 6.0, "cached_read": 0.25, "cached_write": 2.5, "credits": 20.0},
+    "deepseek-v4.1-flash": {"input": 0.15, "output": 0.60, "cached_read": 0.003, "cached_write": None, "credits": 60.0},
     "deepseek-v4-flash": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "credits": 60.0},
     "inkling-small": {"input": 0.5, "output": 1.2, "cached_read": 0.1, "cached_write": None, "credits": 20.0},
     "qwen-3.7-flash": {"input": 0.03, "output": 0.13, "cached_read": 0.006, "cached_write": 0.038, "credits": 20.0},
@@ -128,6 +129,8 @@ ACC_5H, ACC_WK, ACC_MO = 14.0, 35.0, 70.0
 
 # Canonical id aliases: docs display names vary ("DeepSeek V4 Flash Vision (exp)" etc.)
 _ID_ALIASES = {
+    "deepseek-v4.1-flash": "deepseek-v4.1-flash",
+    "deepseek-v4-1-flash": "deepseek-v4.1-flash",
     "deepseek-v4-flash-vision-exp": "deepseek-v4-flash-vision",
     "deepseek-v4-flash-vision-(exp)": "deepseek-v4-flash-vision",
     "tencent-hy4-preview": "tencent-hy4-preview",
@@ -356,7 +359,8 @@ def parse_cc_docs(html, verbose=False):
                 continue
             cred_raw = clean[5].replace("$", "").replace(",", "").strip()
             try:
-                cred = float(cred_raw) if cred_raw not in ("—", "-", "") else None
+                tokens = re.findall(r"\d+(?:\.\d+)?", cred_raw)
+                cred = float(tokens[-1]) if tokens else (float(cred_raw) if cred_raw not in ("—", "-", "") else None)
             except Exception:
                 cred = None
             if mid in pricing:
@@ -1114,6 +1118,7 @@ def main():
     dynamic_docs_ids = set(pricing_live.keys()) | DOCS_IDS
     pareto_ids = set()
     try:
+
         cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids and r["benchmarks"].get("capability_q") is not None]
         for a in cand:
             a_cost = _eff_cost(a)

@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "generated_at": "2026-09-13T05:00:16.925297+00:00",
+=======
+  "generated_at": "2026-09-13T06:16:21.541678+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
   "catalog_diff": {
     "added": [
       "agnes-3-0-flash",
@@ -31,7 +35,18 @@
       "smaug-flash",
       "smaug-mini"
     ],
+<<<<<<< HEAD
     "removed": [],
+=======
+    "removed": [
+      "deepseek-v4-pro-high-20260813",
+      "deepseek-v4-pro-high-preview",
+      "devstral-medium-2507",
+      "hunyuan-hy3-preview",
+      "hy4-preview",
+      "kimi-k2-thinking-turbo"
+    ],
+>>>>>>> feature/deepseek-v4.1-flash
     "total_current": 532
   },
   "models": [
@@ -7155,7 +7170,11 @@
       "avi_score": null,
       "bfi_score": 1247.4,
       "fgi_score": 66.8,
+<<<<<<< HEAD
       "first_seen": "2026-09-11T05:00:53.458041+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -9887,7 +9906,11 @@
       "avi_score": 1119.1,
       "bfi_score": 1026.5,
       "fgi_score": 85.9,
+<<<<<<< HEAD
       "first_seen": "2026-09-12T05:00:53.309430+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -15721,7 +15744,11 @@
       "avi_score": 640.7,
       "bfi_score": 301.8,
       "fgi_score": 79.0,
+<<<<<<< HEAD
       "first_seen": "2026-09-11T05:00:53.458041+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -18086,7 +18113,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 80.3,
+<<<<<<< HEAD
       "first_seen": "2026-09-11T05:00:53.458041+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -18944,7 +18975,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 94.8,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -18979,7 +19014,11 @@
       "avi_score": 354.9,
       "bfi_score": 44.6,
       "fgi_score": 70.2,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19014,7 +19053,11 @@
       "avi_score": 545.5,
       "bfi_score": 56.4,
       "fgi_score": 70.2,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19048,7 +19091,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 63.8,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19083,7 +19130,11 @@
       "avi_score": 426.4,
       "bfi_score": 98.0,
       "fgi_score": 61.0,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19118,7 +19169,11 @@
       "avi_score": 300.0,
       "bfi_score": 53.5,
       "fgi_score": 54.1,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19153,7 +19208,11 @@
       "avi_score": 507.5,
       "bfi_score": 67.2,
       "fgi_score": 63.3,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19188,7 +19247,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 66.6,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19223,7 +19286,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 58.2,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19258,7 +19325,11 @@
       "avi_score": 524.8,
       "bfi_score": 113.8,
       "fgi_score": 62.5,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19292,7 +19363,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 59.3,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19327,7 +19402,11 @@
       "avi_score": 348.6,
       "bfi_score": 127.4,
       "fgi_score": 46.7,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19362,7 +19441,11 @@
       "avi_score": 507.8,
       "bfi_score": 99.7,
       "fgi_score": 62.7,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19397,7 +19480,11 @@
       "avi_score": 314.2,
       "bfi_score": 34.1,
       "fgi_score": 43.7,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19431,7 +19518,11 @@
       "avi_score": 230.2,
       "bfi_score": 20.4,
       "fgi_score": 64.4,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19464,7 +19555,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 57.9,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19498,7 +19593,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 43.7,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19533,7 +19632,11 @@
       "avi_score": 436.1,
       "bfi_score": 180.6,
       "fgi_score": 54.3,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19567,7 +19670,11 @@
       "avi_score": 420.0,
       "bfi_score": 64.8,
       "fgi_score": 57.0,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19602,7 +19709,11 @@
       "avi_score": 177.7,
       "bfi_score": 40.6,
       "fgi_score": 47.9,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     },
     {
@@ -19636,7 +19747,11 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 24.4,
+<<<<<<< HEAD
       "first_seen": "2026-09-10T05:00:51.495673+00:00",
+=======
+      "first_seen": "2026-09-13T06:16:21.540723+00:00",
+>>>>>>> feature/deepseek-v4.1-flash
       "is_new": true
     }
   ]
