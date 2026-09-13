@@ -119,6 +119,7 @@ FALLBACK_PRICING = {
     "glm-5": {"input": 1.0, "output": 3.2, "cached_read": 0.2, "cached_write": None, "credits": 20.0},
     "kimi-k2.5": {"input": 0.6, "output": 3.0, "cached_read": 0.1, "cached_write": None, "credits": 20.0},
     "minimax-m2.5": {"input": 0.3, "output": 1.2, "cached_read": 0.03, "cached_write": None, "credits": 20.0},
+    "ling-3.0-flash-sante-free": {"input": None, "output": None, "cached_read": None, "cached_write": None, "credits": None},
 }
 
 DOCS_IDS = set(FALLBACK_PRICING.keys())
@@ -143,6 +144,9 @@ _ID_ALIASES = {
     "longcat-2.0-free": "longcat-2.0-free",
     "longcat-2.0free": "longcat-2.0-free",
     "longcat-2.0": "longcat-2.0-free",
+    "ling-3.0-flash-sante-free": "ling-3.0-flash-sante-free",
+    "ling-3.0-flash-sante": "ling-3.0-flash-sante-free",
+    "ling-3.0-flash-sante:free": "ling-3.0-flash-sante-free",
     "qwen-3.7-flash-(32k)": "qwen-3.7-flash",
     "qwen-3.7-flash-(256k)": "qwen-3.7-flash",
     "qwen-3.7-flash-(>256k)": "qwen-3.7-flash",
@@ -193,7 +197,7 @@ def _norm_cc_id(raw: str) -> str | None:
     raw = re.sub(r"\([^)]*\)", "", raw).strip()
     raw = re.sub(r"\s*Off-peak.*", "", raw, flags=re.I).strip()
     raw = re.sub(r"\s*-\d+%\s*$", "", raw).strip()
-    low = raw.lower().replace("_", "-")
+    low = raw.lower().replace("_", "-").replace(":", "-")
     low = re.sub(r"\s+", "-", low)
     low = re.sub(r"-+", "-", low).strip("-")
     if not re.match(r"^[a-z0-9][a-z0-9\.\-]*$", low) or len(low) < 2:
@@ -1107,9 +1111,10 @@ def main():
         return 999.0 if v is None else (bc._safe_float(v) if bc._safe_float(v) is not None else 999.0)
     sort_key_fn = build_sort_key(sort_mode, _eff_cost)
     rows_sorted = sorted(rows, key=sort_key_fn)
+    dynamic_docs_ids = set(pricing_live.keys()) | DOCS_IDS
     pareto_ids = set()
     try:
-        cand = [r for r in rows_sorted if r["model_id"] in DOCS_IDS and r["benchmarks"].get("capability_q") is not None]
+        cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids and r["benchmarks"].get("capability_q") is not None]
         for a in cand:
             a_cost = _eff_cost(a)
             a_q = a["benchmarks"].get("capability_q") or 0.0
@@ -1121,7 +1126,7 @@ def main():
 
     prev_snapshot = load_previous_snapshot(DATA / "cc_live.json")
     rows_sorted = diff_model_catalog(rows_sorted, prev_snapshot)["rows"]
-    docs_rows = [r for r in rows_sorted if r["model_id"] in DOCS_IDS]
+    docs_rows = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids]
     for r in docs_rows:
         r["is_docs_model"] = True
     catalog_diff = diff_model_catalog(docs_rows, prev_snapshot)

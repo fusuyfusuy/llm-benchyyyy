@@ -130,6 +130,7 @@ FALLBACK_PRICING = {
     "qwen3.6-plus": {"input": 0.50, "output": 3.00, "cached_read": 0.05, "cached_write": 0.625, "usage": 60},
     "deepseek-v4-pro": {"input": 0.66, "output": 1.98, "cached_read": 0.022, "cached_write": None, "usage": 15},
     "deepseek-v4-flash": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 30},
+    "deepseek-flash": {"input": 0.15, "output": 0.60, "cached_read": 0.003, "cached_write": None, "usage": 15},
     "deepseek-v4-flash-vision-exp": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 15},
     "hy4-preview": {"input": 0.834, "output": 2.501, "cached_read": 0.042, "cached_write": None, "usage": 30},
     "hy3": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
@@ -158,7 +159,7 @@ DOCS_IDS = {
     "minimax-m3", "minimax-m2.7", "minimax-m2.5",
     "muse-spark-1.2-contributor", "muse-spark-1.3-contributor",
     "qwen3.8-max", "qwen3.8-flash", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus",
-    "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp",
+    "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-flash", "deepseek-v4-flash-vision-exp",
     "hy4-preview", "hy3", "longcat-2.0", "omen-alpha",
 }
 
@@ -187,6 +188,7 @@ FALLBACK_TOKENS = {
     "qwen3.6-plus": (500, 57000, 190),
     "deepseek-v4-pro": (750, 82000, 290),
     "deepseek-v4-flash": (410, 71300, 310),
+    "deepseek-flash": (410, 71300, 310),
     "deepseek-v4-flash-vision-exp": (410, 71300, 310),
     "hy4-preview": (830, 71500, 295),
     "hy3": (830, 71500, 295),
@@ -401,6 +403,10 @@ def model_to_id(raw):
         "qwen3.6 plus": "qwen3.6-plus",
         "deepseek v4 pro": "deepseek-v4-pro",
         "deepseek v4 flash": "deepseek-v4-flash",
+        "deepseek v4.1 flash": "deepseek-flash",
+        "deepseek-v4.1-flash": "deepseek-flash",
+        "deepseek flash": "deepseek-flash",
+        "deepseek-flash": "deepseek-flash",
         "deepseek v4 flash vision exp": "deepseek-v4-flash-vision-exp",
         "hy4 preview": "hy4-preview",
         "hy3": "hy3",
@@ -1440,6 +1446,9 @@ def main():
         print(f"  using fallback API ids: {len(ocgo_api_ids)}")
     else:
         for k in FALLBACK_PRICING:
+            if k not in ocgo_api_ids:
+                ocgo_api_ids.append(k)
+        for k in pricing_live:
             if k not in ocgo_api_ids:
                 ocgo_api_ids.append(k)
 

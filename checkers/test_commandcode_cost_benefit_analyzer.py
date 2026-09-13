@@ -19,9 +19,16 @@ class TestCcCheck(unittest.TestCase):
         self.assertIn("kimi-k3", ccc.FALLBACK_PRICING)
         self.assertIn("mimo-v2.5", ccc.FALLBACK_PRICING)
         self.assertIn("laguna-s-2.1-free", ccc.FALLBACK_PRICING)
+        self.assertIn("ling-3.0-flash-sante-free", ccc.FALLBACK_PRICING)
         self.assertIsNone(ccc.FALLBACK_PRICING["laguna-s-2.1-free"]["input"])
         self.assertEqual(ccc.FALLBACK_PRICING["gpt-5.6-sol"]["credits"], 70.0)
         self.assertEqual(ccc.FALLBACK_PRICING["minimax-m3"]["credits"], 47.0)
+
+    def test_dynamic_docs_model_discovery(self):
+        self.assertIn("ling-3.0-flash-sante-free", ccc.FALLBACK_PRICING)
+        self.assertEqual(ccc._norm_cc_id("Ling 3.0 Flash Sante Free"), "ling-3.0-flash-sante-free")
+        self.assertEqual(ccc._norm_cc_id("ling-3.0-flash-sante"), "ling-3.0-flash-sante-free")
+        self.assertEqual(ccc._norm_cc_id("ling-3.0-flash-sante:free"), "ling-3.0-flash-sante-free")
 
     def test_cost_computation(self):
         c = ccc.compute_cost(0.22, 0.66, 0.007, 800, 50000, 160)

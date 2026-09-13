@@ -15,8 +15,22 @@ class TestOcgoCheck(unittest.TestCase):
         self.assertGreaterEqual(len(ogc.FALLBACK_PRICING), 23)
         self.assertIn("glm-5.3", ogc.FALLBACK_PRICING)
         self.assertIn("deepseek-v4-flash", ogc.FALLBACK_PRICING)
+        self.assertIn("deepseek-flash", ogc.FALLBACK_PRICING)
         self.assertIn("kimi-k3", ogc.FALLBACK_PRICING)
         self.assertIn("mimo-v2.5", ogc.FALLBACK_PRICING)
+
+    def test_deepseek_v4_1_flash_discovery_and_aliasing(self):
+        # DeepSeek V4.1 Flash in docs maps to canonical API id deepseek-flash
+        self.assertEqual(ogc.model_to_id("DeepSeek V4.1 Flash"), "deepseek-flash")
+        self.assertEqual(ogc.model_to_id("DeepSeek V4.1 Flash (Off-Peak)"), "deepseek-flash")
+        self.assertEqual(ogc.model_to_id("DeepSeek V4.1 Flash (Peak)"), "deepseek-flash")
+        self.assertIn("deepseek-flash", ogc.DOCS_IDS)
+        self.assertIn("deepseek-flash", ogc.FALLBACK_PRICING)
+        self.assertIn("deepseek-flash", ogc.FALLBACK_TOKENS)
+        self.assertEqual(ogc.FALLBACK_PRICING["deepseek-flash"]["usage"], 15)
+        # Distinct from deepseek-v4-flash (which is $30 usage)
+        self.assertEqual(ogc.model_to_id("DeepSeek V4 Flash"), "deepseek-v4-flash")
+        self.assertEqual(ogc.FALLBACK_PRICING["deepseek-v4-flash"]["usage"], 30)
 
     def test_cost_computation(self):
         # DeepSeek V4 Flash: in 0.22, out 0.66, cached 0.007
