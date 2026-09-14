@@ -1443,28 +1443,20 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
         if cred is None:
             # fallback for older snapshots that used monthly_usage_limit_usd
             cred = m.get("pricing", {}).get("monthly_usage_limit_usd")
-        if cred is None:
+        if cred is not None:
+            pool_str = f"${cred:.0f}/m"
+        elif "free" in m.get("model_id", "").lower() or "free" in name.lower():
             pool_str = "Free"
-        elif cred >= 60:
-            pool_str = f"${cred:.0f}/m"
-        elif cred >= 40:
-            pool_str = f"${cred:.0f}/m"
-        elif cred >= 30:
-            pool_str = f"${cred:.0f}/m"
         else:
-            pool_str = f"${cred:.0f}/m"
+            pool_str = "—"
     elif context == "ocheck":
         usage = m.get("pricing", {}).get("monthly_usage_limit_usd")
-        if usage == 60:
-            pool_str = "$60/m"
-        elif usage == 30:
-            pool_str = "$30/m"
-        elif usage == 15:
-            pool_str = "$15/m"
-        elif usage is None:
+        if usage is not None:
+            pool_str = f"${usage:.0f}/m"
+        elif "free" in m.get("model_id", "").lower() or "free" in name.lower():
             pool_str = "Free"
         else:
-            pool_str = f"${usage}/m"
+            pool_str = "—"
     else:
         p = (m.get("pool") or "").upper()
         pool_str = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(p, f"[{p[:3]}]" if p else "[API]")

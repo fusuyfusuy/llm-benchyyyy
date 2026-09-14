@@ -253,6 +253,40 @@ class TestCcCheck(unittest.TestCase):
         c_lens = {ccc.display_len(l) for l in c_rows}
         self.assertEqual(len(c_lens), 1, f"Color table rows must have uniform display width: {c_lens}")
 
+    def test_parse_cc_docs_strikethrough_credits(self):
+        # Promotional or updated credits with <s>$old</s><span>$new</span> must resolve to $new
+        html = """
+        <table><thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache Read</th><th>Cache Write</th><th>Monthly credits</th></tr></thead>
+        <tbody><tr>
+          <td>DeepSeek V4.1 Flash</td><td>$0.15</td><td>$0.60</td><td>$0.003</td><td>-</td>
+          <td><s class="mr-1.5 text-muted-foreground">$40</s><span class="font-semibold">$60</span></td>
+        </tr></tbody></table>
+        """
+        pricing, _, _ = ccc.parse_cc_docs(html)
+        self.assertIn("deepseek-v4.1-flash", pricing)
+        self.assertEqual(pricing["deepseek-v4.1-flash"]["credits"], 60.0)
+
+    def test_deepseek_v4_1_flash_pricing_and_role_badge(self):
+        self.assertIn("deepseek-v4.1-flash", ccc.FALLBACK_PRICING)
+        self.assertEqual(ccc.FALLBACK_PRICING["deepseek-v4.1-flash"]["credits"], 60.0)
+        feat = bc._extract_model_role_features(
+            {"model_id": "deepseek-v4.1-flash", "pricing": {"monthly_credits": 60.0}, "capability_q": 86.7},
+            context="ccheck"
+        )
+        self.assertEqual(feat["pool_str"], "$60/m")
+        self.assertNotEqual(feat["pool_str"], "Free")
+
+    def test_uncredited_model_does_not_render_as_free(self):
+        # A model with None credits that is NOT designated free must show "—", not "Free"
+        row = {"model_id": "unknown-corp-model", "pricing": {"monthly_credits": None}, "capability_q": 80.0}
+        feat = bc._extract_model_role_features(row, context="ccheck")
+        self.assertEqual(feat["pool_str"], "—")
+        # Designated free model retains "Free"
+        row_free = {"model_id": "laguna-s-2.1-free", "pricing": {"monthly_credits": None}, "capability_q": None}
+        feat_free = bc._extract_model_role_features(row_free, context="ccheck")
+        self.assertEqual(feat_free["pool_str"], "Free")
+
 
 if __name__ == "__main__":
     unittest.main()
+

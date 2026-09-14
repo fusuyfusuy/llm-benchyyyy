@@ -101,11 +101,15 @@
   constants (except C_YELLOW: bc=226, ocheck had 221 — real bug, fixed),
   and fcheck/scheck's composite-scoring block (verified via direct reads,
   not the explore-agent's claim alone).
+- Command Code docs use strikethrough HTML `<s>$old</s><span>$new</span>` for
+  updated credit allowances (e.g. DeepSeek V4.1 Flash $40 -> $60). Credit cell
+  parsers must use regex extraction (`_eff_price` / `nums[-1]`) to extract the
+  active price, and never conflate `credits is None` with the Free tier.
 
 ---
 
 ## KNOWN DEBT
 
-- checkers/free_model_ranker.py:521: naming convention only — Zen /v1/models entries carry no `pricing` field (0/64 in the 20260828+20260830 snapshots) -> so the former price==0 clause could never fire and is deleted (S3-F3-4). If upstream ever ships pricing, reinstate a real price check instead of trusting names.
+- checkers/free_model_ranker.py:521: naming convention only <- Zen /v1/models entries carry no pricing field (0/64 in snapshots) -> reinstate real price check if upstream ships pricing
 - docker/harness-base.Dockerfile:4: 5 CLI harness install layers verified <- container build passes -> live run verification of JSON schemas for all 5 CLIs inside container
 - docker/harness-base.Dockerfile:29: unpinned CLI versions <- docker build w/ --version capture -> first container rebuild

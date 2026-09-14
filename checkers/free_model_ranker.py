@@ -516,7 +516,7 @@ def main():  # noqa: PLR0915
     if isinstance(oc_zen_json, dict) and "data" in oc_zen_json:
         for m in oc_zen_json["data"]:
             mid = m.get("id", "")
-            # ponytail: naming convention only — Zen /v1/models entries carry no `pricing`
+            # ponytail: naming convention only <- Zen /v1/models entries carry no pricing field -> reinstate real price check if upstream ships pricing
             # field (0/64 in the 20260828+20260830 snapshots), so the former
             # price==0 clause could never fire and is deleted (S3-F3-4). If upstream
             # ever ships pricing, reinstate a real price check instead of trusting names.

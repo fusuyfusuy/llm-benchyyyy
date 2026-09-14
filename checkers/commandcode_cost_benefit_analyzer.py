@@ -75,6 +75,7 @@ FALLBACK_PRICING = {
     "muse-spark-1.3": {"input": 1.25, "output": 4.25, "cached_read": 0.15, "cached_write": None, "credits": 20.0},
     "muse-spark-1.3-contributor": {"input": 0.1, "output": 0.2, "cached_read": 0.002, "cached_write": None, "credits": 20.0},
     "qwen-3.8-max-0902": {"input": 2.0, "output": 6.0, "cached_read": 0.25, "cached_write": None, "credits": 20.0},
+    "deepseek-v4.1-flash": {"input": 0.15, "output": 0.6, "cached_read": 0.003, "cached_write": None, "credits": 60.0},
     "longcat-2.0-free": {"input": None, "output": None, "cached_read": None, "cached_write": None, "credits": None},
     "tencent-hy4-preview": {"input": 0.834, "output": 2.501, "cached_read": 0.042, "cached_write": None, "credits": 20.0},
     "glm-5.3-flash": {"input": 0.15, "output": 0.5, "cached_read": 0.03, "cached_write": None, "credits": 40.0},
@@ -357,12 +358,13 @@ def parse_cc_docs(html, verbose=False):
             mid = _norm_cc_id(model_raw)
             if not mid:
                 continue
-            cred_raw = clean[5].replace("$", "").replace(",", "").strip()
-            try:
-                tokens = re.findall(r"\d+(?:\.\d+)?", cred_raw)
-                cred = float(tokens[-1]) if tokens else (float(cred_raw) if cred_raw not in ("—", "-", "") else None)
-            except Exception:
-                cred = None
+            cred = _eff_price(cells[5])
+            if cred is None:
+                tokens = re.findall(r"\d+(?:\.\d+)?", clean[5])
+                try:
+                    cred = float(tokens[-1]) if tokens else None
+                except Exception:
+                    cred = None
             if mid in pricing:
                 pricing[mid]["credits"] = cred
             else:
@@ -601,7 +603,7 @@ def render_cli_table(models_list, pareto_ids=None, added_ids=None, removed_model
         raw_mid = r["model_id"]
         mid_display = f"+{raw_mid}"[:m_name_w] if is_added else raw_mid[:m_name_w]
         credits = r["pricing"].get("monthly_credits")
-        credits_str = f"${credits:.0f}" if credits is not None else "Free"
+        credits_str = f"${credits:.0f}" if credits is not None else ("Free" if "free" in r["model_id"].lower() else "—")
         reqs = r.get("requests", {})
         req_mo_val = reqs.get("per_month_docs") if reqs.get("per_month_docs") is not None else reqs.get("per_month_computed")
         req_mo_str = format_compact_num(req_mo_val)
@@ -1107,7 +1109,7 @@ def main():
 
     sort_mode = getattr(args, "sort", "value")
     def _eff_cost(r):
-        if r["pricing"].get("monthly_credits") is None or "free" in r["model_id"].lower():
+        if "free" in r["model_id"].lower():
             return 0.0
         v = r["value"].get("effective_cost_per_request")
         if v is None:
@@ -1258,7 +1260,7 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
             cls = "flagship"
         elif credits == 70 and ipd and ipd > 800:
             cls = "value"
-        elif credits is None:
+        elif credits is None and "free" in r["model_id"].lower():
             cls = "free"
         trs.append(
             f'<tr class="{cls}">'
@@ -1288,7 +1290,7 @@ def render_html(rows, work_sentence=None, pareto_ids=None, added_ids=None, remov
         for rm in removed_models:
             rm_id = html_lib.escape(rm.get("model_id", "unknown"))
             pr_lim = rm.get("pricing", {}).get("monthly_credits")
-            lim_s = f"${pr_lim:.0f}" if pr_lim is not None else "Free"
+            lim_s = f"${pr_lim:.0f}" if pr_lim is not None else ("Free" if "free" in rm.get("model_id", "").lower() else "—")
             fgi = rm.get("value", {}).get("fgi_score") or rm.get("benchmarks", {}).get("fgi_score")
             fgi_s = f"FGI {fgi:.1f}" if isinstance(fgi, (int, float)) else "FGI —"
             avi = rm.get("value", {}).get("avi_score") or rm.get("benchmarks", {}).get("avi_score")
