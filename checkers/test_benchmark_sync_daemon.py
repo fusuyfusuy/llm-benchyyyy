@@ -179,6 +179,82 @@ class TestBenchmarkSyncDaemon(unittest.TestCase):
                     self.assertIn("OnCalendar=*-*-* 08:00:00", tmr.read_text())
                     self.assertIn("--sync-now", svc.read_text())
 
+    def test_get_cache_status_includes_opencode_and_akatsuki(self):
+        st = bsd.get_cache_status()
+        self.assertIn("akatsuki_status", st)
+        feed_names = {r["feed"] for r in st["status_report"]}
+        self.assertIn("OpenCode Go Docs", feed_names)
+        self.assertIn("OpenCode Go Models", feed_names)
+        self.assertIn("OpenCode Zen Models", feed_names)
+        self.assertIn("OpenCode Go Live", feed_names)
+        self.assertIn("CommandCode Live", feed_names)
+        self.assertIn("Free Models", feed_names)
+        self.assertIn("Stealth Models", feed_names)
+
+    def test_generate_akatsuki_radar_content(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_data = pathlib.Path(tmpdir)
+            bench = {"models": [
+                {"display": "Test-Opus", "pool": "api", "livebench": {"overall": 89.5}, "aa_live_quality": 88.0, "base_metrics": {"lm_elo": 1400}}
+            ]}
+            (tmp_data / "benchmarks.json").write_text(json.dumps(bench))
+            oc = {"models": [
+                {"name": "test-oc-flash", "limit": 30, "req_mo": 50000, "q_cap": 85.0, "cost_per_req": 0.001, "value_score": 500.0}
+            ]}
+            (tmp_data / "ocgo_live.json").write_text(json.dumps(oc))
+            cc = {"models": [
+                {"name": "test-cc-goat", "credits": 60, "req_mo": 40000, "q_cap": 84.0, "cost_per_req": 0.0012, "value_score": 480.0}
+            ]}
+            (tmp_data / "cc_live.json").write_text(json.dumps(cc))
+            free = {"models": [
+                {"model_id": "test-free-m", "provider": "opencode", "q_cap": 80.0, "p_success": 0.75, "fgi": 50.0, "context_length": 128000}
+            ]}
+            (tmp_data / "free_models.json").write_text(json.dumps(free))
+
+            with patch.object(bsd, "DATA", tmp_data):
+                content = bsd.generate_akatsuki_radar_content("20260916")
+                self.assertTrue(content.startswith("---"))
+                self.assertIn('title: "Live Model Benchmarks & Pricing Radar"', content)
+                self.assertIn("Test-Opus", content)
+                self.assertIn("test-oc-flash", content)
+                self.assertIn("test-cc-goat", content)
+                self.assertIn("test-free-m", content)
+                self.assertIn("[[30-Agents/Agents-MOC|Agents MOC]]", content)
+                self.assertIn("[[20-Projects/llm-benchyyyy|llm-benchyyyy]]", content)
+
+    def test_save_results_to_akatsuki(self):
+        with tempfile.TemporaryDirectory() as tmp_vault:
+            p_vault = pathlib.Path(tmp_vault)
+            (p_vault / "30-Agents").mkdir()
+            (p_vault / "20-Projects").mkdir()
+            moc_file = p_vault / "30-Agents" / "Agents-MOC.md"
+            moc_file.write_text("## 🔬 Model Benchmarking & Empirical Evaluations\n\n- [[30-Agents/Model-Benchmarks-2026|Model Benchmarks 2026]]\n")
+            proj_file = p_vault / "20-Projects" / "llm-benchyyyy.md"
+            proj_file.write_text("## 🔗 Related\n- [[INDEX|Master Index]]\n")
+
+            with tempfile.TemporaryDirectory() as tmp_data:
+                p_data = pathlib.Path(tmp_data)
+                with patch.object(bsd, "DATA", p_data), patch.dict(os.environ, {"AKATSUKI_VAULT": str(p_vault)}), patch("shutil.which", return_value=None):
+                    saved = bsd.save_results_to_akatsuki(verbose=False)
+                    self.assertTrue(saved)
+                    note_path = p_vault / "30-Agents" / "Model-Benchmarks-Live.md"
+                    self.assertTrue(note_path.exists())
+                    self.assertIn("[[30-Agents/Model-Benchmarks-Live|Live Model Benchmarks & Pricing Radar]]", moc_file.read_text())
+                    self.assertIn("[[30-Agents/Model-Benchmarks-Live|Live Model Benchmarks & Pricing Radar]]", proj_file.read_text())
+
+    def test_refresh_suite_results(self):
+        results = {}
+        with patch.object(bsd, "run_checker_script", return_value=True):
+            status = bsd.refresh_suite_results(results, verbose=False)
+            self.assertTrue(status["ocgo"])
+            self.assertTrue(status["cc"])
+            self.assertTrue(status["free"])
+            self.assertTrue(status["stealth"])
+            self.assertIn("ocgo_live_json", results)
+            self.assertIn("cc_live_json", results)
+            self.assertIn("free_models_json", results)
+            self.assertIn("stealth_models_json", results)
+
 
 if __name__ == "__main__":
     unittest.main()

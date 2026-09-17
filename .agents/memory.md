@@ -6,6 +6,11 @@
   codex-cli JSON field-mapping in engine/harness/configs.py unverified live
   (docs-derived only, codex not installed locally). raw-api untested
   live, ANTHROPIC_API_KEY not set in this env.
+- 08:00 Benchmark Sync Daemon (bsync) extended: syncs all upstream sources
+  (including OpenCode Go/Zen models & docs), refreshes downstream checkers
+  (ocgo_live.json, cc_live.json, free_models.json, stealth_models.json),
+  and writes live benchmark/pricing radar to Akatsuki (30-Agents/Model-Benchmarks-Live.md)
+  with telemetry logging.
 
 ## Core Invariants & Architecture Rules
 
