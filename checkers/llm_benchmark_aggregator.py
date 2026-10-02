@@ -26,6 +26,7 @@ import pathlib
 import re
 import shutil
 import statistics
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -2945,6 +2946,30 @@ def main():
 
     use_color = False if args.plain else None
     if args.tui:
+        bin_rel = ROOT / "checkerz" / "target" / "release" / "checkerz"
+        bin_dbg = ROOT / "checkerz" / "target" / "debug" / "checkerz"
+        cargo_toml = ROOT / "checkerz" / "Cargo.toml"
+        cmd = None
+        if shutil.which("checkerz"):
+            cmd = ["checkerz"]
+        elif bin_rel.exists():
+            cmd = [str(bin_rel)]
+        elif bin_dbg.exists():
+            cmd = [str(bin_dbg)]
+        elif cargo_toml.exists() and shutil.which("cargo"):
+            cmd = ["cargo", "run", "--manifest-path", str(cargo_toml), "--"]
+
+        if cmd:
+            extra = []
+            if args.all:
+                extra.append("--all")
+            if args.top is not None:
+                extra.extend(["-n", str(args.top)])
+            try:
+                subprocess.run(cmd + extra)
+            except Exception as e:
+                print(f"Error launching checkerz: {e}", file=sys.stderr)
+            return
         print("bcheck --tui moved to the Rust checkerz binary: cargo run --manifest-path checkerz/Cargo.toml [-- --all -n 50]", file=sys.stderr)
         return
 

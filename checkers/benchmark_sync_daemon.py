@@ -17,6 +17,7 @@ Supports manual sync via --sync-now / --fetch at any time.
 """
 import argparse
 from contextlib import contextmanager
+from collections import defaultdict
 import datetime as dt
 import fcntl
 import glob
@@ -136,6 +137,38 @@ def _fetch_and_save(name: str, url: str, path: pathlib.Path, min_bytes: int, for
     got = 0 if not txt else len(txt)
     log(f"  MISSING {name} (no cache, fetch failed — got {got} bytes, need {min_bytes:,})")
     return None
+
+
+def prune_raw_snapshots(raw_dir: pathlib.Path = RAW, keep_days: int = 3, verbose: bool = True) -> int:
+    """Retain only the latest keep_days snapshots per feed family plus test fixtures."""
+    if not raw_dir.exists():
+        return 0
+    files = [f for f in raw_dir.iterdir() if f.is_file()]
+    groups = defaultdict(list)
+    protected = {"livebench_20260625.csv", "livebench_categories_20260625.json", "livebench_cost_20260625.csv"}
+    for f in files:
+        if f.name in protected:
+            continue
+        parts = f.name.rsplit("_", 1)
+        if len(parts) == 2 and any(char.isdigit() for char in parts[1]):
+            prefix = parts[0]
+            groups[prefix].append(f)
+        else:
+            groups["other"].append(f)
+
+    pruned = 0
+    for prefix, flist in groups.items():
+        flist.sort(key=lambda p: p.name)
+        for old in flist[:-keep_days]:
+            try:
+                old.unlink()
+                pruned += 1
+                if verbose:
+                    log(f"  pruned old snapshot: {old.name}")
+            except Exception as e:
+                if verbose:
+                    log(f"  WARN prune {old.name}: {e}")
+    return pruned
 
 
 def _baseline_collapsed(models: list, prev_snapshot) -> tuple[bool, int]:
@@ -690,6 +723,9 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
     missing = sorted(k for k, v in results.items() if v is None)
     if missing:
         log(f"  WARN {len(missing)} feed(s) missing with no usable cache: {', '.join(missing)}")
+
+    # 1b. Automatically prune raw snapshots older than retention ceiling
+    prune_raw_snapshots(RAW, keep_days=3, verbose=verbose)
 
     # 2. Trigger Suite Baseline Refresh (refuse to persist a collapsed catalog).
     baseline_ok = False

@@ -319,9 +319,30 @@ def parse_cc_docs(html, verbose=False):
 
     if catalog_tbl is not None:
         rows = re.findall(r"<tr[^>]*>(.*?)</tr>", catalog_tbl, flags=re.S)
+        col_inp, col_out, col_cr, col_cw = -1, -1, -1, -1
+        if rows:
+            hdr_cells = [re.sub(r"<[^>]+>", " ", c).lower().strip() for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", rows[0], flags=re.S)]
+            for idx, h in enumerate(hdr_cells):
+                if "cache write" in h:
+                    col_cw = idx
+                elif "cache read" in h:
+                    col_cr = idx
+                elif "output" in h:
+                    col_out = idx
+                elif "input" in h:
+                    col_inp = idx
+        if col_inp == -1:
+            col_inp = 4 if len(rows) > 0 and len(re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", rows[0], flags=re.S)) >= 9 else 3
+        if col_out == -1:
+            col_out = col_inp + 1
+        if col_cr == -1:
+            col_cr = col_inp + 2
+        if col_cw == -1:
+            col_cw = col_inp + 3
+
         for tr in rows[1:]:
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
-            if len(cells) < 8:
+            if len(cells) < 7:
                 continue
             # Strip tags with a space so adjacent badges don't fuse:
             # "LongCat 2.0"+"Free" must stay two tokens, not "2.0Free".
@@ -334,14 +355,19 @@ def parse_cc_docs(html, verbose=False):
             if mid in pricing:
                 continue
             # Free row
-            if clean[4].lower() == "free":
+            is_free = (col_inp < len(clean) and clean[col_inp].lower() == "free") or (len(clean) > 4 and clean[4].lower() == "free")
+            if is_free:
                 pricing[mid] = {"input": None, "output": None, "cached_read": None, "cached_write": None, "credits": None}
                 continue
+            inp_p = _eff_price(clean[col_inp]) if col_inp < len(clean) else None
+            out_p = _eff_price(clean[col_out]) if col_out < len(clean) else None
+            cr_p = _eff_price(clean[col_cr]) if col_cr < len(clean) else None
+            cw_p = _eff_price(clean[col_cw]) if col_cw < len(clean) and clean[col_cw] not in ("—", "-", "") else None
             pricing[mid] = {
-                "input": _eff_price(clean[4]),
-                "output": _eff_price(clean[5]),
-                "cached_read": _eff_price(clean[6]),
-                "cached_write": _eff_price(clean[7]) if clean[7] not in ("—", "-", "") else None,
+                "input": inp_p,
+                "output": out_p,
+                "cached_read": cr_p,
+                "cached_write": cw_p,
                 "credits": None,
             }
 

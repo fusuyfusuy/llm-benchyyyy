@@ -12,9 +12,9 @@ ocheck = "checkers.opencode_cost_benefit_analyzer:main"
 ccheck = "checkers.commandcode_cost_benefit_analyzer:main"
 fcheck = "checkers.free_model_ranker:main"
 scheck = "checkers.stealth_model_detector:main"
+fntcheck = "checkers.frontier_model_tracker:main"
+ocgo = "checkers.ocgo:main"
+ccgo = "checkers.ccgo:main"
 
-[dependency-groups]
-dev = [
-    "pytest>=9.1.1",
-]
+
 

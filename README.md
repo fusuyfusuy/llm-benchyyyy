@@ -19,6 +19,16 @@ bcheck
 bcheck --fetch
 ```
 
+### 1b. `bsync` — Automated Daily Sync Daemon
+Runs scheduled background syncs against upstream benchmark and documentation feeds, prunes historical raw cache, and refreshes all downstream catalogs:
+```bash
+# Run one-shot sync against all upstream sources
+bsync --now
+
+# Start daemon scheduled at 08:00 daily
+bsync
+```
+
 ### 2. `ocheck` — OpenCode Go Cost-Benefit Analyzer
 Analyzes OpenCode Go provider model pricing, token rates, and intelligence-to-cost tradeoffs:
 ```bash
@@ -68,27 +78,28 @@ cargo run --manifest-path checkerz/Cargo.toml -- --all -n 30
 - `checkers/` — Core Python analysis tools and test suite:
   - `benchmark_common.py` — Shared utilities, variant conflict matchers, Pareto frontiers, atomic JSON storage.
   - `llm_benchmark_aggregator.py` — Benchmark consolidation (`bcheck`).
+  - `benchmark_sync_daemon.py` — Automated daily sync daemon (`bsync`).
   - `opencode_cost_benefit_analyzer.py` — OpenCode Go cost-benefit analyzer (`ocheck`).
+  - `commandcode_cost_benefit_analyzer.py` — Command Code GOAT cost-benefit analyzer (`ccheck`).
+  - `frontier_model_tracker.py` — Frontier model benchmark & pricing tracker (`fntcheck`).
   - `free_model_ranker.py` — Free model ranker (`fcheck`).
   - `stealth_model_detector.py` — Stealth model tracker (`scheck`).
-  - `test_*.py` — Unit tests.
+  - `ocgo.py` / `ccgo.py` — Live quota and usage monitors (`ocgo`, `ccgo`).
 - `checkerz/` — Rust ratatui TUI (`cargo test/run --manifest-path checkerz/Cargo.toml`).
-- `reviews/` — Architectural reviews and audit reports.
 - `docs/` — Datasets, models index, and generated reports:
-  - `docs/data/` — Consolidated JSON databases (`benchmarks.json`, `ocgo_live.json`, `free_models.json`, `stealth_models.json`).
-  - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, and OpenRouter.
+  - `docs/data/` — Consolidated JSON databases (`benchmarks.json`, `ocgo_live.json`, `cc_live.json`, `free_models.json`, `stealth_models.json`, `frontier_models.json`).
+  - `docs/data/raw/` — Timestamped snapshot evaluations from LiveBench, LMArena, Artificial Analysis, and OpenRouter (auto-pruned rolling window).
   - `docs/reports/` — Exported HTML, JSON, and Markdown reports.
   - `docs/models.md` — Reference documentation on models.
-- `reviews/` — Architectural reviews and audit reports.
 
-## Installation & Testing
+## Installation
 
-No third-party dependencies required (pure Python 3.11+ standard library):
+Zero external runtime dependencies (pure Python 3.11+ standard library):
 
 ```bash
-# Optional editable install for CLI shortcuts
-python3 -m pip install -e .
+# Verify checkers offline check
+python3 -m checkers.llm_benchmark_aggregator --check
 
-# Run the full test suite
-python3 -m unittest discover -s checkers -p "test_*.py"
+# Run the Rust TUI
+cargo run --manifest-path checkerz/Cargo.toml
 ```

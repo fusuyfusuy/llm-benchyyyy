@@ -25,5 +25,6 @@ venv/
 
 # Benchmark sync daemon runtime state
 docs/data/sync_daemon.lock
+docs/data/sync_daemon.log
 sync_daemon.log
 checkerz/target/

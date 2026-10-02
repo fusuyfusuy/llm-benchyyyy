@@ -1029,28 +1029,7 @@ def color_cell(text, color: str = "", width: int | None = None, align: str = "<"
     return f"{bg_p}{color} {padded} {C_RESET}"
 
 
-def pad_banner(title: str, fill_or_width=None, width: int = 120, fill: str = "=") -> str:
-    """
-    Render centered banner or padded string with fill characters.
-    Supports pad_banner(title, width=120, fill="="), pad_banner(title, "="), or pad_banner(title, 120).
-    """
-    actual_width = width
-    actual_fill = fill
-    if isinstance(fill_or_width, int):
-        actual_width = fill_or_width
-        actual_fill = fill if fill != "=" else " "
-    elif isinstance(fill_or_width, str):
-        actual_fill = fill_or_width
 
-    dlen = display_len(title)
-    if dlen >= actual_width:
-        return str(title)
-    total_pad = actual_width - dlen
-    if actual_fill == " ":
-        return str(title) + (" " * total_pad)
-    left_pad = total_pad // 2
-    right_pad = total_pad - left_pad
-    return f"{actual_fill * left_pad}{title}{actual_fill * right_pad}"
 
 
 def medal_badge(rank_num: int | None, color: bool = True) -> str:
@@ -1952,23 +1931,7 @@ def diff_model_catalog(
     }
 
 
-def stable_diff_id(row: dict) -> str:
-    """Stable identity for diff/added sets: first alias slug, else display.
 
-    Renders check every alias leg plus display (aggregator is_added/is_pareto
-    pattern), so a slug-keyed added set still lights the renamed row.
-    """
-    if not isinstance(row, dict):
-        return ""
-    for k in ("aa_aliases", "lm_aliases", "live_aliases"):
-        v = row.get(k)
-        if isinstance(v, list) and v and v[0]:
-            return str(v[0])
-    for k in ("model_id", "or_slug", "aa_slug", "lm_slug", "display", "id"):
-        v = row.get(k)
-        if v:
-            return str(v)
-    return ""
 
 
 def render_removed_models_cli(removed_models: list[dict], color: bool = True, is_slim: bool = False, id_key: str = "model_id") -> list[str]:

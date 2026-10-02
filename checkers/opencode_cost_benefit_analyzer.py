@@ -226,17 +226,49 @@ def fetch(url, timeout=20, verbose=False):
         return None
 
 
-def parse_ocgo_docs(html, verbose=False):
-    """Parse pricing, requests, and token estimates from Go docs HTML."""
+def parse_ocgo_docs(html, verbose=False, plan="go"):
+    """Parse pricing, requests, and token estimates from Go docs HTML.
+
+    Supports plan='go' (default $10/mo tier) or plan='go-plus' ($40/mo tier)
+    when rendered in modern tabbed layouts, with fallback to legacy table discovery.
+    """
     pricing = {}
     requests = {}
     tokens = {}
     # The docs page hosts several tables (requests, pricing, endpoints, privacy);
-    # select by header-cell text, not positional index — page composition moved
-    # once already and an index guess would silently parse the wrong table.
+    # select by header-cell text or plan tabs.
     tables = re.findall(r"<table.*?</table>", html, flags=re.S)
     if verbose:
         print(f"  docs: found {len(tables)} tables")
+
+    # If modern Starlight tabs exist, extract tables specifically for the requested plan
+    price_tbl = None
+    req_tbl = None
+    tabs_blocks = re.findall(r"<starlight-tabs.*?</starlight-tabs>", html, flags=re.S)
+    target_panels = []
+    for tb in tabs_blocks:
+        links = re.findall(r"<a[^>]*href=\"#([^\"]+)\"[^>]*>(.*?)</a>", tb, flags=re.S)
+        chosen_panel_id = None
+        for href, text in links:
+            clean_text = re.sub(r"<[^>]+>", "", text).strip().lower()
+            if plan == "go" and clean_text == "go":
+                chosen_panel_id = href
+                break
+            elif plan in ("go-plus", "go plus", "plus") and "plus" in clean_text:
+                chosen_panel_id = href
+                break
+        if chosen_panel_id:
+            m = re.search(r"<div id=\"" + chosen_panel_id + r"\"[^>]*>(.*?)</div>", tb, flags=re.S)
+            if m:
+                target_panels.append(m.group(1))
+
+    if len(target_panels) >= 2:
+        m_p = re.search(r"<table.*?</table>", target_panels[0], flags=re.S)
+        m_r = re.search(r"<table.*?</table>", target_panels[1], flags=re.S)
+        if m_p:
+            price_tbl = m_p.group(0)
+        if m_r:
+            req_tbl = m_r.group(0)
 
     def _table_with(header_phrase: str):
         for t in tables:
@@ -248,8 +280,10 @@ def parse_ocgo_docs(html, verbose=False):
                 return t
         return None
 
-    req_tbl = _table_with("requests per 5 hour")
-    price_tbl = _table_with("cached write")
+    if price_tbl is None:
+        price_tbl = _table_with("cached write")
+    if req_tbl is None:
+        req_tbl = _table_with("requests per 5 hour")
 
     # --- pricing table ---
     if price_tbl is not None:
@@ -310,9 +344,10 @@ def parse_ocgo_docs(html, verbose=False):
                 continue
             requests[mid] = {"per_5h": r5, "per_week": rw, "per_month": rm}
 
-    # --- token estimates (ul after first table) ---
-    # Find the <ul> that follows the first table
-    ul_match = re.search(r"requests per month.*?</table>(.*?)<h2", html, flags=re.S)
+    # --- token estimates (ul after tables) ---
+    ul_match = re.search(r"(?:following\s+)?token counts per request.*?<ul>(.*?)</ul>", html, flags=re.S)
+    if not ul_match:
+        ul_match = re.search(r"requests per month.*?</table>(.*?)<h2", html, flags=re.S)
     if ul_match:
         seg = ul_match.group(1)
         lis = re.findall(r"<li[^>]*>(.*?)</li>", seg, flags=re.S)

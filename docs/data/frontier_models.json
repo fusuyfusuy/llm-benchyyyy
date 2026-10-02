@@ -1,14 +1,36 @@
 {
   "pricing_standard": "USD per 1M tokens ($/1M)",
   "unit": "USD / 1M tokens",
-  "generated_at": "2026-09-17T19:56:21.198485+00:00",
+  "generated_at": "2026-10-02T08:31:31.861410+00:00",
   "providers": {
     "claude": {
       "title": "Anthropic (Claude)",
       "icon": "\ud83e\udde0",
-      "total_tracked": 38,
-      "with_pricing": 13,
+      "total_tracked": 44,
+      "with_pricing": 16,
       "models": [
+        {
+          "model_id": "anthropic/claude-opus-5.5",
+          "display": "Claude Opus-5.5-max",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 4.0,
+            "output_per_1m": 20.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 4.0,
+            "price_out_1m": 20.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1000000
+          },
+          "benchmarks": {
+            "livebench_overall": null,
+            "aa_quality": 57.6223698102963,
+            "arena_elo": 1815.0,
+            "composite_score": 86.43355471544444
+          }
+        },
         {
           "model_id": "anthropic/claude-fable-5.1",
           "display": "Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)",
@@ -26,8 +48,8 @@
           },
           "benchmarks": {
             "livebench_overall": 83.78,
-            "aa_quality": 47.0391672014862,
-            "arena_elo": 1758.0,
+            "aa_quality": 46.8163422014862,
+            "arena_elo": 1749.0,
             "composite_score": 83.78
           }
         },
@@ -48,9 +70,31 @@
           },
           "benchmarks": {
             "livebench_overall": 83.38,
-            "aa_quality": 49.6994452733378,
-            "arena_elo": 1628.0,
+            "aa_quality": 49.6258202733378,
+            "arena_elo": 1625.0,
             "composite_score": 83.38
+          }
+        },
+        {
+          "model_id": "anthropic/claude-opus-5.5",
+          "display": "Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback)",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 4.0,
+            "output_per_1m": 20.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 4.0,
+            "price_out_1m": 20.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1000000
+          },
+          "benchmarks": {
+            "livebench_overall": 83.19,
+            "aa_quality": 57.6223698102963,
+            "arena_elo": 1815.0,
+            "composite_score": 83.19
           }
         },
         {
@@ -70,7 +114,7 @@
           },
           "benchmarks": {
             "livebench_overall": 80.48,
-            "aa_quality": 50.7001865797629,
+            "aa_quality": 50.7771115797629,
             "arena_elo": 1660.0,
             "composite_score": 80.48
           }
@@ -92,9 +136,53 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 53.3737509623252,
-            "arena_elo": 1758.0,
-            "composite_score": 80.06062644348779
+            "aa_quality": 53.3549259623252,
+            "arena_elo": 1749.0,
+            "composite_score": 80.0323889434878
+          }
+        },
+        {
+          "model_id": "anthropic/claude-sonnet-5.5",
+          "display": "Claude Sonnet 5.5 (Adaptive Reasoning, Medium Effort, Default Fallback)",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1000000
+          },
+          "benchmarks": {
+            "livebench_overall": 78.17,
+            "aa_quality": 40.7386909594307,
+            "arena_elo": 1786.0,
+            "composite_score": 78.17
+          }
+        },
+        {
+          "model_id": "anthropic/claude-sonnet-5.5",
+          "display": "Claude Sonnet-5.5-xhigh",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1000000
+          },
+          "benchmarks": {
+            "livebench_overall": null,
+            "aa_quality": 51.8522867021152,
+            "arena_elo": 1786.0,
+            "composite_score": 77.7784300531728
           }
         },
         {
@@ -114,8 +202,8 @@
           },
           "benchmarks": {
             "livebench_overall": 77.15,
-            "aa_quality": 41.9915603794639,
-            "arena_elo": 1539.0,
+            "aa_quality": 41.7899103794639,
+            "arena_elo": 1534.0,
             "composite_score": 77.15
           }
         },
@@ -137,7 +225,7 @@
           "benchmarks": {
             "livebench_overall": 77.04,
             "aa_quality": 40.6897928205908,
-            "arena_elo": 1557.0,
+            "arena_elo": 1555.0,
             "composite_score": 77.04
           }
         },
@@ -158,8 +246,8 @@
           },
           "benchmarks": {
             "livebench_overall": 76.59,
-            "aa_quality": 38.3576962882576,
-            "arena_elo": 1537.0,
+            "aa_quality": 38.1638712882576,
+            "arena_elo": 1539.0,
             "composite_score": 76.59
           }
         },
@@ -274,28 +362,6 @@
           }
         },
         {
-          "model_id": "anthropic/claude-3-haiku",
-          "display": "Claude 3 Haiku",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": 0.25,
-            "output_per_1m": 1.25,
-            "cache_read_per_1m": 0.03,
-            "price_in_1m": 0.25,
-            "price_out_1m": 1.25,
-            "price_cache_1m": 0.03,
-            "context_length": 200000
-          },
-          "benchmarks": {
-            "livebench_overall": null,
-            "aa_quality": 5.57842403353134,
-            "arena_elo": null,
-            "composite_score": 8.36763605029701
-          }
-        },
-        {
           "model_id": "claude-fable-5-1-max",
           "display": "Claude Fable-5-1-max",
           "provider": "claude",
@@ -312,9 +378,53 @@
           },
           "benchmarks": {
             "livebench_overall": 83.78,
-            "aa_quality": 53.3737509623252,
-            "arena_elo": 1758.0,
+            "aa_quality": 53.3549259623252,
+            "arena_elo": 1749.0,
             "composite_score": 83.78
+          }
+        },
+        {
+          "model_id": "claude-opus-5-5-max",
+          "display": "Claude Opus-5-5-max",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": null,
+            "output_per_1m": null,
+            "cache_read_per_1m": null,
+            "price_in_1m": null,
+            "price_out_1m": null,
+            "price_cache_1m": null,
+            "context_length": null
+          },
+          "benchmarks": {
+            "livebench_overall": 83.19,
+            "aa_quality": 57.6223698102963,
+            "arena_elo": 1815.0,
+            "composite_score": 83.19
+          }
+        },
+        {
+          "model_id": "claude-sonnet-5-5-xhigh",
+          "display": "Claude Sonnet-5-5-xhigh",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": null,
+            "output_per_1m": null,
+            "cache_read_per_1m": null,
+            "price_in_1m": null,
+            "price_out_1m": null,
+            "price_cache_1m": null,
+            "context_length": null
+          },
+          "benchmarks": {
+            "livebench_overall": 78.17,
+            "aa_quality": 51.8522867021152,
+            "arena_elo": 1786.0,
+            "composite_score": 78.17
           }
         },
         {
@@ -378,9 +488,9 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 21.1763943537112,
+            "aa_quality": 20.6661943537112,
             "arena_elo": null,
-            "composite_score": 31.764591530566797
+            "composite_score": 30.9992915305668
           }
         },
         {
@@ -582,6 +692,28 @@
           }
         },
         {
+          "model_id": "claude-3-haiku",
+          "display": "Claude 3 Haiku",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": null,
+            "output_per_1m": null,
+            "cache_read_per_1m": null,
+            "price_in_1m": null,
+            "price_out_1m": null,
+            "price_cache_1m": null,
+            "context_length": null
+          },
+          "benchmarks": {
+            "livebench_overall": null,
+            "aa_quality": 5.57842403353134,
+            "arena_elo": null,
+            "composite_score": 8.36763605029701
+          }
+        },
+        {
           "model_id": "claude-2.0",
           "display": "Claude 2.0",
           "provider": "claude",
@@ -643,7 +775,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1495.0,
+            "arena_elo": 1493.0,
             "composite_score": 0.0
           }
         },
@@ -731,7 +863,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1385.0,
+            "arena_elo": 1384.0,
             "composite_score": 0.0
           }
         },
@@ -753,7 +885,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1495.0,
+            "arena_elo": 1493.0,
             "composite_score": 0.0
           }
         },
@@ -841,7 +973,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1385.0,
+            "arena_elo": 1384.0,
             "composite_score": 0.0
           }
         }
@@ -850,12 +982,12 @@
     "openai": {
       "title": "OpenAI (GPT & Reasoning)",
       "icon": "\u26a1",
-      "total_tracked": 59,
-      "with_pricing": 50,
+      "total_tracked": 63,
+      "with_pricing": 54,
       "models": [
         {
           "model_id": "openai/gpt-6-astra",
-          "display": "GPT-6 Astra (xhigh)",
+          "display": "GPT-6 Astra (Xhigh)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -870,9 +1002,53 @@
           },
           "benchmarks": {
             "livebench_overall": 83.05,
-            "aa_quality": 52.5059027108782,
-            "arena_elo": 1800.0,
+            "aa_quality": 52.3863277108782,
+            "arena_elo": 1788.0,
             "composite_score": 83.05
+          }
+        },
+        {
+          "model_id": "openai/gpt-6.1-sol",
+          "display": "GPT 6.1 Sol-max",
+          "provider": "openai",
+          "provider_title": "OpenAI (GPT & Reasoning)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.09999999999999999,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.09999999999999999,
+            "context_length": 1050000
+          },
+          "benchmarks": {
+            "livebench_overall": 82.49,
+            "aa_quality": 51.8332597011541,
+            "arena_elo": 1758.0,
+            "composite_score": 82.49
+          }
+        },
+        {
+          "model_id": "openai/gpt-6.1-sol",
+          "display": "GPT-6.1 Sol (Xhigh)",
+          "provider": "openai",
+          "provider_title": "OpenAI (GPT & Reasoning)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.09999999999999999,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.09999999999999999,
+            "context_length": 1050000
+          },
+          "benchmarks": {
+            "livebench_overall": 81.83,
+            "aa_quality": 51.0377679093761,
+            "arena_elo": 1758.0,
+            "composite_score": 81.83
           }
         },
         {
@@ -892,8 +1068,8 @@
           },
           "benchmarks": {
             "livebench_overall": 81.65,
-            "aa_quality": 47.0613568915036,
-            "arena_elo": 1617.0,
+            "aa_quality": 46.9727068915036,
+            "arena_elo": 1620.0,
             "composite_score": 81.65
           }
         },
@@ -914,9 +1090,31 @@
           },
           "benchmarks": {
             "livebench_overall": 80.78,
-            "aa_quality": 38.6291937590607,
-            "arena_elo": 1510.0,
+            "aa_quality": 38.3556437590607,
+            "arena_elo": 1512.0,
             "composite_score": 80.78
+          }
+        },
+        {
+          "model_id": "openai/gpt-6-sol",
+          "display": "GPT-6 Sol (Low)",
+          "provider": "openai",
+          "provider_title": "OpenAI (GPT & Reasoning)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1050000
+          },
+          "benchmarks": {
+            "livebench_overall": 79.82,
+            "aa_quality": 34.1548755585733,
+            "arena_elo": 1689.0,
+            "composite_score": 79.82
           }
         },
         {
@@ -937,7 +1135,7 @@
           "benchmarks": {
             "livebench_overall": 78.8,
             "aa_quality": null,
-            "arena_elo": 1463.0,
+            "arena_elo": 1465.0,
             "composite_score": 78.8
           }
         },
@@ -958,8 +1156,8 @@
           },
           "benchmarks": {
             "livebench_overall": 78.63,
-            "aa_quality": 42.2514998239494,
-            "arena_elo": 1521.0,
+            "aa_quality": 42.0829248239494,
+            "arena_elo": 1519.0,
             "composite_score": 78.63
           }
         },
@@ -1002,9 +1200,31 @@
           },
           "benchmarks": {
             "livebench_overall": 73.69,
-            "aa_quality": 37.5048489690841,
-            "arena_elo": 1519.0,
+            "aa_quality": 37.3244239690841,
+            "arena_elo": 1518.0,
             "composite_score": 73.69
+          }
+        },
+        {
+          "model_id": "openai/gpt-6-luna",
+          "display": "GPT-6 Luna (Xhigh)",
+          "provider": "openai",
+          "provider_title": "OpenAI (GPT & Reasoning)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 0.09999999999999999,
+            "output_per_1m": 0.5,
+            "cache_read_per_1m": 0.01,
+            "price_in_1m": 0.09999999999999999,
+            "price_out_1m": 0.5,
+            "price_cache_1m": 0.01,
+            "context_length": 1050000
+          },
+          "benchmarks": {
+            "livebench_overall": 72.19,
+            "aa_quality": 34.5587320217785,
+            "arena_elo": 1579.0,
+            "composite_score": 72.19
           }
         },
         {
@@ -1024,7 +1244,7 @@
           },
           "benchmarks": {
             "livebench_overall": 70.85,
-            "aa_quality": 21.2442352504557,
+            "aa_quality": 20.7197352504557,
             "arena_elo": null,
             "composite_score": 70.85
           }
@@ -1046,14 +1266,14 @@
           },
           "benchmarks": {
             "livebench_overall": 66.6,
-            "aa_quality": 24.5789419231964,
+            "aa_quality": 24.0682169231964,
             "arena_elo": 1397.0,
             "composite_score": 66.6
           }
         },
         {
           "model_id": "openai/gpt-5.3-codex",
-          "display": "GPT-5.3 Codex (xhigh)",
+          "display": "GPT-5.3 Codex (Xhigh)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1075,7 +1295,7 @@
         },
         {
           "model_id": "openai/gpt-5.2",
-          "display": "GPT-5.2 (xhigh)",
+          "display": "GPT-5.2 (Xhigh)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1091,13 +1311,13 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 30.448181916806,
-            "arena_elo": 1417.0,
+            "arena_elo": 1415.0,
             "composite_score": 45.672272875209
           }
         },
         {
           "model_id": "openai/gpt-5.1",
-          "display": "GPT-5.1 (high)",
+          "display": "GPT-5.1 (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1135,13 +1355,13 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 24.7357540558308,
-            "arena_elo": 1392.0,
+            "arena_elo": 1395.0,
             "composite_score": 37.1036310837462
           }
         },
         {
           "model_id": "openai/gpt-5.1-codex",
-          "display": "GPT-5.1 Codex (high)",
+          "display": "GPT-5.1 Codex (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1157,7 +1377,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 23.6972790075055,
-            "arena_elo": 1336.0,
+            "arena_elo": 1337.0,
             "composite_score": 35.54591851125825
           }
         },
@@ -1179,13 +1399,13 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 23.6972790075055,
-            "arena_elo": 1336.0,
+            "arena_elo": 1337.0,
             "composite_score": 35.54591851125825
           }
         },
         {
           "model_id": "openai/gpt-5",
-          "display": "GPT-5 (high)",
+          "display": "GPT-5 (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1201,7 +1421,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 22.9827995216189,
-            "arena_elo": 1420.0,
+            "arena_elo": 1417.0,
             "composite_score": 34.47419928242835
           }
         },
@@ -1229,7 +1449,7 @@
         },
         {
           "model_id": "openai/gpt-5.1-codex-mini",
-          "display": "GPT-5.1 Codex mini (high)",
+          "display": "GPT-5.1 Codex mini (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1295,7 +1515,7 @@
         },
         {
           "model_id": "openai/gpt-5.4-nano",
-          "display": "GPT-5.4 nano (medium)",
+          "display": "GPT-5.4 nano (Medium)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1317,7 +1537,7 @@
         },
         {
           "model_id": "openai/gpt-5.4-mini",
-          "display": "GPT-5.4 mini (medium)",
+          "display": "GPT-5.4 mini (Medium)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1339,7 +1559,7 @@
         },
         {
           "model_id": "openai/gpt-5-mini",
-          "display": "GPT-5 mini (high)",
+          "display": "GPT-5 mini (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1354,9 +1574,9 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 17.4073881042515,
+            "aa_quality": 16.7730881042515,
             "arena_elo": null,
-            "composite_score": 26.11108215637725
+            "composite_score": 25.15963215637725
           }
         },
         {
@@ -1420,14 +1640,14 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 12.3483931512592,
+            "aa_quality": 11.6028431512592,
             "arena_elo": null,
-            "composite_score": 18.5225897268888
+            "composite_score": 17.4042647268888
           }
         },
         {
           "model_id": "openai/o3-mini",
-          "display": "o3-mini (high)",
+          "display": "o3-mini (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1493,17 +1713,17 @@
         },
         {
           "model_id": "openai/gpt-oss-20b",
-          "display": "gpt-oss-20b (low)",
+          "display": "gpt-oss-20b (Low)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
             "unit": "USD / 1M tokens",
-            "input_per_1m": 0.03,
-            "output_per_1m": 0.13,
-            "cache_read_per_1m": 0.03,
-            "price_in_1m": 0.03,
-            "price_out_1m": 0.13,
-            "price_cache_1m": 0.03,
+            "input_per_1m": 0.018,
+            "output_per_1m": 0.09,
+            "cache_read_per_1m": 0.009,
+            "price_in_1m": 0.018,
+            "price_out_1m": 0.09,
+            "price_cache_1m": 0.009,
             "context_length": 131072
           },
           "benchmarks": {
@@ -1647,7 +1867,7 @@
         },
         {
           "model_id": "openai/gpt-5-nano",
-          "display": "GPT-5 nano (minimal)",
+          "display": "GPT-5 nano (Minimal)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -1773,7 +1993,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1617.0,
+            "arena_elo": 1620.0,
             "composite_score": 0.0
           }
         },
@@ -1795,7 +2015,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1521.0,
+            "arena_elo": 1519.0,
             "composite_score": 0.0
           }
         },
@@ -1817,7 +2037,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1519.0,
+            "arena_elo": 1518.0,
             "composite_score": 0.0
           }
         },
@@ -1839,7 +2059,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1510.0,
+            "arena_elo": 1512.0,
             "composite_score": 0.0
           }
         },
@@ -1883,7 +2103,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1463.0,
+            "arena_elo": 1465.0,
             "composite_score": 0.0
           }
         },
@@ -1905,7 +2125,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1458.0,
+            "arena_elo": 1456.0,
             "composite_score": 0.0
           }
         },
@@ -1927,7 +2147,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1443.0,
+            "arena_elo": 1444.0,
             "composite_score": 0.0
           }
         },
@@ -1949,7 +2169,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1370.0,
+            "arena_elo": 1371.0,
             "composite_score": 0.0
           }
         },
@@ -1970,14 +2190,14 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 26.8042923401368,
+            "aa_quality": 26.0135173401368,
             "arena_elo": null,
-            "composite_score": 40.2064385102052
+            "composite_score": 39.0202760102052
           }
         },
         {
           "model_id": "gpt-5-codex-high",
-          "display": "GPT-5 Codex (high)",
+          "display": "GPT-5 Codex (High)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -2021,7 +2241,7 @@
         },
         {
           "model_id": "hypernova-60b-2605-high-based-on-gpt-oss-120b",
-          "display": "HyperNova 60B 2605 (high, based on gpt-oss-120b)",
+          "display": "HyperNova 60B 2605 (High, Based on gpt-oss-120b)",
           "provider": "openai",
           "provider_title": "OpenAI (GPT & Reasoning)",
           "pricing": {
@@ -2125,7 +2345,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1458.0,
+            "arena_elo": 1456.0,
             "composite_score": 0.0
           }
         },
@@ -2147,7 +2367,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1409.0,
+            "arena_elo": 1408.0,
             "composite_score": 0.0
           }
         }
@@ -2156,7 +2376,7 @@
     "gemini": {
       "title": "Google (Gemini)",
       "icon": "\ud83d\udc8e",
-      "total_tracked": 37,
+      "total_tracked": 38,
       "with_pricing": 16,
       "models": [
         {
@@ -2176,8 +2396,8 @@
           },
           "benchmarks": {
             "livebench_overall": 79.9,
-            "aa_quality": 39.4295316404896,
-            "arena_elo": 1587.0,
+            "aa_quality": 39.0594566404896,
+            "arena_elo": 1592.0,
             "composite_score": 79.9
           }
         },
@@ -2198,8 +2418,8 @@
           },
           "benchmarks": {
             "livebench_overall": 77.49,
-            "aa_quality": 41.1863571765904,
-            "arena_elo": 1568.0,
+            "aa_quality": 40.9262321765904,
+            "arena_elo": 1583.0,
             "composite_score": 77.49
           }
         },
@@ -2221,13 +2441,13 @@
           "benchmarks": {
             "livebench_overall": 75.44,
             "aa_quality": 33.6325871590289,
-            "arena_elo": 1500.0,
+            "arena_elo": 1499.0,
             "composite_score": 75.44
           }
         },
         {
           "model_id": "google/gemini-3.5-flash",
-          "display": "Gemini 3.5 Flash (high)",
+          "display": "Gemini 3.5 Flash (High)",
           "provider": "gemini",
           "provider_title": "Google (Gemini)",
           "pricing": {
@@ -2242,14 +2462,14 @@
           },
           "benchmarks": {
             "livebench_overall": 75.44,
-            "aa_quality": 32.9816033695905,
-            "arena_elo": 1500.0,
+            "aa_quality": 32.5983283695905,
+            "arena_elo": 1499.0,
             "composite_score": 75.44
           }
         },
         {
           "model_id": "google/gemini-3.6-flash",
-          "display": "Gemini 3.6 Flash (high)",
+          "display": "Gemini 3.6 Flash (High)",
           "provider": "gemini",
           "provider_title": "Google (Gemini)",
           "pricing": {
@@ -2264,8 +2484,8 @@
           },
           "benchmarks": {
             "livebench_overall": 74.54,
-            "aa_quality": 34.3395678920714,
-            "arena_elo": 1537.0,
+            "aa_quality": 33.9785928920714,
+            "arena_elo": 1536.0,
             "composite_score": 74.54
           }
         },
@@ -2286,8 +2506,8 @@
           },
           "benchmarks": {
             "livebench_overall": 74.54,
-            "aa_quality": 34.3395678920714,
-            "arena_elo": 1537.0,
+            "aa_quality": 33.9785928920714,
+            "arena_elo": 1536.0,
             "composite_score": 74.54
           }
         },
@@ -2308,8 +2528,8 @@
           },
           "benchmarks": {
             "livebench_overall": 63.82,
-            "aa_quality": 22.6606674839812,
-            "arena_elo": 1447.0,
+            "aa_quality": 22.1685424839812,
+            "arena_elo": 1440.0,
             "composite_score": 63.82
           }
         },
@@ -2330,8 +2550,8 @@
           },
           "benchmarks": {
             "livebench_overall": 63.82,
-            "aa_quality": 22.6606674839812,
-            "arena_elo": 1447.0,
+            "aa_quality": 22.1685424839812,
+            "arena_elo": 1440.0,
             "composite_score": 63.82
           }
         },
@@ -2353,7 +2573,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": 17.9336848163786,
-            "arena_elo": 1438.0,
+            "arena_elo": 1439.0,
             "composite_score": 26.900527224567902
           }
         },
@@ -2374,9 +2594,9 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 16.6573962941864,
-            "arena_elo": 1226.0,
-            "composite_score": 24.986094441279604
+            "aa_quality": 16.0778962941864,
+            "arena_elo": 1227.0,
+            "composite_score": 24.116844441279596
           }
         },
         {
@@ -2396,9 +2616,9 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 16.6573962941864,
-            "arena_elo": 1226.0,
-            "composite_score": 24.986094441279604
+            "aa_quality": 16.0778962941864,
+            "arena_elo": 1227.0,
+            "composite_score": 24.116844441279596
           }
         },
         {
@@ -2418,9 +2638,9 @@
           },
           "benchmarks": {
             "livebench_overall": null,
-            "aa_quality": 16.034238713025,
-            "arena_elo": 1254.0,
-            "composite_score": 24.0513580695375
+            "aa_quality": 15.554288713025,
+            "arena_elo": 1256.0,
+            "composite_score": 23.3314330695375
           }
         },
         {
@@ -2512,6 +2732,28 @@
           }
         },
         {
+          "model_id": "gemini-4-argon-high",
+          "display": "Gemini 4 Argon (High)",
+          "provider": "gemini",
+          "provider_title": "Google (Gemini)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": null,
+            "output_per_1m": null,
+            "cache_read_per_1m": null,
+            "price_in_1m": null,
+            "price_out_1m": null,
+            "price_cache_1m": null,
+            "context_length": null
+          },
+          "benchmarks": {
+            "livebench_overall": null,
+            "aa_quality": 52.5605655745982,
+            "arena_elo": 1680.0,
+            "composite_score": 78.8408483618973
+          }
+        },
+        {
           "model_id": "gemini-3.1-pro-high",
           "display": "Gemini 3.1 Pro (High)",
           "provider": "gemini",
@@ -2528,14 +2770,14 @@
           },
           "benchmarks": {
             "livebench_overall": 77.99,
-            "aa_quality": 30.3596656132261,
-            "arena_elo": 1447.0,
+            "aa_quality": 29.7185656132261,
+            "arena_elo": 1446.0,
             "composite_score": 77.99
           }
         },
         {
           "model_id": "gemini-3-pro-preview-low",
-          "display": "Gemini 3 Pro Preview (low)",
+          "display": "Gemini 3 Pro Preview (Low)",
           "provider": "gemini",
           "provider_title": "Google (Gemini)",
           "pricing": {
@@ -2969,7 +3211,7 @@
           "benchmarks": {
             "livebench_overall": null,
             "aa_quality": null,
-            "arena_elo": 1383.0,
+            "arena_elo": 1384.0,
             "composite_score": 0.0
           }
         }

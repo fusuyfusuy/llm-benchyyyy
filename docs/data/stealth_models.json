@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-17T19:51:02.226002+00:00",
+  "generated_at": "2026-10-02T08:31:31.772864+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "artificial_analysis": "https://artificialanalysis.ai/leaderboards/models",
@@ -11,21 +11,21 @@
   "n_with_lm": 0,
   "models": [
     {
-      "model_id": "stealth/union-alpha",
-      "display": "union-alpha",
-      "display_full": "stealth/union-alpha",
+      "model_id": "stealth/space-bunny-alpha",
+      "display": "space-bunny-alpha",
+      "display_full": "stealth/space-bunny-alpha",
       "provider": "stealth",
-      "name": "Union Alpha",
-      "description": "Union Alpha is a multimodal model built for research, coding, and agentic workflows, while delivering frontier-level performance across a broad range of general-purpose tasks. Union Alpha is a stealth model....",
-      "created": "2026-09-16",
-      "modality": "text+image->text",
+      "name": "Space Bunny Alpha",
+      "description": "Space Bunny Alpha is an anonymous large model with blazing-fast inference, strong coding capabilities and native multimodal input support. It delivers adjustable reasoning effort, and a 1M-token context window. Space...",
+      "created": "2026-09-23",
+      "modality": "text+image+video->text",
       "price_str": "0.00/0.00 ($0)",
       "benchmarks": {
         "aa_slug": null,
         "aa_intelligence": null,
         "lmarena_rank": null,
         "lmarena_elo": null,
-        "openrouter_context": 262144,
+        "openrouter_context": 1000000,
         "capability_q": null
       },
       "coverage": [
