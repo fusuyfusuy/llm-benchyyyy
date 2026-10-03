@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-02T08:31:31.463108+00:00",
+  "generated_at": "2026-10-03T05:00:21.713170+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "opencode_zen_api": "https://opencode.ai/zen/v1/models",
@@ -13,13 +13,14 @@
   "catalog_diff": {
     "added": [
       "fledge-alpha-free",
+      "ling-3.1-flash-free",
       "longcat-2.5-preview-free"
     ],
     "removed": [],
-    "total_current": 14,
+    "total_current": 15,
     "total_previous": 14
   },
-  "n_free": 14,
+  "n_free": 15,
   "n_with_aa": 4,
   "n_with_lm": 2,
   "models": [
@@ -268,6 +269,37 @@
       "composite": null,
       "first_seen": "2026-09-19T05:00:20.992984+00:00",
       "is_new": false
+    },
+    {
+      "model_id": "ling-3.1-flash-free",
+      "display": "ling-3.1-flash",
+      "display_full": "ling-3.1-flash",
+      "provider": "opencode",
+      "source": "oc",
+      "stealth": false,
+      "also_listed": [],
+      "benchmarks": {
+        "aa_slug": null,
+        "aa_intelligence": null,
+        "aa_coding": null,
+        "aa_agentic": null,
+        "aa_median_tps": null,
+        "aa_context": null,
+        "lmarena_rank": null,
+        "lmarena_elo": null,
+        "lmarena_votes": null,
+        "openrouter_context": 262144,
+        "capability_q": null,
+        "p_success": null,
+        "token_multiplier": null,
+        "fgi_score": null
+      },
+      "coverage": [
+        "\u2014"
+      ],
+      "composite": null,
+      "first_seen": "2026-10-03T05:00:21.712203+00:00",
+      "is_new": true
     },
     {
       "model_id": "longcat-2.5-preview-free",
