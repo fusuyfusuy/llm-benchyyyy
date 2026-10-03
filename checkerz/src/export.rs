@@ -25,7 +25,7 @@ pub fn render_markdown(app: &App) -> String {
         format!(
             "{} models ({}){}.",
             app.filtered.len(),
-            if app.tri_only { "tri-verified 3/3" } else { "all evaluated" },
+            if app.tri_only { "dual-verified 2/2" } else { "all evaluated" },
             if app.stale_note.is_empty() { String::new() } else { format!(" · ⚠ {}", app.stale_note) }
         ),
         String::new(),
@@ -86,7 +86,7 @@ pub fn render_html(app: &App) -> String {
         <p class=\"legend\">{} models ({}){}</p>\n\
         <table>\n<thead><tr><th>#</th><th>Model</th><th>Pool</th><th>Conf</th><th>Q</th><th>Reason</th><th>Coding</th><th>Speed</th><th>Ctx</th><th>Price</th><th>Role</th></tr></thead>\n<tbody>\n{rows}</tbody>\n</table>\n</body>\n</html>\n",
         app.filtered.len(),
-        if app.tri_only { "tri-verified 3/3" } else { "all evaluated" },
+        if app.tri_only { "dual-verified 2/2" } else { "all evaluated" },
         if app.stale_note.is_empty() {
             String::new()
         } else {

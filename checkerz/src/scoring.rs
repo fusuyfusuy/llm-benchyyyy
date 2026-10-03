@@ -25,12 +25,10 @@ pub fn row_cost(m: &Model) -> f64 {
     }
     let mut sum = 0.0;
     let mut n = 0;
-    for p in [m.price_in, m.price_out] {
-        if let Some(v) = p {
-            if v.is_finite() {
-                sum += v;
-                n += 1;
-            }
+    for v in [m.price_in, m.price_out].into_iter().flatten() {
+        if v.is_finite() {
+            sum += v;
+            n += 1;
         }
     }
     if n > 0 { sum } else { UNKNOWN_COST }
@@ -182,7 +180,7 @@ fn pool_str(pool: &str) -> String {
         "AGY" => "[AGY]".to_string(),
         "OCGO" => "[OCG]".to_string(),
         "FRONTIER" => "[FRT]".to_string(),
-        p if p.is_empty() => "[API]".to_string(),
+        "" => "[API]".to_string(),
         p => format!("[{}]", &p[..p.len().min(3)]),
     }
 }
@@ -216,7 +214,6 @@ fn features(m: &Model) -> Option<Feat> {
     if eff == Some(0.0) {
         eff = Some(0.0001);
     }
-    let lb = m.livebench.as_ref();
     Some(Feat {
         name: strip_parens(&raw),
         pool: pool_str(&m.pool),
@@ -226,9 +223,13 @@ fn features(m: &Model) -> Option<Feat> {
         bfi: finite(m.bfi_score),
         psucc: finite(m.p_success),
         eff_cost: eff,
-        coding: finite(m.base_metrics.lm_coding).or_else(|| lb.and_then(|l| l.coding)),
-        reasoning: finite(m.base_metrics.aa_reasoning)
-            .or_else(|| lb.and_then(|l| l.reasoning)),
+        coding: finite(m.base_metrics.lm_coding)
+            .or_else(|| finite(m.aa_live_coding))
+            .or_else(|| finite(m.base_metrics.aa_coding)),
+        reasoning: finite(m.aa_live_quality)
+            .or_else(|| finite(m.base_metrics.aa_quality))
+            .or_else(|| finite(m.base_metrics.aa_reasoning))
+            .or_else(|| finite(m.base_metrics.lm_elo)),
         speed: finite(m.base_metrics.speed_tps),
     })
 }

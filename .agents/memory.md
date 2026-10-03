@@ -11,6 +11,10 @@
   (ocgo_live.json, cc_live.json, free_models.json, stealth_models.json),
   and writes live benchmark/pricing radar to Akatsuki (30-Agents/Model-Benchmarks-Live.md)
   with telemetry logging.
+- Dual-source scoring transition: LiveBench decoupled from capability Q, AVI, FGI,
+  and role allocations across bcheck, ccheck, ocheck, and checkerz. Scoring is anchored
+  strictly on Arena.ai (Coding ELO + Global ELO) and Artificial Analysis (Intelligence,
+  Coding, TerminalBench, IFBench, SRE). Confidence badges standard is [2/2].
 
 ## Core Invariants & Architecture Rules
 

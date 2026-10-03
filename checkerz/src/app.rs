@@ -92,7 +92,7 @@ fn matches_search(m: &Model, q: &str) -> bool {
     if hit(&m.display) || hit(&m.provider) {
         return true;
     }
-    if m.model_id.as_deref().is_some_and(|s| hit(s)) {
+    if m.model_id.as_deref().is_some_and(&hit) {
         return true;
     }
     m.aa_aliases.iter().chain(&m.lm_aliases).chain(&m.live_aliases).any(|a| hit(a))
@@ -187,7 +187,7 @@ impl App {
         let mut rows: Vec<usize> = (0..self.all.len()).collect();
 
         if self.tri_only {
-            rows.retain(|&i| pillars(&self.all[i]).coverage_count == 3);
+            rows.retain(|&i| pillars(&self.all[i]).coverage_count >= 2);
         }
         if self.pool != "all" {
             rows.retain(|&i| self.all[i].pool.to_lowercase() == self.pool);
@@ -283,9 +283,9 @@ impl App {
         self.cursor = 0;
         self.apply_filters();
         self.status = if self.tri_only {
-            "Coverage Filter: Tri-Verified (3/3 Only)".to_string()
+            "Coverage Filter: Dual-Verified (2/2 Only)".to_string()
         } else {
-            "Coverage Filter: All Evaluated Models (3/3 · 2/3 · 1/3*)".to_string()
+            "Coverage Filter: All Evaluated Models (2/2 · 1/2*)".to_string()
         };
     }
 
@@ -378,7 +378,7 @@ impl App {
     }
 
     pub fn coverage_label(&self) -> &'static str {
-        if self.tri_only { "[3/3 Only]" } else { "[All Models]" }
+        if self.tri_only { "[2/2 Only]" } else { "[All Models]" }
     }
 
     pub fn is_pareto_idx(&self, filtered_pos: usize) -> bool {
@@ -399,7 +399,7 @@ pub fn partition_matched(models: Vec<Model>) -> (Vec<Model>, usize) {
             continue;
         }
         let p = pillars(&m);
-        if p.has_live || p.has_arena || p.has_aa {
+        if p.has_arena || p.has_aa {
             matched.push(m);
         } else {
             unmatched += 1;
@@ -464,8 +464,8 @@ mod tests {
     fn tri_default_excludes_partial() {
         let a = app();
         assert_eq!(a.filtered.len(), 3);
-        assert_eq!(a.unmatched_count, 0); // single-signal row is matched (count==1), just not tri
-        assert!(a.filtered.iter().all(|&i| pillars(&a.all[i]).coverage_count == 3));
+        assert_eq!(a.unmatched_count, 0); // single-signal row is matched (count==1), just not dual
+        assert!(a.filtered.iter().all(|&i| pillars(&a.all[i]).coverage_count == 2));
     }
 
     #[test]

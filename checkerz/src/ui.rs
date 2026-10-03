@@ -343,7 +343,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     } else {
         lines.push(Line::from(Span::styled(
             format!(
-                " [j/k] Move  [n/p] Page {}/{}  [Enter] Drawer  [R]oles  [d]iff  [b]ase  [P]areto  [e] 3/3  [c/r/s/$] Sort  [?] Help  [q]uit",
+                " [j/k] Move  [n/p] Page {}/{}  [Enter] Drawer  [R]oles  [d]iff  [b]ase  [P]areto  [e] 2/2  [c/r/s/$] Sort  [?] Help  [q]uit",
                 app.page + 1,
                 app.total_pages()
             ),
@@ -606,7 +606,7 @@ fn roles_lines(app: &App) -> Vec<Line<'static>> {
     )));
     out.push(Line::from(format!(
         "• Avg Q: {avg_q:.1} │ Median TPS: {med:.0} │ Pareto: {par} models │ Filter: {}",
-        if app.tri_only { "Tri-Verified (3/3)" } else { "All Models" }
+        if app.tri_only { "Dual-Verified (2/2)" } else { "All Models" }
     )));
     out.push(Line::from(Span::styled(
         "Press [Esc], [q], or [R] to close",
@@ -694,7 +694,7 @@ fn help_lines() -> Vec<Line<'static>> {
         ("R", "Top-50 Role Distribution & Archetypes"),
         ("d", "Side-by-side Capability Diff vs Baseline"),
         ("b", "Pin highlighted model as Baseline [B]"),
-        ("e", "Toggle Tri-Verified (3/3) vs All Evaluated"),
+        ("e", "Toggle Dual-Verified (2/2) vs All Evaluated"),
         ("P", "Toggle Pareto Frontier filter (⭐ only)"),
         ("/", "Live Search by name/provider/alias (Esc cancels)"),
         ("Tab / 1-6", "Filter by pool (ALL, AGY, CLD, OCG, FRT, API)"),

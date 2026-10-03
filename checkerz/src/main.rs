@@ -23,7 +23,7 @@ fn print_help() {
          Options:\n  \
          --data PATH   benchmarks snapshot (default: docs/data/benchmarks.json)\n  \
          -n, --top N   limit to top N models (default: 50, 0 = unlimited)\n  \
-         --all         include all evaluated models (default: tri-verified 3/3 only)\n  \
+         --all         include all evaluated models (default: dual-verified 2/2 only)\n  \
          --plain       accepted for CLI parity; colors follow the terminal\n  \
          --fetch       NOT SUPPORTED here — run `bcheck --fetch` to refresh cache\n  \
          -h, --help    this help"

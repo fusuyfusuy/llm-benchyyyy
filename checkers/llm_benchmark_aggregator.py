@@ -1313,22 +1313,11 @@ def calculate_composite_scores(models_dict):
     z_lm_elo = _z_scores([m.get("base_metrics", {}).get("lm_elo") for m in m_list])
     z_lm_cod = _z_scores([m.get("base_metrics", {}).get("lm_coding") for m in m_list])
 
-    z_live = _z_scores([
-        m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") if isinstance(m.get("livebench"), (int, float)) else None)
-        for m in m_list
-    ])
-    z_live_reas = _z_scores([
-        m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None
-        for m in m_list
-    ])
-
     signals = (
-        (0.200, z_lm_elo),
-        (0.150, z_lm_cod),
+        (0.250, z_lm_elo),
+        (0.250, z_lm_cod),
         (0.250, z_aa_qual),
-        (0.150, z_aa_cod),
-        (0.150, z_live),
-        (0.100, z_live_reas),
+        (0.250, z_aa_cod),
     )
 
     for i, k in enumerate(keys):
@@ -1422,37 +1411,33 @@ BCHECK_COL_MEDAL_KEYS = {
 
 
 def partition_models_by_benchmark_coverage(models_list):
-    """Partition model list into tri-verified cohort (all 3 benchmarks), missing-benchmark sub-cohorts, and unmatched models."""
-    tri_verified = []
-    missing_livebench = []
+    """Partition model list into dual-verified cohort (Arena.ai + Artificial Analysis), missing-benchmark sub-cohorts, and unmatched models."""
+    dual_verified = []
     missing_lmarena = []
     missing_aa = []
     single_source = []
     unmatched = []
 
     for m in models_list:
-        has_live = (m.get("livebench", {}).get("overall") is not None) if isinstance(m.get("livebench"), dict) else (m.get("livebench") is not None)
         has_arena = m.get("base_metrics", {}).get("lm_elo") is not None
         has_aa = (m.get("aa_live_quality") is not None) or (m.get("base_metrics", {}).get("aa_quality") is not None)
 
-        count = (1 if has_live else 0) + (1 if has_arena else 0) + (1 if has_aa else 0)
-        if count == 3:
-            tri_verified.append(m)
-        elif count == 2:
-            if not has_live:
-                missing_livebench.append(m)
-            elif not has_arena:
+        count = (1 if has_arena else 0) + (1 if has_aa else 0)
+        if count == 2:
+            dual_verified.append(m)
+        elif count == 1:
+            if not has_arena:
                 missing_lmarena.append(m)
             elif not has_aa:
                 missing_aa.append(m)
-        elif count == 1:
             single_source.append(m)
         else:
             unmatched.append(m)
 
     return {
-        "tri_verified": tri_verified,
-        "missing_livebench": missing_livebench,
+        "tri_verified": dual_verified,
+        "dual_verified": dual_verified,
+        "missing_livebench": [],
         "missing_lmarena": missing_lmarena,
         "missing_aa": missing_aa,
         "single_source": single_source,
@@ -1704,11 +1689,11 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     # 1. Executive Summary Banner
-    title_str = "⚡ TRI-VERIFIED AGENTIC RADAR (LiveBench · Arena.ai · AA)"
+    title_str = "⚡ DUAL-VERIFIED AGENTIC RADAR (Arena.ai · Artificial Analysis)"
     f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score') or 0.0:.1f})" if top_frontier and top_frontier.get("fgi_score") is not None else ""
     v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score') or 0.0:.1f})" if top_avi and top_avi.get("avi_score") is not None else ""
     s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed.get('base_metrics', {}).get('speed_tps') or 0.0:.0f}t/s)" if top_speed and top_speed.get("base_metrics", {}).get("speed_tps") is not None else ""
-    count_label = f"Tri-Verified: {total_tri} models (Top {shown_models} shown)" if shown_models < total_tri else f"Tri-Verified: {total_tri} models"
+    count_label = f"Dual-Verified: {total_tri} models (Top {shown_models} shown)" if shown_models < total_tri else f"Dual-Verified: {total_tri} models"
     if is_slim:
         summary_str = f" {count_label} │ {f_info} │ {v_info}"
     else:
@@ -1733,7 +1718,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" TRI-VERIFIED BENCHMARK & COST-BENEFIT RADAR (LiveBench · Arena · AA) — {count_label}",
+        plain_title_line=f" DUAL-VERIFIED BENCHMARK & COST-BENEFIT RADAR (Arena · AA) — {count_label}",
         plain_diff_parts=diff_parts,
     ))
 
@@ -1913,7 +1898,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
             ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
-            ("Q(Cap)", "Capability (40–99.9) across Arena, LiveBench, AA.", C_GREEN),
+            ("Q(Cap)", "Capability (40–99.9) across Arena.ai and AA.", C_GREEN),
             ("FGI", "Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.", C_GREEN),
             ("AVI", "Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.", C_GREEN),
             ("Eff $/M", "Real Cost/Task: Price × retry multiplier (T_mult).", C_GREEN),
@@ -2117,17 +2102,14 @@ def render_one_shot_cli_table(
         s_badge = medal_badge(meds.get("speed"), color=color)
 
         cov = pl["coverage_count"]
-        if cov == 3:
-            conf_str = "[3/3]"
+        if cov >= 2:
+            conf_str = "[2/2]"
             conf_color = C_GREEN
-        elif cov == 2:
-            conf_str = "[2/3]"
-            conf_color = C_YELLOW
         elif cov == 1:
-            conf_str = "[1/3]*"
-            conf_color = C_MAGENTA
+            conf_str = "[1/2]*"
+            conf_color = C_YELLOW
         else:
-            conf_str = "[0/3]"
+            conf_str = "[0/2]"
             conf_color = C_GRAY
 
         q_val = m.get("capability_q")
@@ -2260,11 +2242,10 @@ def render_one_shot_cli_table(
         [
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
-            ("Conf [3/3]", "Tri-Verified across Arena.ai + LiveBench + Artificial Analysis.", C_GREEN),
-            ("Conf [2/3]", "Dual-Evaluated across 2 upstream benchmark authorities.", C_YELLOW),
-            ("Conf [1/3]*", "Single-Benchmark or emerging model (use with awareness).", C_MAGENTA),
-            ("Reason", "Decontaminated Reasoning capability % (LiveBench / AA).", C_GREEN),
-            ("Coding", "Decontaminated Coding capability % (LiveBench / LMSYS Arena).", C_GREEN),
+            ("Conf [2/2]", "Dual-Verified across Arena.ai + Artificial Analysis.", C_GREEN),
+            ("Conf [1/2]*", "Single-Benchmark or emerging model (use with awareness).", C_YELLOW),
+            ("Reason", "Reasoning capability % (AA Intelligence / Quality / Arena).", C_GREEN),
+            ("Coding", "Coding capability % (LMSYS Coding Arena / AA Coding).", C_GREEN),
             ("Speed", "Hardware generation throughput in tokens/second.", C_CYAN),
             ("Ctx", "Active context window size (tokens).", C_WHITE),
         ],
@@ -2476,12 +2457,12 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
 
     lines = [
         f"# {title}\n",
-        f"Consolidated capability & cost-efficiency benchmark across **LiveBench** (https://livebench.ai), **LMArena / Arena.ai**, **Artificial Analysis**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models**.",
+        f"Consolidated capability & cost-efficiency benchmark across **Arena.ai**, **Artificial Analysis**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models**.",
         "",
-        "## 1. Tri-Verified Master Leaderboard (All 3 Benchmarks Verified)",
+        "## 1. Dual-Verified Master Leaderboard (Arena.ai + Artificial Analysis)",
     ]
     if len(display_models) < total_tri:
-        lines.append(f"_Showing top {len(display_models)} of {total_tri} tri-verified models._")
+        lines.append(f"_Showing top {len(display_models)} of {total_tri} dual-verified models._")
     lines.extend([
         "",
         "| Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | AVI (Value) | FGI (Gate) | LiveBench (%) | Arena Elo | AA Quality | Raw $/M |",
@@ -2755,10 +2736,10 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 <body>
 <div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
-    <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · Agentic Value Index (AVI)</div>
+    <div class="sub">Arena.ai · Artificial Analysis · Agentic Value Index (AVI)</div>
     {f'<div class="legend">⚠ {html.escape(stale_note)}</div>' if stale_note else ""}
 
-    <h2>1. Tri-Verified Master Leaderboard (LiveBench · Arena · AA)</h2>
+    <h2>1. Dual-Verified Master Leaderboard (Arena.ai · Artificial Analysis)</h2>
     <table id="tbl">
         <thead>
             <tr>
@@ -2912,7 +2893,7 @@ def main():
     elif args.sort == "coding":
         models.sort(key=lambda m: (m.get("base_metrics", {}).get("lm_coding") or m.get("aa_live_coding") or 0.0), reverse=True)
     elif args.sort == "reasoning":
-        models.sort(key=lambda m: (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None) or m.get("base_metrics", {}).get("aa_reasoning") or m.get("aa_live_reasoning") or 0.0, reverse=True)
+        models.sort(key=lambda m: (m.get("aa_live_quality") or m.get("base_metrics", {}).get("aa_quality") or m.get("base_metrics", {}).get("aa_reasoning") or m.get("aa_live_reasoning") or 0.0), reverse=True)
     elif args.sort == "speed":
         models.sort(key=lambda m: (m.get("base_metrics", {}).get("speed_tps") or 0.0), reverse=True)
     elif args.sort == "live":

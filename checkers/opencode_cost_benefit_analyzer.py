@@ -1838,8 +1838,6 @@ def main():
             coverage.append("AA")
         if b["lmarena_elo"] is not None:
             coverage.append("LM")
-        if b.get("livebench") and b["livebench"].get("overall") is not None:
-            coverage.append("Live")
         if not coverage:
             coverage = ["—"]
         r["coverage"] = coverage
@@ -1848,15 +1846,13 @@ def main():
         weights = []
         z_parts = []
         if b["aa_intelligence"] is not None:
-            weights.append(0.30); z_parts.append(0.30 * z_int[i])
+            weights.append(0.35); z_parts.append(0.35 * z_int[i])
         if b["aa_coding"] is not None:
-            weights.append(0.20); z_parts.append(0.20 * z_cod[i])
+            weights.append(0.25); z_parts.append(0.25 * z_cod[i])
         if b["aa_agentic"] is not None:
-            weights.append(0.15); z_parts.append(0.15 * z_age[i])
+            weights.append(0.20); z_parts.append(0.20 * z_age[i])
         if b["lmarena_elo"] is not None:
-            weights.append(0.15); z_parts.append(0.15 * z_elo[i])
-        if b.get("livebench") and b["livebench"].get("overall") is not None:
-            weights.append(0.20); z_parts.append(0.20 * z_live[i])
+            weights.append(0.20); z_parts.append(0.20 * z_elo[i])
         if not weights:
             b["composite_score"] = None
             b["capability_q"] = None

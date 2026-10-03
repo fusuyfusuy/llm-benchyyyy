@@ -790,6 +790,14 @@ def parse_aa(html_text: str, verbose: bool = False) -> dict:
                 "medianTps": _safe_float(m.get("medianOutputTokensPerSecond")),
                 "price_in": _safe_float(m.get("price1mInputTokens")),
                 "price_out": _safe_float(m.get("price1mOutputTokens")),
+                "terminalbenchHard": _safe_float(m.get("terminalbenchHard")),
+                "itbenchSre": _safe_float(m.get("itbenchSre")),
+                "tau2": _safe_float(m.get("tau2")),
+                "ifbench": _safe_float(m.get("ifbench")),
+                "gpqa": _safe_float(m.get("gpqa")),
+                "hle": _safe_float(m.get("hle")),
+                "scicode": _safe_float(m.get("scicode")),
+                "omniscienceAccuracy": _safe_float(m.get("omniscienceAccuracy")),
             }
     except Exception as e:
         if verbose:
@@ -1459,15 +1467,16 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
     coding = _safe_float(
         m.get("base_metrics", {}).get("lm_coding")
         or m.get("benchmarks", {}).get("aa_coding")
-        or (m.get("livebench", {}).get("coding") if isinstance(m.get("livebench"), dict) else None)
-        or (m.get("benchmarks", {}).get("livebench", {}).get("coding") if isinstance(m.get("benchmarks", {}).get("livebench"), dict) else None),
+        or m.get("base_metrics", {}).get("aa_coding")
+        or m.get("benchmarks", {}).get("terminalbenchHard"),
         default=None,
     )
     
     reasoning = _safe_float(
         m.get("benchmarks", {}).get("aa_intelligence")
+        or m.get("base_metrics", {}).get("aa_quality")
         or m.get("base_metrics", {}).get("aa_reasoning")
-        or (m.get("livebench", {}).get("reasoning") if isinstance(m.get("livebench"), dict) else None),
+        or m.get("base_metrics", {}).get("lm_elo"),
         default=None,
     )
     
@@ -2018,21 +2027,19 @@ def format_context_window(tokens: int | float | None) -> str:
 
 
 def extract_capability_pillars(m: dict) -> dict:
-    """Extract normalized capability dimensions across LiveBench, LMSYS Arena, and Artificial Analysis."""
+    """Extract normalized capability dimensions across LMSYS Arena and Artificial Analysis."""
     bm = m.get("base_metrics", {})
-    lb = m.get("livebench", {}) if isinstance(m.get("livebench"), dict) else {}
-    lb_cats = lb.get("categories", {}) if isinstance(lb, dict) else {}
 
-    reason = lb_cats.get("Reasoning") or lb.get("reasoning") or bm.get("aa_reasoning")
-    coding = lb_cats.get("Coding") or lb.get("coding") or bm.get("aa_coding")
+    reason = bm.get("aa_quality") or bm.get("aa_reasoning") or m.get("aa_live_quality") or bm.get("lm_elo")
+    coding = bm.get("aa_coding") or m.get("aa_live_coding") or bm.get("lm_coding")
     coding_elo = bm.get("lm_coding")
     speed = bm.get("speed_tps")
     ctx = m.get("context_length") or bm.get("context_length")
 
-    has_live = (lb.get("overall") is not None) if lb else (m.get("livebench") is not None)
+    has_live = False
     has_arena = bm.get("lm_elo") is not None
     has_aa = (m.get("aa_live_quality") is not None) or (bm.get("aa_quality") is not None)
-    coverage_count = (1 if has_live else 0) + (1 if has_arena else 0) + (1 if has_aa else 0)
+    coverage_count = (1 if has_arena else 0) + (1 if has_aa else 0)
 
     # Determine recommended role archetype
     q_val = _safe_float(m.get("capability_q") or m.get("composite_score"))

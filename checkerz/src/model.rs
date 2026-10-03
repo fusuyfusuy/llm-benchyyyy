@@ -117,11 +117,9 @@ impl Model {
         if !self.display.is_empty() {
             ids.push(self.display.as_str());
         }
-        for opt in [&self.model_id, &self.or_slug, &self.aa_slug, &self.lm_slug] {
-            if let Some(s) = opt {
-                if !s.is_empty() {
-                    ids.push(s.as_str());
-                }
+        for s in [&self.model_id, &self.or_slug, &self.aa_slug, &self.lm_slug].into_iter().flatten() {
+            if !s.is_empty() {
+                ids.push(s.as_str());
             }
         }
         for a in self
@@ -160,7 +158,6 @@ pub struct Pillars {
     pub speed: Option<f64>,
     pub context_length: Option<i64>,
     pub coverage_count: u8,
-    pub has_live: bool,
     pub has_arena: bool,
     pub has_aa: bool,
     pub best_role: String,
@@ -168,16 +165,19 @@ pub struct Pillars {
 
 /// Normalized capability dimensions across LiveBench, LMSYS Arena, AA.
 pub fn pillars(m: &Model) -> Pillars {
-    let lb = m.livebench.as_ref();
-    let cats = lb.map(|l| &l.categories);
-    let cat = |k: &str| cats.and_then(|c| c.get(k)).copied().filter(|v| v.is_finite());
+    let reasoning = m
+        .aa_live_quality
+        .filter(|v| v.is_finite())
+        .or_else(|| m.base_metrics.aa_quality.filter(|v| v.is_finite()))
+        .or_else(|| m.base_metrics.aa_reasoning.filter(|v| v.is_finite()))
+        .or_else(|| m.base_metrics.lm_elo.filter(|v| v.is_finite()));
 
-    let reasoning = cat("Reasoning")
-        .or_else(|| lb.and_then(|l| l.reasoning).filter(|v| v.is_finite()))
-        .or_else(|| m.base_metrics.aa_reasoning.filter(|v| v.is_finite()));
-    let coding = cat("Coding")
-        .or_else(|| lb.and_then(|l| l.coding).filter(|v| v.is_finite()))
-        .or_else(|| m.base_metrics.aa_coding.filter(|v| v.is_finite()));
+    let coding = m
+        .aa_live_coding
+        .filter(|v| v.is_finite())
+        .or_else(|| m.base_metrics.aa_coding.filter(|v| v.is_finite()))
+        .or_else(|| m.base_metrics.lm_coding.filter(|v| v.is_finite()));
+
     let coding_elo = m
         .base_metrics
         .lm_coding
@@ -190,11 +190,10 @@ pub fn pillars(m: &Model) -> Pillars {
         .filter(|v| v.is_finite() && *v > 0.0)
         .map(|v| v as i64);
 
-    let has_live = lb.and_then(|l| l.overall).is_some_and(|v| v.is_finite());
     let has_arena = m.base_metrics.lm_elo.is_some_and(|v| v.is_finite());
     let has_aa = m.aa_live_quality.is_some_and(|v| v.is_finite())
         || m.base_metrics.aa_quality.is_some_and(|v| v.is_finite());
-    let coverage_count = [has_live, has_arena, has_aa]
+    let coverage_count = [has_arena, has_aa]
         .iter()
         .filter(|&&b| b)
         .count() as u8;
@@ -225,20 +224,18 @@ pub fn pillars(m: &Model) -> Pillars {
         speed,
         context_length: ctx,
         coverage_count,
-        has_live,
         has_arena,
         has_aa,
         best_role,
     }
 }
 
-/// `[3/3]` / `[2/3]` / `[1/3]*` / `[0/3]` coverage badge.
+/// `[2/2]` / `[1/2]*` / `[0/2]` coverage badge.
 pub fn conf_badge(coverage: u8) -> &'static str {
     match coverage {
-        3 => "[3/3]",
-        2 => "[2/3]",
-        1 => "[1/3]*",
-        _ => "[0/3]",
+        2 => "[2/2]",
+        1 => "[1/2]*",
+        _ => "[0/2]",
     }
 }
 
@@ -315,27 +312,25 @@ mod tests {
     }
 
     #[test]
-    fn tri_coverage_counts_three() {
-        assert_eq!(pillars(&m("a", Some(90.0), true, true, true)).coverage_count, 3);
+    fn dual_coverage_counts_two() {
+        assert_eq!(pillars(&m("a", Some(90.0), true, true, true)).coverage_count, 2);
     }
 
     #[test]
-    fn empty_livebench_scores_zero_not_one() {
-        // Python `lb or livebench is not None` marks `{}` live; we require overall.
-        let p = pillars(&m("a", Some(90.0), false, true, true));
-        assert!(!p.has_live);
-        assert_eq!(p.coverage_count, 2);
+    fn dual_coverage_without_arena_is_one() {
+        let p = pillars(&m("a", Some(90.0), false, false, true));
+        assert_eq!(p.coverage_count, 1);
     }
 
     #[test]
     fn first_some_wins_over_zero_eating_or_chain() {
-        let lb = Livebench {
-            categories: [("Reasoning".into(), 0.0)].into_iter().collect(),
-            reasoning: Some(91.0),
-            ..Default::default()
-        };
+        assert_eq!(first_some(Some(0.0), Some(91.0)), Some(0.0));
         let p = pillars(&Model {
-            livebench: Some(lb),
+            aa_live_quality: Some(0.0),
+            base_metrics: BaseMetrics {
+                aa_quality: Some(91.0),
+                ..Default::default()
+            },
             ..Default::default()
         });
         assert_eq!(p.reasoning, Some(0.0));
