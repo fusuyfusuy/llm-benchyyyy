@@ -253,6 +253,58 @@ MODELS_CATALOG = {
             "speed_tps": 180.0,
         },
     },
+    'claude-opus-5-5': {
+        "display": 'Claude Opus 5.5',
+        "provider": 'Anthropic',
+        "pool": 'agy',
+        "tier": 'Flagship Reasoning / Architecture',
+        "sub_cost": 'AGY Sub (Gemini Plans)',
+        "price_in": 4.0,
+        "price_out": 20.0,
+        "live_aliases": [
+            'claude-opus-5-5-max-effort', 'claude-opus-5-5-xhigh-effort',
+            'claude-opus-5-5', 'claude-opus-5.5',
+            'claude-opus-5-5-high', 'claude-opus-5-5-medium', 'claude-opus-5-5-low',
+        ],
+        "lm_aliases": [
+            'claude-opus-5.5-max', 'claude-opus-5.5', 'claude-opus-5-5',
+            'opus-5-5', 'opus-5.5', 'claude-opus-5.5-high',
+            'claude-opus-5-5-high', 'claude-opus-5-5-medium', 'claude-opus-5-5-low',
+        ],
+        "aa_aliases": [
+            'claude-opus-5-5', 'claude-opus-5.5',
+            'claude-opus-5-5-high', 'claude-opus-5-5-medium', 'claude-opus-5-5-low', 'claude-opus-5-5-xhigh',
+        ],
+        "base_metrics": {
+            "speed_tps": 60.0,
+        },
+    },
+    'claude-sonnet-5-5': {
+        "display": 'Claude Sonnet 5.5',
+        "provider": 'Anthropic',
+        "pool": 'agy',
+        "tier": 'Elite Coding / Pair Coder',
+        "sub_cost": 'AGY Sub (Gemini Plans)',
+        "price_in": 2.0,
+        "price_out": 10.0,
+        "live_aliases": [
+            'claude-sonnet-5-5-max-effort', 'claude-sonnet-5-5-xhigh-effort',
+            'claude-sonnet-5-5', 'claude-sonnet-5.5',
+            'claude-sonnet-5-5-high', 'claude-sonnet-5-5-medium', 'claude-sonnet-5-5-low',
+        ],
+        "lm_aliases": [
+            'claude-sonnet-5.5-high', 'claude-sonnet-5.5-xhigh', 'claude-sonnet-5-5-high',
+            'claude-sonnet-5-5-xhigh', 'claude-sonnet-5.5', 'claude-sonnet-5-5',
+            'sonnet-5-5', 'sonnet-5.5', 'claude-sonnet-5-5-medium', 'claude-sonnet-5-5-low',
+        ],
+        "aa_aliases": [
+            'claude-sonnet-5-5', 'claude-sonnet-5.5',
+            'claude-sonnet-5-5-high', 'claude-sonnet-5-5-medium', 'claude-sonnet-5-5-low', 'claude-sonnet-5-5-xhigh',
+        ],
+        "base_metrics": {
+            "speed_tps": 75.0,
+        },
+    },
     'gpt-5.6-sol': {
         "display": 'GPT-5.6 Sol (Reasoning)',
         "provider": 'OpenAI',
@@ -2396,8 +2448,7 @@ def render_sub_table_html(sub_models, title, top_n=10):
         elo_str = _int_str(bm.get("lm_elo"))
         aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
-        trs.append(f"""
-        <tr>
+        trs.append(f"""        <tr>
             <td style="font-weight:700; text-align:center;">#{i}</td>
             <td style="font-weight:600;">{html.escape(m['display'])}</td>
             <td><span class="badge {pool_cls}">{m['pool'].upper()}</span></td>
@@ -2409,8 +2460,8 @@ def render_sub_table_html(sub_models, title, top_n=10):
             <td>{elo_str}</td>
             <td>{aa_str}</td>
             <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
-        </tr>
-        """)
+        </tr>""".strip())
+    trs_html = "\n            ".join(trs)
     return f"""
     <h3>{html.escape(title)}</h3>
     <table>
@@ -2430,10 +2481,10 @@ def render_sub_table_html(sub_models, title, top_n=10):
             </tr>
         </thead>
         <tbody>
-            {''.join(trs)}
+            {trs_html}
         </tbody>
     </table>
-    """
+    """.strip()
 
 
 def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int | None = 30, unmatched_models=None):
@@ -2637,8 +2688,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         fgi_val = m.get('fgi_score')
         fgi_str = f"{fgi_val:.1f}" if fgi_val is not None else "—"
 
-        trs.append(f"""
-        <tr{row_cls}>
+        trs.append(f"""        <tr{row_cls}>
             <td style="font-weight:600;">{name_html}</td>
             <td><span class="badge {pool_cls}">{m['pool'].upper()}</span></td>
             <td>{html.escape(m['tier'])}</td>
@@ -2651,8 +2701,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             <td>{bm.get('lm_coding', '—')}</td>
             <td>{bm.get('speed_tps', '—')} t/s</td>
             <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
-        </tr>
-        """)
+        </tr>""".strip())
 
     podium_cols = [
         ("Q(Cap) — Capability", lambda m: m.get("capability_q") or 0.0, True, lambda m: m.get("capability_q") is not None, lambda m: f"{m.get('capability_q') or 0.0:.1f}"),
@@ -2680,14 +2729,12 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
                 cells.append(f"<b>{html.escape(m['display'])}</b> <small style='color:#94a3b8;'>{p_badge}</small> <span style='color:#f59e0b;'>({val})</span>")
             else:
                 cells.append("—")
-        podium_trs.append(f"""
-        <tr>
+        podium_trs.append(f"""        <tr>
             <td style="font-weight:600; color:#38bdf8;">{col_label}</td>
             <td>{cells[0]}</td>
             <td>{cells[1]}</td>
             <td>{cells[2]}</td>
-        </tr>
-        """)
+        </tr>""".strip())
 
     # Sub-tables HTML
     sub_tables_html = []
@@ -2758,12 +2805,12 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             </tr>
         </thead>
         <tbody>
-            {''.join(trs)}
+            {'\n            '.join(trs)}
         </tbody>
     </table>
 
     <h2>2. Models with Partial / Missing Benchmark Evaluations</h2>
-    {''.join(sub_tables_html)}
+    {'\n'.join(sub_tables_html)}
 
     <h2>3. Column Winners & Podium Leaders (1st 🥇 · 2nd 🥈 · 3rd 🥉)</h2>
     <table>
@@ -2776,7 +2823,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             </tr>
         </thead>
         <tbody>
-            {''.join(podium_trs)}
+            {'\n            '.join(podium_trs)}
         </tbody>
     </table>
 

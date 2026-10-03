@@ -25,8 +25,12 @@ This document lists supported model identifiers, provider mappings, and reasonin
 | `gemini-3.6-flash-low` | Gemini 3.6 Flash (Low) | Low |
 | `gemini-3.1-pro-high` | Gemini 3.1 Pro (High) | High |
 | `gemini-3.1-pro-low` | Gemini 3.1 Pro (Low) | Low |
-| `claude-sonnet-4-6` | Claude Sonnet 4.6 (Thinking) | Adaptive |
-| `claude-opus-4-6-thinking` | Claude Opus 4.6 (Thinking) | Adaptive |
+| `claude-opus-5-5-high` | Claude Opus 5.5 (High) | High |
+| `claude-opus-5-5-medium` | Claude Opus 5.5 (Medium) | Medium |
+| `claude-opus-5-5-low` | Claude Opus 5.5 (Low) | Low |
+| `claude-sonnet-5-5-high` | Claude Sonnet 5.5 (High) | High |
+| `claude-sonnet-5-5-medium` | Claude Sonnet 5.5 (Medium) | Medium |
+| `claude-sonnet-5-5-low` | Claude Sonnet 5.5 (Low) | Low |
 | `gpt-oss-120b-medium` | GPT-OSS 120B (Medium) | Medium |
 
 ---

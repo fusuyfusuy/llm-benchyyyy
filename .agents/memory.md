@@ -15,6 +15,10 @@
   and role allocations across bcheck, ccheck, ocheck, and checkerz. Scoring is anchored
   strictly on Arena.ai (Coding ELO + Global ELO) and Artificial Analysis (Intelligence,
   Coding, TerminalBench, IFBench, SRE). Confidence badges standard is [2/2].
+- Gemini / AGY subscription models update: Claude Opus 5.5 and Claude Sonnet 5.5
+  integrated into the AGY pool (`pool: 'agy'`) with built-in Antigravity effort tiers
+  (claude-opus-5-5-low|medium|high, claude-sonnet-5-5-low|medium|high), unlocking frontier
+  architecture and pair coding roles under Gemini / AGY plans.
 
 ## Core Invariants & Architecture Rules
 

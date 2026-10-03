@@ -109,10 +109,10 @@ tr.free { opacity: 0.6; }
 <body>
 <div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
-    <div class="sub">Arena.ai · LiveBench (https://livebench.ai) · Agentic Value Index (AVI)</div>
+    <div class="sub">Arena.ai · Artificial Analysis · Agentic Value Index (AVI)</div>
     
 
-    <h2>1. Tri-Verified Master Leaderboard (LiveBench · Arena · AA)</h2>
+    <h2>1. Dual-Verified Master Leaderboard (Arena.ai · Artificial Analysis)</h2>
     <table id="tbl">
         <thead>
             <tr>
@@ -131,624 +131,430 @@ tr.free { opacity: 0.6; }
             </tr>
         </thead>
         <tbody>
-            
-        <tr class='added'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Claude Fable-5-1-max</span> <span class='badge badge-new'>+NEW</span></td>
-            <td><span class="badge ">API</span></td>
-            <td>Arena Model</td>
-            <td style="font-weight:700; color:#2563eb;">98.5</td>
-            <td>96.0%</td>
+            <tr>
+            <td style="font-weight:600;">Claude Opus 5.5</td>
+            <td><span class="badge badge-agy">AGY</span></td>
+            <td>Flagship Reasoning / Architecture</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>$7.78</td>
+            <td style="font-weight:700; color:#10b981;">259.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
+            <td style="font-weight:600; color:#f59e0b;">83.2%</td>
             <td>—</td>
-            <td style="font-weight:700; color:#10b981;">—</td>
-            <td style="font-weight:700; color:#8b5cf6;">92.6</td>
-            <td style="font-weight:600; color:#f59e0b;">83.8%</td>
-            <td>—</td>
-            <td>68.6652738479034 t/s</td>
-            <td>—/—</td>
+            <td>93.0146317747311 t/s</td>
+            <td>$4/$20</td>
         </tr>
-        
-        <tr class='added pareto'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+GPT-6 Astra (xhigh)</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr class='added pareto'>
+            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Claude Sonnet 5.5</span> <span class='badge badge-new'>+NEW</span></td>
+            <td><span class="badge badge-agy">AGY</span></td>
+            <td>Elite Coding / Pair Coder</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>$3.89</td>
+            <td style="font-weight:700; color:#10b981;">342.6</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
+            <td style="font-weight:600; color:#f59e0b;">75.8%</td>
+            <td>—</td>
+            <td>138.974635824399 t/s</td>
+            <td>$2/$10</td>
+        </tr>
+            <tr class='added pareto'>
+            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+GPT-6.1 Sol (Xhigh)</span> <span class='badge badge-new'>+NEW</span></td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">98.3</td>
-            <td>95.9%</td>
-            <td>$19.62</td>
-            <td style="font-weight:700; color:#10b981;">182.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">92.3</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>$3.89</td>
+            <td style="font-weight:700; color:#10b981;">342.6</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
+            <td style="font-weight:600; color:#f59e0b;">81.8%</td>
+            <td>—</td>
+            <td>50.5413403802954 t/s</td>
+            <td>$2/$10</td>
+        </tr>
+            <tr>
+            <td style="font-weight:600;">GPT-6 Astra (Xhigh)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>$19.44</td>
+            <td style="font-weight:700; color:#10b981;">189.7</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
             <td style="font-weight:600; color:#f59e0b;">83.0%</td>
             <td>—</td>
-            <td>50.5675288425309 t/s</td>
+            <td>49.371816323629 t/s</td>
             <td>$10/$50</td>
         </tr>
-        
-        <tr class='added pareto'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr class='added'>
+            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+GPT 6.1 Sol-max</span> <span class='badge badge-new'>+NEW</span></td>
             <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">96.5</td>
-            <td>95.0%</td>
-            <td>$20.16</td>
-            <td style="font-weight:700; color:#10b981;">173.9</td>
-            <td style="font-weight:700; color:#8b5cf6;">89.4</td>
+            <td>Benchmark Model</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>—</td>
+            <td style="font-weight:700; color:#10b981;">—</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
+            <td style="font-weight:600; color:#f59e0b;">82.5%</td>
+            <td>—</td>
+            <td>54.9381971854246 t/s</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:600;">Claude Fable-5-1-max</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>—</td>
+            <td style="font-weight:700; color:#10b981;">—</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
             <td style="font-weight:600; color:#f59e0b;">83.8%</td>
             <td>—</td>
-            <td>51.6261141061843 t/s</td>
+            <td>67.4584686437973 t/s</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:600;">Claude Fable-5.1-max</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">99.9</td>
+            <td>96.6%</td>
+            <td>—</td>
+            <td style="font-weight:700; color:#10b981;">—</td>
+            <td style="font-weight:700; color:#8b5cf6;">94.8</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>67.4584686437973 t/s</td>
+            <td>—/—</td>
+        </tr>
+            <tr class='added pareto'>
+            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Gemini 4 Argon (High)</span> <span class='badge badge-new'>+NEW</span></td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">98.7</td>
+            <td>96.1%</td>
+            <td>$3.92</td>
+            <td style="font-weight:700; color:#10b981;">332.5</td>
+            <td style="font-weight:700; color:#8b5cf6;">93.0</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>60.0 t/s</td>
+            <td>$2/$10</td>
+        </tr>
+            <tr>
+            <td style="font-weight:600;">Claude Fable 5.1 (Low, Default Fallback)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">98.6</td>
+            <td>96.1%</td>
+            <td>$19.62</td>
+            <td style="font-weight:700; color:#10b981;">183.8</td>
+            <td style="font-weight:700; color:#8b5cf6;">92.9</td>
+            <td style="font-weight:600; color:#f59e0b;">83.8%</td>
+            <td>—</td>
+            <td>51.7082550643765 t/s</td>
             <td>$10/$50</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600;">Claude Opus 5 (Thinking)</td>
             <td><span class="badge badge-cld">CLAUDE</span></td>
             <td>Flagship Reasoning / Complex Gates</td>
-            <td style="font-weight:700; color:#2563eb;">95.1</td>
-            <td>94.1%</td>
-            <td>$10.26</td>
-            <td style="font-weight:700; color:#10b981;">210.1</td>
-            <td style="font-weight:700; color:#8b5cf6;">86.8</td>
+            <td style="font-weight:700; color:#2563eb;">97.4</td>
+            <td>95.5%</td>
+            <td>$9.90</td>
+            <td style="font-weight:700; color:#10b981;">224.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">90.9</td>
             <td style="font-weight:600; color:#f59e0b;">80.5%</td>
             <td>—</td>
-            <td>52.51679147686 t/s</td>
+            <td>57.6617309105797 t/s</td>
             <td>$5/$25</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600;">Claude Fable 5 (High)</td>
             <td><span class="badge badge-cld">CLAUDE</span></td>
             <td>Elite Creative / Agent</td>
-            <td style="font-weight:700; color:#2563eb;">94.9</td>
-            <td>94.0%</td>
-            <td>$20.52</td>
-            <td style="font-weight:700; color:#10b981;">166.7</td>
-            <td style="font-weight:700; color:#8b5cf6;">86.5</td>
+            <td style="font-weight:700; color:#2563eb;">96.0</td>
+            <td>94.7%</td>
+            <td>$20.16</td>
+            <td style="font-weight:700; color:#10b981;">171.9</td>
+            <td style="font-weight:700; color:#8b5cf6;">88.5</td>
             <td style="font-weight:600; color:#f59e0b;">83.4%</td>
             <td>—</td>
-            <td>63.2610749185863 t/s</td>
+            <td>65.3256895864289 t/s</td>
             <td>$10/$50</td>
         </tr>
-        
-        <tr class='added pareto'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Muse Spark 1.3 (Max)</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr class='pareto'>
+            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Qwen3.8 Max</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
+            <td><span class="badge ">API</span></td>
+            <td>Tier 1 — High Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">95.8</td>
+            <td>94.6%</td>
+            <td>$3.16</td>
+            <td style="font-weight:700; color:#10b981;">342.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">88.1</td>
+            <td style="font-weight:600; color:#f59e0b;">79.5%</td>
+            <td>—</td>
+            <td>37.907667729179 t/s</td>
+            <td>$2/$6</td>
+        </tr>
+            <tr class='pareto'>
+            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Muse Spark 1.3 (Max)</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
             <td><span class="badge ">API</span></td>
             <td>Elite Fast Frontier / High TPS</td>
-            <td style="font-weight:700; color:#2563eb;">94.2</td>
-            <td>93.5%</td>
-            <td>$0.67</td>
-            <td style="font-weight:700; color:#10b981;">654.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">85.2</td>
+            <td style="font-weight:700; color:#2563eb;">95.4</td>
+            <td>94.3%</td>
+            <td>$0.66</td>
+            <td style="font-weight:700; color:#10b981;">677.1</td>
+            <td style="font-weight:700; color:#8b5cf6;">87.4</td>
             <td style="font-weight:600; color:#f59e0b;">82.4%</td>
             <td>—</td>
-            <td>229.45730950015 t/s</td>
+            <td>134.517542001713 t/s</td>
             <td>$0.35/$1.5</td>
         </tr>
-        
-        <tr>
+            <tr>
+            <td style="font-weight:600;">Grok 4.7-xhigh</td>
+            <td><span class="badge ">API</span></td>
+            <td>Benchmark Model</td>
+            <td style="font-weight:700; color:#2563eb;">95.2</td>
+            <td>94.2%</td>
+            <td>—</td>
+            <td style="font-weight:700; color:#10b981;">—</td>
+            <td style="font-weight:700; color:#8b5cf6;">87.0</td>
+            <td style="font-weight:600; color:#f59e0b;">78.3%</td>
+            <td>—</td>
+            <td>76.767148839853 t/s</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
             <td style="font-weight:600;">GPT-5.6 Sol (Reasoning)</td>
             <td><span class="badge badge-frt">FRONTIER</span></td>
             <td>Frontier Flagship Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">93.9</td>
-            <td>93.3%</td>
-            <td>$4.18</td>
-            <td style="font-weight:700; color:#10b981;">289.9</td>
-            <td style="font-weight:700; color:#8b5cf6;">84.6</td>
+            <td style="font-weight:700; color:#2563eb;">94.8</td>
+            <td>93.9%</td>
+            <td>$4.10</td>
+            <td style="font-weight:700; color:#10b981;">298.5</td>
+            <td style="font-weight:700; color:#8b5cf6;">86.3</td>
             <td style="font-weight:600; color:#f59e0b;">81.7%</td>
             <td>—</td>
-            <td>68.0488248939482 t/s</td>
+            <td>79.2267114960985 t/s</td>
             <td>$2/$10</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600;">Kimi K3 (Max)</td>
             <td><span class="badge ">API</span></td>
             <td>Architecture &amp; Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">93.1</td>
-            <td>92.6%</td>
-            <td>$6.37</td>
-            <td style="font-weight:700; color:#10b981;">239.5</td>
-            <td style="font-weight:700; color:#8b5cf6;">83.0</td>
+            <td style="font-weight:700; color:#2563eb;">94.7</td>
+            <td>93.8%</td>
+            <td>$6.21</td>
+            <td style="font-weight:700; color:#10b981;">251.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">86.0</td>
             <td style="font-weight:600; color:#f59e0b;">79.5%</td>
             <td>—</td>
-            <td>39.6758559889974 t/s</td>
+            <td>36.1149439589275 t/s</td>
             <td>$3/$15</td>
         </tr>
-        
-        <tr class='added'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Kimi K3 (NVIDIA NIM)</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr>
+            <td style="font-weight:600;">Kimi K3 (NVIDIA NIM)</td>
             <td><span class="badge ">NVIDIA</span></td>
             <td>Frontier Long-Context Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">93.1</td>
-            <td>92.6%</td>
-            <td>$1.51</td>
-            <td style="font-weight:700; color:#10b981;">448.5</td>
-            <td style="font-weight:700; color:#8b5cf6;">83.0</td>
+            <td style="font-weight:700; color:#2563eb;">94.7</td>
+            <td>93.8%</td>
+            <td>$1.47</td>
+            <td style="font-weight:700; color:#10b981;">471.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">86.0</td>
             <td style="font-weight:600; color:#f59e0b;">79.5%</td>
             <td>—</td>
-            <td>39.6758559889974 t/s</td>
+            <td>36.1149439589275 t/s</td>
             <td>$0.80/$3.2</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Grok 4.6 (Reasoning)</td>
-            <td><span class="badge badge-frt">FRONTIER</span></td>
-            <td>Frontier Agentic Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">92.4</td>
-            <td>92.0%</td>
-            <td>$3.33</td>
-            <td style="font-weight:700; color:#10b981;">308.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">81.5</td>
-            <td style="font-weight:600; color:#f59e0b;">79.0%</td>
-            <td>—</td>
-            <td>58.4778535267295 t/s</td>
-            <td>$2/$6</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Qwen3.8 Max</td>
+            <tr>
+            <td style="font-weight:600;">MiMo-V2.6-Pro</td>
             <td><span class="badge ">API</span></td>
-            <td>Tier 1 — High Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">91.6</td>
-            <td>91.3%</td>
-            <td>$3.39</td>
-            <td style="font-weight:700; color:#10b981;">300.4</td>
-            <td style="font-weight:700; color:#8b5cf6;">79.9</td>
-            <td style="font-weight:600; color:#f59e0b;">79.5%</td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">94.5</td>
+            <td>93.7%</td>
+            <td>$0.60</td>
+            <td style="font-weight:700; color:#10b981;">688.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">85.7</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
-            <td>39.4317511051444 t/s</td>
-            <td>$2/$6</td>
+            <td>43.1148208622135 t/s</td>
+            <td>$0.43/$0.87</td>
         </tr>
-        
-        <tr class='pareto'>
-            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Qwen3.8-Flash-Next</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
+            <tr>
+            <td style="font-weight:600;">MiMoV2.6 Pro</td>
             <td><span class="badge ">API</span></td>
-            <td>Ultra-Fast Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">90.9</td>
-            <td>90.6%</td>
-            <td>$0.14</td>
-            <td style="font-weight:700; color:#10b981;">947.8</td>
-            <td style="font-weight:700; color:#8b5cf6;">78.4</td>
-            <td style="font-weight:600; color:#f59e0b;">77.3%</td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">94.5</td>
+            <td>93.7%</td>
+            <td>$0.60</td>
+            <td style="font-weight:700; color:#10b981;">688.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">85.7</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
-            <td>71.6492831490096 t/s</td>
-            <td>$0.08/$0.24</td>
+            <td>43.1148208622135 t/s</td>
+            <td>$0.43/$0.87</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600;">GLM-5.3</td>
             <td><span class="badge ">API</span></td>
             <td>Tier 1 — Architecture &amp; Spec</td>
-            <td style="font-weight:700; color:#2563eb;">90.9</td>
-            <td>90.6%</td>
-            <td>$2.46</td>
-            <td style="font-weight:700; color:#10b981;">340.7</td>
-            <td style="font-weight:700; color:#8b5cf6;">78.4</td>
+            <td style="font-weight:700; color:#2563eb;">94.1</td>
+            <td>93.4%</td>
+            <td>$2.32</td>
+            <td style="font-weight:700; color:#10b981;">377.5</td>
+            <td style="font-weight:700; color:#8b5cf6;">84.9</td>
             <td style="font-weight:600; color:#f59e0b;">76.7%</td>
             <td>—</td>
-            <td>63.7001063820251 t/s</td>
+            <td>71.4304838549835 t/s</td>
             <td>$1.4/$4.4</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Gemini 3.7 Flash (Thinking)</td>
-            <td><span class="badge badge-agy">AGY</span></td>
-            <td>Workhorse / Default</td>
-            <td style="font-weight:700; color:#2563eb;">90.6</td>
-            <td>90.3%</td>
-            <td>$0.84</td>
-            <td style="font-weight:700; color:#10b981;">547.5</td>
-            <td style="font-weight:700; color:#8b5cf6;">77.7</td>
-            <td style="font-weight:600; color:#f59e0b;">79.9%</td>
-            <td>—</td>
-            <td>303.901643195404 t/s</td>
-            <td>$0.38/$1.88</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">GPT-5.6 Terra (Reasoning)</td>
-            <td><span class="badge badge-frt">FRONTIER</span></td>
-            <td>Frontier High-Capacity</td>
-            <td style="font-weight:700; color:#2563eb;">90.3</td>
-            <td>90.0%</td>
-            <td>$3.35</td>
-            <td style="font-weight:700; color:#10b981;">292.7</td>
-            <td style="font-weight:700; color:#8b5cf6;">77.1</td>
-            <td style="font-weight:600; color:#f59e0b;">78.6%</td>
-            <td>—</td>
-            <td>107.303614307422 t/s</td>
-            <td>$1.5/$7.5</td>
-        </tr>
-        
-        <tr class='added'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Gemini 3.8 Flash</span> <span class='badge badge-new'>+NEW</span></td>
-            <td><span class="badge badge-agy">AGY</span></td>
-            <td>Next-Gen Workhorse / Agentic Coding</td>
-            <td style="font-weight:700; color:#2563eb;">90.2</td>
-            <td>89.9%</td>
-            <td>$0.85</td>
-            <td style="font-weight:700; color:#10b981;">539.5</td>
-            <td style="font-weight:700; color:#8b5cf6;">76.9</td>
-            <td style="font-weight:600; color:#f59e0b;">77.5%</td>
-            <td>—</td>
-            <td>273.746824918749 t/s</td>
-            <td>$0.38/$1.88</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Claude Opus 4.8 (Thinking)</td>
-            <td><span class="badge badge-cld">CLAUDE</span></td>
-            <td>Lead Architecture / Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">89.8</td>
-            <td>89.4%</td>
-            <td>$11.34</td>
-            <td style="font-weight:700; color:#10b981;">178.8</td>
-            <td style="font-weight:700; color:#8b5cf6;">75.9</td>
-            <td style="font-weight:600; color:#f59e0b;">77.2%</td>
-            <td>—</td>
-            <td>57.7408818424541 t/s</td>
-            <td>$5/$25</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">GPT 5.5 (xHigh)</td>
+            <tr>
+            <td style="font-weight:600;">Grok 4.6 (Reasoning)</td>
             <td><span class="badge badge-frt">FRONTIER</span></td>
             <td>Frontier Agentic Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">89.7</td>
-            <td>89.3%</td>
-            <td>$12.60</td>
-            <td style="font-weight:700; color:#10b981;">172.1</td>
-            <td style="font-weight:700; color:#8b5cf6;">75.7</td>
-            <td style="font-weight:600; color:#f59e0b;">80.8%</td>
+            <td style="font-weight:700; color:#2563eb;">93.9</td>
+            <td>93.3%</td>
+            <td>$3.25</td>
+            <td style="font-weight:700; color:#10b981;">323.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">84.6</td>
+            <td style="font-weight:600; color:#f59e0b;">79.0%</td>
             <td>—</td>
-            <td>88.9244726515703 t/s</td>
-            <td>$5/$30</td>
-        </tr>
-        
-        <tr class='pareto'>
-            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Muse Spark 1.2 (Contributor)</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
-            <td><span class="badge ">API</span></td>
-            <td>Fast Contributor Specialist</td>
-            <td style="font-weight:700; color:#2563eb;">89.7</td>
-            <td>89.3%</td>
-            <td>$0.15</td>
-            <td style="font-weight:700; color:#10b981;">909.3</td>
-            <td style="font-weight:700; color:#8b5cf6;">75.7</td>
-            <td style="font-weight:600; color:#f59e0b;">78.9%</td>
-            <td>—</td>
-            <td>228.091562744302 t/s</td>
-            <td>$0.10/$0.20</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Claude Opus 4.7 (Thinking)</td>
-            <td><span class="badge badge-cld">CLAUDE</span></td>
-            <td>Lead Architecture / Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">89.4</td>
-            <td>89.0%</td>
-            <td>$11.43</td>
-            <td style="font-weight:700; color:#10b981;">176.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">75.1</td>
-            <td style="font-weight:600; color:#f59e0b;">77.0%</td>
-            <td>—</td>
-            <td>46.4914694355304 t/s</td>
-            <td>$5/$25</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Grok 4.5</td>
-            <td><span class="badge badge-frt">FRONTIER</span></td>
-            <td>Frontier Agentic / Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">88.9</td>
-            <td>88.4%</td>
-            <td>$3.61</td>
-            <td style="font-weight:700; color:#10b981;">273.7</td>
-            <td style="font-weight:700; color:#8b5cf6;">73.9</td>
-            <td style="font-weight:600; color:#f59e0b;">77.0%</td>
-            <td>—</td>
-            <td>57.5247074890035 t/s</td>
+            <td>72.9354109327871 t/s</td>
             <td>$2/$6</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Claude Sonnet 5</td>
-            <td><span class="badge badge-cld">CLAUDE</span></td>
-            <td>Fast Agentic / Design</td>
-            <td style="font-weight:700; color:#2563eb;">88.5</td>
-            <td>87.9%</td>
-            <td>$4.68</td>
-            <td style="font-weight:700; color:#10b981;">242.7</td>
-            <td style="font-weight:700; color:#8b5cf6;">72.9</td>
-            <td style="font-weight:600; color:#f59e0b;">76.6%</td>
-            <td>—</td>
-            <td>79.5663209232555 t/s</td>
-            <td>$2/$10</td>
-        </tr>
-        
-        <tr class='pareto'>
-            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>DeepSeek V4 Flash</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
-            <td><span class="badge ">API</span></td>
-            <td>Ultra-Fast Verifier</td>
-            <td style="font-weight:700; color:#2563eb;">87.9</td>
-            <td>87.1%</td>
-            <td>$0.09</td>
-            <td style="font-weight:700; color:#10b981;">939.1</td>
-            <td style="font-weight:700; color:#8b5cf6;">71.5</td>
-            <td style="font-weight:600; color:#f59e0b;">77.7%</td>
-            <td>—</td>
-            <td>125.687146564662 t/s</td>
-            <td>$0.06/$0.11</td>
-        </tr>
-        
-        <tr class='added'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Muse Spark 1.1 (xhigh)</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr class='pareto'>
+            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Qwen3.8 Max</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">87.2</td>
-            <td>86.1%</td>
-            <td>$2.52</td>
-            <td style="font-weight:700; color:#10b981;">307.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">69.7</td>
-            <td style="font-weight:600; color:#f59e0b;">76.0%</td>
+            <td style="font-weight:700; color:#2563eb;">93.9</td>
+            <td>93.3%</td>
+            <td>$3.25</td>
+            <td style="font-weight:700; color:#10b981;">323.2</td>
+            <td style="font-weight:700; color:#8b5cf6;">84.6</td>
+            <td style="font-weight:600; color:#f59e0b;">79.5%</td>
             <td>—</td>
-            <td>60.0 t/s</td>
-            <td>$1.25/$4.25</td>
+            <td>37.8089540582966 t/s</td>
+            <td>$2/$6</td>
         </tr>
-        
-        <tr class='added'>
-            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Muse Spark 1.2 Contributor</span> <span class='badge badge-new'>+NEW</span></td>
+            <tr class='added'>
+            <td style="font-weight:600;"><span style='color:#10b981; font-weight:700;'>+Grok 4.7 (Low)</span> <span class='badge badge-new'>+NEW</span></td>
             <td><span class="badge ">API</span></td>
-            <td>Benchmark Model</td>
-            <td style="font-weight:700; color:#2563eb;">87.2</td>
-            <td>86.1%</td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">93.6</td>
+            <td>93.0%</td>
+            <td>$3.28</td>
+            <td style="font-weight:700; color:#10b981;">319.6</td>
+            <td style="font-weight:700; color:#8b5cf6;">83.9</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
-            <td style="font-weight:700; color:#10b981;">—</td>
-            <td style="font-weight:700; color:#8b5cf6;">69.7</td>
-            <td style="font-weight:600; color:#f59e0b;">76.0%</td>
-            <td>—</td>
-            <td>— t/s</td>
-            <td>—/—</td>
+            <td>73.8646726392321 t/s</td>
+            <td>$2/$6</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600;">GLM-5.3 Flash</td>
             <td><span class="badge ">API</span></td>
             <td>Fast Executor</td>
-            <td style="font-weight:700; color:#2563eb;">87.1</td>
-            <td>86.0%</td>
-            <td>$0.30</td>
-            <td style="font-weight:700; color:#10b981;">726.2</td>
-            <td style="font-weight:700; color:#8b5cf6;">69.5</td>
+            <td style="font-weight:700; color:#2563eb;">92.8</td>
+            <td>92.4%</td>
+            <td>$0.26</td>
+            <td style="font-weight:700; color:#10b981;">868.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">82.4</td>
             <td style="font-weight:600; color:#f59e0b;">71.1%</td>
             <td>—</td>
-            <td>73.1026372772852 t/s</td>
+            <td>52.3809170489892 t/s</td>
             <td>$0.15/$0.50</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">GLM-5.2</td>
+            <tr class='pareto'>
+            <td style="font-weight:600;"><span style='color:#d29922; font-weight:700;'>Qwen3.8-Flash-Next</span> <span style='background:rgba(210,153,34,0.18); color:#d29922; border:1px solid #d29922; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:600;'>PARETO</span></td>
             <td><span class="badge ">API</span></td>
-            <td>Tier 1 — Architecture</td>
-            <td style="font-weight:700; color:#2563eb;">86.7</td>
-            <td>85.4%</td>
-            <td>$2.76</td>
-            <td style="font-weight:700; color:#10b981;">291.5</td>
-            <td style="font-weight:700; color:#8b5cf6;">68.4</td>
-            <td style="font-weight:600; color:#f59e0b;">73.4%</td>
+            <td>Ultra-Fast Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">92.7</td>
+            <td>92.3%</td>
+            <td>$0.13</td>
+            <td style="font-weight:700; color:#10b981;">1002.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">82.2</td>
+            <td style="font-weight:600; color:#f59e0b;">77.3%</td>
             <td>—</td>
-            <td>62.8482015872131 t/s</td>
-            <td>$1.4/$4.4</td>
+            <td>53.045331093103 t/s</td>
+            <td>$0.08/$0.24</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">GPT 5.6 Luna</td>
+            <tr>
+            <td style="font-weight:600;">GPT-6 Sol (Low)</td>
             <td><span class="badge ">API</span></td>
-            <td>High-Efficiency Failover</td>
-            <td style="font-weight:700; color:#2563eb;">86.7</td>
-            <td>85.4%</td>
-            <td>$0.55</td>
-            <td style="font-weight:700; color:#10b981;">588.6</td>
-            <td style="font-weight:700; color:#8b5cf6;">68.4</td>
-            <td style="font-weight:600; color:#f59e0b;">73.7%</td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">92.2</td>
+            <td>91.9%</td>
+            <td>$4.28</td>
+            <td style="font-weight:700; color:#10b981;">275.7</td>
+            <td style="font-weight:700; color:#8b5cf6;">81.2</td>
+            <td style="font-weight:600; color:#f59e0b;">79.8%</td>
             <td>—</td>
-            <td>112.898737692364 t/s</td>
-            <td>$0.20/$1.2</td>
+            <td>78.8623965585807 t/s</td>
+            <td>$2/$10</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">Qwen3.8 27B</td>
+            <tr>
+            <td style="font-weight:600;">Step 5 Preview</td>
             <td><span class="badge ">API</span></td>
-            <td>Fast Executor</td>
-            <td style="font-weight:700; color:#2563eb;">86.5</td>
-            <td>85.1%</td>
-            <td>$1.28</td>
-            <td style="font-weight:700; color:#10b981;">411.2</td>
-            <td style="font-weight:700; color:#8b5cf6;">67.9</td>
-            <td style="font-weight:600; color:#f59e0b;">75.8%</td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">92.2</td>
+            <td>91.9%</td>
+            <td>$1.59</td>
+            <td style="font-weight:700; color:#10b981;">428.8</td>
+            <td style="font-weight:700; color:#8b5cf6;">81.2</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
-            <td>47.2239785799242 t/s</td>
-            <td>$0.40/$3</td>
+            <td>85.1225268283193 t/s</td>
+            <td>$1/$2.7</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:600;">DeepSeek V4 Pro</td>
+            <tr>
+            <td style="font-weight:600;">DeepSeek V4.1 Flash</td>
             <td><span class="badge ">API</span></td>
-            <td>Tier 2 — Verifier &amp; Logic</td>
-            <td style="font-weight:700; color:#2563eb;">86.5</td>
-            <td>85.1%</td>
-            <td>$0.69</td>
-            <td style="font-weight:700; color:#10b981;">536.3</td>
-            <td style="font-weight:700; color:#8b5cf6;">67.9</td>
-            <td style="font-weight:600; color:#f59e0b;">78.2%</td>
+            <td>Ultra-Fast Verifier &amp; CED</td>
+            <td style="font-weight:700; color:#2563eb;">92.1</td>
+            <td>91.8%</td>
+            <td>$0.29</td>
+            <td style="font-weight:700; color:#10b981;">828.9</td>
+            <td style="font-weight:700; color:#8b5cf6;">81.0</td>
+            <td style="font-weight:600; color:#f59e0b;">81.5%</td>
             <td>—</td>
-            <td>76.8584314877642 t/s</td>
-            <td>$0.41/$0.83</td>
+            <td>213.26826879237 t/s</td>
+            <td>$0.15/$0.60</td>
         </tr>
-        
+            <tr>
+            <td style="font-weight:600;">Gemini 3.8 Flash</td>
+            <td><span class="badge badge-agy">AGY</span></td>
+            <td>Next-Gen Workhorse / Agentic Coding</td>
+            <td style="font-weight:700; color:#2563eb;">91.5</td>
+            <td>91.2%</td>
+            <td>$0.82</td>
+            <td style="font-weight:700; color:#10b981;">565.3</td>
+            <td style="font-weight:700; color:#8b5cf6;">79.7</td>
+            <td style="font-weight:600; color:#f59e0b;">77.5%</td>
+            <td>—</td>
+            <td>239.118408949075 t/s</td>
+            <td>$0.38/$1.88</td>
+        </tr>
+            <tr>
+            <td style="font-weight:600;">Gemini 3.7 Flash (Thinking)</td>
+            <td><span class="badge badge-agy">AGY</span></td>
+            <td>Workhorse / Default</td>
+            <td style="font-weight:700; color:#2563eb;">91.1</td>
+            <td>90.8%</td>
+            <td>$0.83</td>
+            <td style="font-weight:700; color:#10b981;">557.0</td>
+            <td style="font-weight:700; color:#8b5cf6;">78.8</td>
+            <td style="font-weight:600; color:#f59e0b;">79.9%</td>
+            <td>—</td>
+            <td>298.009636048683 t/s</td>
+            <td>$0.38/$1.88</td>
+        </tr>
         </tbody>
     </table>
 
     <h2>2. Models with Partial / Missing Benchmark Evaluations</h2>
-    
-    <h3>📊 Top 10 — Missing LiveBench (Arena.ai + AA Evaluated)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Model</th>
-                <th>Pool</th>
-                <th>Tier</th>
-                <th>Q (Cap)</th>
-                <th>P(Succ)</th>
-                <th>Eff $/M</th>
-                <th>LiveBench</th>
-                <th>Arena Elo</th>
-                <th>AA Quality</th>
-                <th>Price In/Out</th>
-            </tr>
-        </thead>
-        <tbody>
-            
-        <tr>
-            <td style="font-weight:700; text-align:center;">#1</td>
-            <td style="font-weight:600;">Qwen3.6 Max Preview</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">85.6</td>
-            <td>83.6%</td>
-            <td>$3.72</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1479</td>
-            <td>28.4</td>
-            <td>$1.3/$7.8</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#2</td>
-            <td style="font-weight:600;">GLM-5.1 (Reasoning)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">85.4</td>
-            <td>83.3%</td>
-            <td>$2.65</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1508</td>
-            <td>27.4</td>
-            <td>$1.2/$4.4</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#3</td>
-            <td style="font-weight:600;">GPT-5.2 (xhigh)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">84.8</td>
-            <td>82.3%</td>
-            <td>$6.17</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1417</td>
-            <td>30.4</td>
-            <td>$1.75/$14</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#4</td>
-            <td style="font-weight:600;">GLM-5 (Reasoning)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">84.2</td>
-            <td>81.2%</td>
-            <td>$2.17</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1436</td>
-            <td>27.9</td>
-            <td>$1/$3.2</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#5</td>
-            <td style="font-weight:600;">Hy3-preview (Reasoning)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">83.9</td>
-            <td>80.7%</td>
-            <td>$0.14</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1510</td>
-            <td>22.7</td>
-            <td>$0.06/$0.21</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#6</td>
-            <td style="font-weight:600;">Inkling Small</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">82.7</td>
-            <td>78.3%</td>
-            <td>$0.77</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1406</td>
-            <td>26.1</td>
-            <td>$0.30/$1.2</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#7</td>
-            <td style="font-weight:600;">Solar Pro 4</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">82.6</td>
-            <td>78.1%</td>
-            <td>$0.78</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1371</td>
-            <td>28.2</td>
-            <td>$0.30/$1.2</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#8</td>
-            <td style="font-weight:600;">MiMo-V2.5</td>
-            <td><span class="badge ">API</span></td>
-            <td>Bulk Fill</td>
-            <td style="font-weight:700; color:#2563eb;">82.4</td>
-            <td>77.7%</td>
-            <td>$0.27</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1437</td>
-            <td>22.3</td>
-            <td>$0.14/$0.28</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#9</td>
-            <td style="font-weight:600;">Kimi K2.5 (Reasoning)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">81.8</td>
-            <td>76.4%</td>
-            <td>$1.73</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1436</td>
-            <td>23.5</td>
-            <td>$0.60/$2.75</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#10</td>
-            <td style="font-weight:600;">Gemini 3 Pro Preview (low)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">81.8</td>
-            <td>76.4%</td>
-            <td>$6.72</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1439</td>
-            <td>22.3</td>
-            <td>$2/$12</td>
-        </tr>
-        
-        </tbody>
-    </table>
-    
     <h3>⚔️ Top 10 — Missing LMArena (LiveBench + AA Evaluated)</h3>
     <table>
         <thead>
@@ -767,264 +573,439 @@ tr.free { opacity: 0.6; }
             </tr>
         </thead>
         <tbody>
-            
-        <tr>
-            <td style="font-weight:700; text-align:center;">#1</td>
-            <td style="font-weight:600;">Qwen3.7 Max</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">84.7</td>
-            <td>82.1%</td>
-            <td>$5.18</td>
-            <td style="font-weight:600; color:#f59e0b;">74.1%</td>
-            <td>—</td>
-            <td>29.9</td>
-            <td>$2.5/$7.5</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#2</td>
-            <td style="font-weight:600;">Qwen3.7 Max</td>
-            <td><span class="badge ">API</span></td>
-            <td>Benchmark Model</td>
-            <td style="font-weight:700; color:#2563eb;">84.7</td>
-            <td>82.1%</td>
-            <td>$3.06</td>
-            <td style="font-weight:600; color:#f59e0b;">74.1%</td>
-            <td>—</td>
-            <td>29.9</td>
-            <td>$1.48/$4.42</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#3</td>
-            <td style="font-weight:600;">GPT 5.4-nano-xhigh</td>
-            <td><span class="badge ">API</span></td>
-            <td>Benchmark Model</td>
-            <td style="font-weight:700; color:#2563eb;">79.5</td>
-            <td>71.1%</td>
-            <td>—</td>
-            <td style="font-weight:600; color:#f59e0b;">70.8%</td>
-            <td>—</td>
-            <td>21.2</td>
-            <td>—/—</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#4</td>
-            <td style="font-weight:600;">Qwen3.6-27b</td>
-            <td><span class="badge ">API</span></td>
-            <td>Benchmark Model</td>
-            <td style="font-weight:700; color:#2563eb;">75.0</td>
-            <td>58.9%</td>
-            <td>$1.63</td>
-            <td style="font-weight:600; color:#f59e0b;">64.2%</td>
-            <td>—</td>
-            <td>21.9</td>
-            <td>$0.30/$2</td>
-        </tr>
-        
-        </tbody>
-    </table>
-    
-    <h3>🧪 Top 10 — Missing Artificial Analysis (LiveBench + Arena Evaluated)</h3>
-    <table>
-        <thead>
             <tr>
-                <th>Rank</th>
-                <th>Model</th>
-                <th>Pool</th>
-                <th>Tier</th>
-                <th>Q (Cap)</th>
-                <th>P(Succ)</th>
-                <th>Eff $/M</th>
-                <th>LiveBench</th>
-                <th>Arena Elo</th>
-                <th>AA Quality</th>
-                <th>Price In/Out</th>
-            </tr>
-        </thead>
-        <tbody>
-            
-        <tr>
-            <td style="font-weight:700; text-align:center;">#1</td>
-            <td style="font-weight:600;">GPT-5.4 Pro</td>
-            <td><span class="badge badge-frt">FRONTIER</span></td>
-            <td>Enterprise Agentic Flagship</td>
-            <td style="font-weight:700; color:#2563eb;">82.1</td>
-            <td>77.1%</td>
-            <td>$99.00</td>
-            <td style="font-weight:600; color:#f59e0b;">78.8%</td>
-            <td>1463</td>
-            <td>—</td>
-            <td>$30/$180</td>
-        </tr>
-        
-        </tbody>
-    </table>
-    
-    <h3>🚀 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Model</th>
-                <th>Pool</th>
-                <th>Tier</th>
-                <th>Q (Cap)</th>
-                <th>P(Succ)</th>
-                <th>Eff $/M</th>
-                <th>LiveBench</th>
-                <th>Arena Elo</th>
-                <th>AA Quality</th>
-                <th>Price In/Out</th>
-            </tr>
-        </thead>
-        <tbody>
-            
-        <tr>
             <td style="font-weight:700; text-align:center;">#1</td>
             <td style="font-weight:600;">Qwen3.8 2.4T A95B</td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">95.4</td>
-            <td>94.3%</td>
-            <td>$3.16</td>
+            <td style="font-weight:700; color:#2563eb;">96.0</td>
+            <td>94.7%</td>
+            <td>$3.14</td>
             <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
-            <td>40.0</td>
+            <td>39.9</td>
             <td>$2/$6</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:700; text-align:center;">#2</td>
-            <td style="font-weight:600;">Qwen3-8 Max-0902</td>
+            <td style="font-weight:600;">MiMo-V2.6-Flash</td>
             <td><span class="badge ">API</span></td>
-            <td>Arena Model</td>
-            <td style="font-weight:700; color:#2563eb;">93.4</td>
-            <td>92.9%</td>
-            <td>—</td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">94.6</td>
+            <td>93.8%</td>
+            <td>$0.19</td>
             <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1685</td>
             <td>—</td>
-            <td>—/—</td>
+            <td>37.9</td>
+            <td>$0.14/$0.28</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:700; text-align:center;">#3</td>
-            <td style="font-weight:600;">GPT-5.3 Codex (xhigh)</td>
+            <td style="font-weight:600;">JT-4.1 Flash 236B A21B (Reasoning)</td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">92.7</td>
-            <td>92.3%</td>
-            <td>$4.96</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>—</td>
-            <td>32.5</td>
-            <td>$1.75/$14</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#4</td>
-            <td style="font-weight:600;">Agnes 2.5 Pro Beta</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">91.7</td>
-            <td>91.4%</td>
-            <td>$0.17</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>—</td>
-            <td>35.2</td>
-            <td>$0.10/$0.30</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#5</td>
-            <td style="font-weight:600;">Motif 3</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">91.0</td>
-            <td>90.7%</td>
-            <td>—</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>—</td>
-            <td>33.6</td>
-            <td>—/—</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#6</td>
-            <td style="font-weight:600;">K2 Horizon 375B A23B</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">90.9</td>
-            <td>90.6%</td>
+            <td style="font-weight:700; color:#2563eb;">91.6</td>
+            <td>91.3%</td>
             <td>—</td>
             <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
             <td>33.9</td>
             <td>—/—</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#7</td>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#4</td>
+            <td style="font-weight:600;">Motif 3</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>33.6</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#5</td>
+            <td style="font-weight:600;">GPT-5.3 Codex (Xhigh)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">90.6</td>
+            <td>90.3%</td>
+            <td>$5.21</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>32.5</td>
+            <td>$1.75/$14</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#6</td>
             <td style="font-weight:600;">Motif 3 (Beta)</td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">90.2</td>
-            <td>89.9%</td>
+            <td style="font-weight:700; color:#2563eb;">90.5</td>
+            <td>90.2%</td>
             <td>—</td>
             <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
             <td>32.3</td>
             <td>—/—</td>
         </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#8</td>
-            <td style="font-weight:600;">Claude Opus 4.5 (Reasoning)</td>
-            <td><span class="badge ">API</span></td>
-            <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">90.0</td>
-            <td>89.7%</td>
-            <td>$11.25</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>—</td>
-            <td>29.1</td>
-            <td>$5/$25</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#9</td>
-            <td style="font-weight:600;">Hunyuan 4 Preview</td>
-            <td><span class="badge ">API</span></td>
-            <td>Frontier Reasoning</td>
-            <td style="font-weight:700; color:#2563eb;">89.7</td>
-            <td>89.3%</td>
-            <td>$1.47</td>
-            <td style="font-weight:600; color:#f59e0b;">—</td>
-            <td>1623</td>
-            <td>—</td>
-            <td>$0.83/$2.50</td>
-        </tr>
-        
-        <tr>
-            <td style="font-weight:700; text-align:center;">#10</td>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#7</td>
             <td style="font-weight:600;">Muse Spark</td>
             <td><span class="badge ">API</span></td>
             <td>Upstream API</td>
-            <td style="font-weight:700; color:#2563eb;">89.2</td>
-            <td>88.7%</td>
+            <td style="font-weight:700; color:#2563eb;">89.7</td>
+            <td>89.3%</td>
             <td>—</td>
             <td style="font-weight:600; color:#f59e0b;">—</td>
             <td>—</td>
             <td>31.3</td>
             <td>—/—</td>
         </tr>
-        
+            <tr>
+            <td style="font-weight:700; text-align:center;">#8</td>
+            <td style="font-weight:600;">K2 Horizon 375B A23B</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">89.1</td>
+            <td>88.6%</td>
+            <td>$0.00</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>30.5</td>
+            <td>$0/$0</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#9</td>
+            <td style="font-weight:600;">DeepSeek V4 Pro 0424 (High)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">88.9</td>
+            <td>88.4%</td>
+            <td>$0.67</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>30.1</td>
+            <td>$0.43/$0.87</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#10</td>
+            <td style="font-weight:600;">Qwen3.7 Max</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">88.4</td>
+            <td>87.7%</td>
+            <td>$4.58</td>
+            <td style="font-weight:600; color:#f59e0b;">74.1%</td>
+            <td>—</td>
+            <td>29.5</td>
+            <td>$2.5/$7.5</td>
+        </tr>
         </tbody>
     </table>
-    
+<h3>🧪 Top 10 — Missing Artificial Analysis (LiveBench + Arena Evaluated)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Model</th>
+                <th>Pool</th>
+                <th>Tier</th>
+                <th>Q (Cap)</th>
+                <th>P(Succ)</th>
+                <th>Eff $/M</th>
+                <th>LiveBench</th>
+                <th>Arena Elo</th>
+                <th>AA Quality</th>
+                <th>Price In/Out</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#1</td>
+            <td style="font-weight:600;">Qwen3-8 Max-0902</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1670</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#2</td>
+            <td style="font-weight:600;">Qwen3.8 Max-0902</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>$3.39</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1670</td>
+            <td>—</td>
+            <td>$2/$6</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#3</td>
+            <td style="font-weight:600;">Hunyuan 4 Preview</td>
+            <td><span class="badge ">API</span></td>
+            <td>Frontier Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">89.2</td>
+            <td>88.7%</td>
+            <td>$1.49</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1633</td>
+            <td>—</td>
+            <td>$0.83/$2.50</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#4</td>
+            <td style="font-weight:600;">GPT 5.6 Sol-xhigh (codex-harness)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">88.5</td>
+            <td>87.9%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1620</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#5</td>
+            <td style="font-weight:600;">DeepSeek V4 Pro-high-20260813</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">86.3</td>
+            <td>84.8%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1583</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#6</td>
+            <td style="font-weight:600;">Step 5-preview-high</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">85.5</td>
+            <td>83.5%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1570</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#7</td>
+            <td style="font-weight:600;">GPT 5.6 Terra-xhigh (codex-harness)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">82.5</td>
+            <td>77.9%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1519</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#8</td>
+            <td style="font-weight:600;">Seed 2 1 Pro Preview</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">82.4</td>
+            <td>77.7%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1517</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#9</td>
+            <td style="font-weight:600;">GPT 5.6 Luna-xhigh (codex-harness)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">82.4</td>
+            <td>77.7%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1518</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#10</td>
+            <td style="font-weight:600;">Seed 2.1 Pro Preview</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">82.4</td>
+            <td>77.7%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1517</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+        </tbody>
+    </table>
+<h3>🚀 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Model</th>
+                <th>Pool</th>
+                <th>Tier</th>
+                <th>Q (Cap)</th>
+                <th>P(Succ)</th>
+                <th>Eff $/M</th>
+                <th>LiveBench</th>
+                <th>Arena Elo</th>
+                <th>AA Quality</th>
+                <th>Price In/Out</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#1</td>
+            <td style="font-weight:600;">Qwen3.8 2.4T A95B</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">96.0</td>
+            <td>94.7%</td>
+            <td>$3.14</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>39.9</td>
+            <td>$2/$6</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#2</td>
+            <td style="font-weight:600;">MiMo-V2.6-Flash</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">94.6</td>
+            <td>93.8%</td>
+            <td>$0.19</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>37.9</td>
+            <td>$0.14/$0.28</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#3</td>
+            <td style="font-weight:600;">JT-4.1 Flash 236B A21B (Reasoning)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">91.6</td>
+            <td>91.3%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>33.9</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#4</td>
+            <td style="font-weight:600;">Motif 3</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>33.6</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#5</td>
+            <td style="font-weight:600;">Qwen3-8 Max-0902</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1670</td>
+            <td>—</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#6</td>
+            <td style="font-weight:600;">Qwen3.8 Max-0902</td>
+            <td><span class="badge ">API</span></td>
+            <td>Arena Model</td>
+            <td style="font-weight:700; color:#2563eb;">91.4</td>
+            <td>91.1%</td>
+            <td>$3.39</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1670</td>
+            <td>—</td>
+            <td>$2/$6</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#7</td>
+            <td style="font-weight:600;">GPT-5.3 Codex (Xhigh)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">90.6</td>
+            <td>90.3%</td>
+            <td>$5.21</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>32.5</td>
+            <td>$1.75/$14</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#8</td>
+            <td style="font-weight:600;">Motif 3 (Beta)</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">90.5</td>
+            <td>90.2%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>32.3</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#9</td>
+            <td style="font-weight:600;">Muse Spark</td>
+            <td><span class="badge ">API</span></td>
+            <td>Upstream API</td>
+            <td style="font-weight:700; color:#2563eb;">89.7</td>
+            <td>89.3%</td>
+            <td>—</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>—</td>
+            <td>31.3</td>
+            <td>—/—</td>
+        </tr>
+            <tr>
+            <td style="font-weight:700; text-align:center;">#10</td>
+            <td style="font-weight:600;">Hunyuan 4 Preview</td>
+            <td><span class="badge ">API</span></td>
+            <td>Frontier Reasoning</td>
+            <td style="font-weight:700; color:#2563eb;">89.2</td>
+            <td>88.7%</td>
+            <td>$1.49</td>
+            <td style="font-weight:600; color:#f59e0b;">—</td>
+            <td>1633</td>
+            <td>—</td>
+            <td>$0.83/$2.50</td>
+        </tr>
+        </tbody>
+    </table>
+
     <div style="background: #2a1515; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-top: 24px;">
         <h3 style="color: #ef4444; margin-top: 0;">⚠️ Unmatched Catalog Models (0 Upstream Benchmark Evaluations)</h3>
         <p style="color: #cbd5e1; font-size: 0.9em;"><strong>See Something, Say Something</strong>: The following catalog models did not match any verified evaluation on LiveBench, LMArena, or Artificial Analysis:</p>
@@ -1035,7 +1016,7 @@ tr.free { opacity: 0.6; }
                 </tr>
             </thead>
             <tbody>
-                <tr><td style="font-weight:600;">EXAONE 4.5 33B (Non-reasoning)</td><td><code>[API]</code></td><td><code>exaone-4-5-33b-non-reasoning</code></td><td><code>exaone-4-5-33b-non-reasoning</code></td></tr><tr><td style="font-weight:600;">GPT-4o mini Realtime (Dec &#x27;24)</td><td><code>[API]</code></td><td><code>gpt-4o-mini-realtime-dec-2024</code></td><td><code>gpt-4o-mini-realtime-dec-2024</code></td></tr><tr><td style="font-weight:600;">GPT-5.4 Pro (xhigh)</td><td><code>[API]</code></td><td><code>gpt-5-4-pro</code></td><td><code>gpt-5-4-pro</code></td></tr><tr><td style="font-weight:600;">GPT-3.5 Turbo (0613)</td><td><code>[API]</code></td><td><code>gpt-3-5-turbo-0613</code></td><td><code>gpt-3-5-turbo-0613</code></td></tr><tr><td style="font-weight:600;">Gemini 3 Deep Think</td><td><code>[API]</code></td><td><code>gemini-3-deep-think</code></td><td><code>gemini-3-deep-think</code></td></tr><tr><td style="font-weight:600;">Mi:dm K 2.5 Pro Preview</td><td><code>[API]</code></td><td><code>midm-250-pro-rsnsft</code></td><td><code>midm-250-pro-rsnsft</code></td></tr><tr><td style="font-weight:600;">GPT-4o Realtime (Dec &#x27;24)</td><td><code>[API]</code></td><td><code>gpt-4o-realtime-dec-2024</code></td><td><code>gpt-4o-realtime-dec-2024</code></td></tr><tr><td style="font-weight:600;">GPT-5.5 Pro (xhigh)</td><td><code>[API]</code></td><td><code>gpt-5-5-pro</code></td><td><code>gpt-5-5-pro</code></td></tr><tr><td style="font-weight:600;">Cogito v2.1 (Reasoning)</td><td><code>[API]</code></td><td><code>cogito-v2-1-reasoning</code></td><td><code>cogito-v2-1-reasoning</code></td></tr>
+                <tr><td style="font-weight:600;">EXAONE 4.5 33B (Non-reasoning)</td><td><code>[API]</code></td><td><code>exaone-4-5-33b-non-reasoning</code></td><td><code>exaone-4-5-33b-non-reasoning</code></td></tr><tr><td style="font-weight:600;">GPT-4o mini Realtime (Dec &#x27;24)</td><td><code>[API]</code></td><td><code>gpt-4o-mini-realtime-dec-2024</code></td><td><code>gpt-4o-mini-realtime-dec-2024</code></td></tr><tr><td style="font-weight:600;">GPT-5.4 Pro (Xhigh)</td><td><code>[API]</code></td><td><code>gpt-5-4-pro</code></td><td><code>gpt-5-4-pro</code></td></tr><tr><td style="font-weight:600;">GPT-3.5 Turbo (0613)</td><td><code>[API]</code></td><td><code>gpt-3-5-turbo-0613</code></td><td><code>gpt-3-5-turbo-0613</code></td></tr><tr><td style="font-weight:600;">Gemini 3 Deep Think</td><td><code>[API]</code></td><td><code>gemini-3-deep-think</code></td><td><code>gemini-3-deep-think</code></td></tr><tr><td style="font-weight:600;">Mi:dm K 2.5 Pro Preview</td><td><code>[API]</code></td><td><code>midm-250-pro-rsnsft</code></td><td><code>midm-250-pro-rsnsft</code></td></tr><tr><td style="font-weight:600;">GPT-4o Realtime (Dec &#x27;24)</td><td><code>[API]</code></td><td><code>gpt-4o-realtime-dec-2024</code></td><td><code>gpt-4o-realtime-dec-2024</code></td></tr><tr><td style="font-weight:600;">GPT-5.5 Pro (Xhigh)</td><td><code>[API]</code></td><td><code>gpt-5-5-pro</code></td><td><code>gpt-5-5-pro</code></td></tr><tr><td style="font-weight:600;">Cogito v2.1 (Reasoning)</td><td><code>[API]</code></td><td><code>cogito-v2-1-reasoning</code></td><td><code>cogito-v2-1-reasoning</code></td></tr><tr><td style="font-weight:600;">Claude Opus-4-5-20251101-thinking-64k-high-effort</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Grok build-0.1</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Agentic</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Mini</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Ox Alpha Max</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Nemotron 3 Ultra 550B A55B</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Flash</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Claude Opus-4-5-20251101-thinking-64k-high-effort</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Grok build-0.1</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Agentic</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Mini</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Ox Alpha Max</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Nemotron 3 Ultra 550B A55B</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr><tr><td style="font-weight:600;">Smaug Flash</td><td><code>[API]</code></td><td><code>—</code></td><td><code>—</code></td></tr>
             </tbody>
         </table>
     </div>
@@ -1052,77 +1033,66 @@ tr.free { opacity: 0.6; }
             </tr>
         </thead>
         <tbody>
-            
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Q(Cap) — Capability</td>
-            <td><b>Claude Fable-5-1-max</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(98.5)</span></td>
-            <td><b>GPT-6 Astra (xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(98.3)</span></td>
-            <td><b>Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(96.5)</span></td>
+            <td><b>Claude Opus 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(99.9)</span></td>
+            <td><b>Claude Sonnet 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(99.9)</span></td>
+            <td><b>GPT-6.1 Sol (Xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(99.9)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">FGI — Architectural Gate</td>
-            <td><b>Claude Fable-5-1-max</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(92.6)</span></td>
-            <td><b>GPT-6 Astra (xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(92.3)</span></td>
-            <td><b>Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(89.4)</span></td>
+            <td><b>Claude Opus 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(94.8)</span></td>
+            <td><b>Claude Sonnet 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(94.8)</span></td>
+            <td><b>GPT-6.1 Sol (Xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(94.8)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">AVI — Daily Driver ROI</td>
-            <td><b>Qwen3.8-Flash-Next</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(947.8)</span></td>
-            <td><b>DeepSeek V4 Flash</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(939.1)</span></td>
-            <td><b>Muse Spark 1.2 (Contributor)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(909.3)</span></td>
+            <td><b>Qwen3.8-Flash-Next</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1002.0)</span></td>
+            <td><b>DeepSeek V4 Flash</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(967.6)</span></td>
+            <td><b>Muse Spark 1.2 (Contributor)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(904.9)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">LiveBench — Decontam.</td>
             <td><b>Claude Fable-5-1-max</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(83.8%)</span></td>
-            <td><b>Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(83.8%)</span></td>
+            <td><b>Claude Fable 5.1 (Low, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(83.8%)</span></td>
             <td><b>Claude Fable 5 (High)</b> <small style='color:#94a3b8;'>[CLD]</small> <span style='color:#f59e0b;'>(83.4%)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Arena.ai — Global Elo</td>
-            <td><b>GPT-6 Astra (xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1796)</span></td>
-            <td><b>Claude Fable-5-1-max</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1764)</span></td>
-            <td><b>Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1764)</span></td>
+            <td><b>Claude Opus 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(1815)</span></td>
+            <td><b>GPT-6 Astra (Xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1788)</span></td>
+            <td><b>GPT-6.1 Sol (Xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(1758)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Coding Elo — LMSYS Arena</td>
             <td>—</td>
             <td>—</td>
             <td>—</td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Speed — Throughput</td>
-            <td><b>Gemini 3.5 Flash-Lite</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(356 t/s)</span></td>
-            <td><b>Gemini 3.5-flash-lite-high</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(356 t/s)</span></td>
-            <td><b>Gemini 3.7 Flash (Thinking)</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(304 t/s)</span></td>
+            <td><b>Mercury 2</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(846 t/s)</span></td>
+            <td><b>Gemini 3.5 Flash-Lite</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(354 t/s)</span></td>
+            <td><b>Gemini 3.5-flash-lite-high</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(354 t/s)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Eff $/M — Real Task Cost</td>
+            <td><b>Gemma 4 31B (Reasoning)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.00)</span></td>
             <td><b>DeepSeek V4 Flash</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.09)</span></td>
-            <td><b>Qwen3.8-Flash-Next</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.14)</span></td>
-            <td><b>Muse Spark 1.2 (Contributor)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.15)</span></td>
+            <td><b>Qwen3.8-Flash-Next</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.13)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">Price — Blended $/M</td>
+            <td><b>Gemma 4 31B (Reasoning)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.00)</span></td>
             <td><b>DeepSeek V4 Flash</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.07)</span></td>
-            <td><b>Qwen3.8-Flash-Next</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.11)</span></td>
-            <td><b>Muse Spark 1.2 (Contributor)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.12)</span></td>
+            <td><b>Hy3-preview (Reasoning)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>($0.09)</span></td>
         </tr>
-        
-        <tr>
+            <tr>
             <td style="font-weight:600; color:#38bdf8;">P(Succ) — Pass Rate</td>
-            <td><b>Claude Fable-5-1-max</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(96.0%)</span></td>
-            <td><b>GPT-6 Astra (xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(95.9%)</span></td>
-            <td><b>Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(95.0%)</span></td>
+            <td><b>Claude Opus 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(96.6%)</span></td>
+            <td><b>Claude Sonnet 5.5</b> <small style='color:#94a3b8;'>[AGY]</small> <span style='color:#f59e0b;'>(96.6%)</span></td>
+            <td><b>GPT-6.1 Sol (Xhigh)</b> <small style='color:#94a3b8;'>[API]</small> <span style='color:#f59e0b;'>(96.6%)</span></td>
         </tr>
-        
         </tbody>
     </table>
 
@@ -1144,29 +1114,29 @@ tr.free { opacity: 0.6; }
                 
         <tr>
             <td style="font-weight:600; color:#38bdf8;">🏗️ System Architecture &amp; Complex Design</td>
-            <td><b>GPT-6 Astra</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(90.9)</span></td>
-            <td><b>Claude Fable-5-1-max</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(90.7)</span></td>
+            <td><b>Claude Opus 5.5</b> <span class="badge badge-gold">[AGY]</span> <span style="color:#10b981; font-weight:700;">(93.8)</span></td>
+            <td><b>Claude Sonnet 5.5</b> <span class="badge">[AGY]</span> <span style="color:#94a3b8;">(93.5)</span></td>
             <td style="color:#94a3b8; font-size:12px;">Deep reasoning &amp; high FGI gates. Use for contracts, spec lock, and hard debugging.</td>
         </tr>
         
         <tr>
             <td style="font-weight:600; color:#38bdf8;">💻 Pair Programming &amp; Code Editing</td>
-            <td><b>Claude Fable-5-1-max</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(90.1)</span></td>
-            <td><b>Claude Fable 5.1</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(88.0)</span></td>
+            <td><b>GPT 6.1 Sol-max</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(92.8)</span></td>
+            <td><b>Claude Fable-5-1-max</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(92.8)</span></td>
             <td style="color:#94a3b8; font-size:12px;">Surgical diffs, coding Elo &amp; multi-turn alignment without drift.</td>
         </tr>
         
         <tr>
             <td style="font-weight:600; color:#38bdf8;">🔄 Daily Driver (High ROI Workhorse)</td>
-            <td><b>Qwen3.8-Flash-Next</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(93.9)</span></td>
-            <td><b>DeepSeek V4 Flash</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(93.1)</span></td>
+            <td><b>Qwen3.8-Flash-Next</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(97.8)</span></td>
+            <td><b>DeepSeek V4 Flash</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(96.8)</span></td>
             <td style="color:#94a3b8; font-size:12px;">Top AVI &amp; cost-efficiency. Autonomous loops without token explosion.</td>
         </tr>
         
         <tr>
             <td style="font-weight:600; color:#38bdf8;">⚡ Fast Boilerplate &amp; Mechanical Fill</td>
-            <td><b>Muse Spark 1.2</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(99.9)</span></td>
-            <td><b>DeepSeek V4 Flash</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(93.4)</span></td>
+            <td><b>DeepSeek V4 Flash</b> <span class="badge badge-gold">[API]</span> <span style="color:#10b981; font-weight:700;">(99.9)</span></td>
+            <td><b>Mercury 2</b> <span class="badge">[API]</span> <span style="color:#94a3b8;">(99.9)</span></td>
             <td style="color:#94a3b8; font-size:12px;">High throughput (TPS/BFI) for mechanical generation and test scaffolding.</td>
         </tr>
         
