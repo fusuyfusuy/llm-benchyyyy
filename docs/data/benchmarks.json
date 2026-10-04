@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-03T12:53:09.797237+00:00",
+  "generated_at": "2026-10-04T05:00:18.951707+00:00",
   "catalog_diff": {
     "added": [
       "claude-sonnet-5-5",
@@ -7,15 +7,12 @@
       "gpt-6-1-sol-xhigh",
       "gpt-6.1-sol-max",
       "grok-4-7-low",
+      "jt236b",
       "mimo-v2-6-flash",
       "solar-mini4"
     ],
     "removed": [
-      "claude-opus-5.5-max",
-      "claude-sonnet-5-5-medium",
-      "claude-sonnet-5.5-xhigh",
-      "opus-5-5-max",
-      "sonnet-5-5-xhigh"
+      "qwen3-coder-30b-a3b-instruct"
     ],
     "total_current": 583
   },
@@ -45,7 +42,7 @@
         "claude-opus-5-low"
       ],
       "base_metrics": {
-        "speed_tps": 57.6617309105797,
+        "speed_tps": 57.9624786298447,
         "lm_elo": 1660.0,
         "aa_quality": 50.7771115797629
       },
@@ -78,7 +75,7 @@
       "blended_price": 9.0,
       "effective_cost": 9.9,
       "avi_score": 224.3,
-      "bfi_score": 9.5,
+      "bfi_score": 9.6,
       "fgi_score": 90.9,
       "is_new": false
     },
@@ -102,7 +99,7 @@
         "claude-fable-5"
       ],
       "base_metrics": {
-        "speed_tps": 65.3256895864289,
+        "speed_tps": 66.2651092633607,
         "lm_elo": 1625.0,
         "aa_quality": 49.6258202733378
       },
@@ -128,15 +125,15 @@
       },
       "aa_live_quality": 49.6258202733378,
       "context_length": 1000000,
-      "composite_score": 96.0,
-      "capability_q": 96.0,
-      "p_success": 94.7,
-      "token_multiplier": 1.12,
+      "composite_score": 95.9,
+      "capability_q": 95.9,
+      "p_success": 94.6,
+      "token_multiplier": 1.13,
       "blended_price": 18.0,
-      "effective_cost": 20.16,
-      "avi_score": 171.9,
-      "bfi_score": 6.1,
-      "fgi_score": 88.5,
+      "effective_cost": 20.34,
+      "avi_score": 171.1,
+      "bfi_score": 6.2,
+      "fgi_score": 88.2,
       "is_new": false
     },
     {
@@ -167,7 +164,7 @@
         "claude-opus-4-8-medium"
       ],
       "base_metrics": {
-        "speed_tps": 61.4436620587169,
+        "speed_tps": 61.2398535491554,
         "lm_elo": 1534.0,
         "aa_quality": 41.7899103794639
       },
@@ -231,7 +228,7 @@
         "claude-opus-4-7-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 48.3181078757374,
+        "speed_tps": 46.5518528939768,
         "lm_elo": 1555.0,
         "aa_quality": 40.6897928205908
       },
@@ -263,7 +260,7 @@
       "blended_price": 9.0,
       "effective_cost": 11.16,
       "avi_score": 183.4,
-      "bfi_score": 7.4,
+      "bfi_score": 7.1,
       "fgi_score": 77.7,
       "is_new": false
     },
@@ -347,7 +344,7 @@
         "claude-sonnet-5"
       ],
       "base_metrics": {
-        "speed_tps": 82.5613759550913,
+        "speed_tps": 86.325019130263,
         "lm_elo": 1539.0,
         "aa_quality": 38.1638712882576
       },
@@ -380,7 +377,7 @@
       "blended_price": 3.6,
       "effective_cost": 4.61,
       "avi_score": 248.5,
-      "bfi_score": 25.5,
+      "bfi_score": 26.7,
       "fgi_score": 74.5,
       "is_new": false
     },
@@ -407,7 +404,7 @@
         "claude-sonnet-4-6-thinking"
       ],
       "base_metrics": {
-        "speed_tps": 43.6771381955841,
+        "speed_tps": 45.1351049691858,
         "lm_elo": 1521.0,
         "aa_quality": 24.6869297210126
       },
@@ -439,7 +436,7 @@
       "blended_price": 5.4,
       "effective_cost": 8.32,
       "avi_score": 171.2,
-      "bfi_score": 9.2,
+      "bfi_score": 9.6,
       "fgi_score": 60.2,
       "is_new": false
     },
@@ -467,7 +464,7 @@
         "claude-4-5-haiku-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 88.4824278421981,
+        "speed_tps": 95.4800944391334,
         "lm_elo": 1329.0,
         "aa_quality": 15.410949885381
       },
@@ -480,7 +477,7 @@
       "blended_price": 1.8,
       "effective_cost": 4.66,
       "avi_score": 167.5,
-      "bfi_score": 38.9,
+      "bfi_score": 41.9,
       "fgi_score": 33.0,
       "is_new": false
     },
@@ -508,7 +505,7 @@
         "gemini-3-1-pro-preview"
       ],
       "base_metrics": {
-        "speed_tps": 115.262025453875,
+        "speed_tps": 117.435837348275,
         "lm_elo": 1446.0,
         "aa_quality": 29.7185656132261
       },
@@ -541,7 +538,7 @@
       "blended_price": 4.0,
       "effective_cost": 6.24,
       "avi_score": 189.6,
-      "bfi_score": 30.7,
+      "bfi_score": 31.3,
       "fgi_score": 59.3,
       "is_new": false
     },
@@ -576,7 +573,7 @@
         "gemini-3-7-flash-low"
       ],
       "base_metrics": {
-        "speed_tps": 298.009636048683,
+        "speed_tps": 302.550646706738,
         "lm_elo": 1592.0,
         "aa_quality": 39.0594566404896
       },
@@ -609,7 +606,7 @@
       "blended_price": 0.68,
       "effective_cost": 0.83,
       "avi_score": 557.0,
-      "bfi_score": 325.3,
+      "bfi_score": 330.3,
       "fgi_score": 78.8,
       "is_new": false
     },
@@ -641,7 +638,7 @@
         "gemini-3-8-flash-thinking"
       ],
       "base_metrics": {
-        "speed_tps": 239.118408949075,
+        "speed_tps": 248.515717961766,
         "lm_elo": 1583.0,
         "aa_quality": 40.9262321765904
       },
@@ -674,7 +671,7 @@
       "blended_price": 0.68,
       "effective_cost": 0.82,
       "avi_score": 565.3,
-      "bfi_score": 262.2,
+      "bfi_score": 272.5,
       "fgi_score": 79.7,
       "is_new": false
     },
@@ -701,7 +698,7 @@
         "gemini-3-1-flash-lite-preview"
       ],
       "base_metrics": {
-        "speed_tps": 291.149651283064,
+        "speed_tps": 305.67164238867,
         "lm_elo": 1256.0,
         "aa_quality": 15.554288713025
       },
@@ -714,7 +711,7 @@
       "blended_price": 0.5,
       "effective_cost": 1.52,
       "avi_score": 258.7,
-      "bfi_score": 313.4,
+      "bfi_score": 329.1,
       "fgi_score": 27.1,
       "is_new": false
     },
@@ -831,7 +828,7 @@
         "claude-sonnet-5-5-xhigh"
       ],
       "base_metrics": {
-        "speed_tps": 138.974635824399,
+        "speed_tps": 139.150604562872,
         "lm_elo": 1715.0,
         "aa_quality": 56.0001286580794
       },
@@ -864,7 +861,7 @@
       "blended_price": 3.6,
       "effective_cost": 3.89,
       "avi_score": 342.6,
-      "bfi_score": 48.1,
+      "bfi_score": 48.2,
       "fgi_score": 94.8,
       "first_seen": "2026-10-03T12:53:09.795991+00:00",
       "is_new": true
@@ -896,7 +893,7 @@
         "gpt-5-6-sol-low"
       ],
       "base_metrics": {
-        "speed_tps": 79.2267114960985,
+        "speed_tps": 79.5896827522317,
         "lm_elo": 1620.0,
         "aa_quality": 46.9727068915036
       },
@@ -929,7 +926,7 @@
       "blended_price": 3.6,
       "effective_cost": 4.1,
       "avi_score": 298.5,
-      "bfi_score": 26.0,
+      "bfi_score": 26.1,
       "fgi_score": 86.3,
       "is_new": false
     },
@@ -960,7 +957,7 @@
         "grok-4-6-low"
       ],
       "base_metrics": {
-        "speed_tps": 72.9354109327871,
+        "speed_tps": 77.2159678942079,
         "lm_elo": 1620.0,
         "aa_quality": 44.3113073012592
       },
@@ -993,7 +990,7 @@
       "blended_price": 2.8,
       "effective_cost": 3.25,
       "avi_score": 323.2,
-      "bfi_score": 28.8,
+      "bfi_score": 30.5,
       "fgi_score": 84.6,
       "is_new": false
     },
@@ -1022,7 +1019,7 @@
         "gpt-5-5"
       ],
       "base_metrics": {
-        "speed_tps": 84.3789621635361,
+        "speed_tps": 85.4897693195781,
         "lm_elo": 1512.0,
         "aa_quality": 38.3556437590607
       },
@@ -1055,7 +1052,7 @@
       "blended_price": 10.0,
       "effective_cost": 13.0,
       "avi_score": 165.3,
-      "bfi_score": 11.7,
+      "bfi_score": 11.8,
       "fgi_score": 72.9,
       "is_new": false
     },
@@ -1083,7 +1080,7 @@
         "gpt-5-6-terra-xhigh"
       ],
       "base_metrics": {
-        "speed_tps": 101.720470892979,
+        "speed_tps": 99.7607138567006,
         "lm_elo": 1519.0,
         "aa_quality": 42.0829248239494
       },
@@ -1109,15 +1106,15 @@
       },
       "aa_live_quality": 42.0829248239494,
       "context_length": 1050000,
-      "composite_score": 90.1,
-      "capability_q": 90.1,
-      "p_success": 89.8,
+      "composite_score": 90.0,
+      "capability_q": 90.0,
+      "p_success": 89.7,
       "token_multiplier": 1.25,
       "blended_price": 2.7,
       "effective_cost": 3.38,
-      "avi_score": 290.1,
-      "bfi_score": 39.6,
-      "fgi_score": 76.7,
+      "avi_score": 289.4,
+      "bfi_score": 38.8,
+      "fgi_score": 76.5,
       "is_new": false
     },
     {
@@ -1258,7 +1255,7 @@
         "gpt-oss-120b"
       ],
       "base_metrics": {
-        "speed_tps": 159.419829982659,
+        "speed_tps": 173.566990204574,
         "aa_quality": 11.6028431512592
       },
       "aa_live_quality": 11.6028431512592,
@@ -1270,7 +1267,7 @@
       "blended_price": 0.07,
       "effective_cost": 0.16,
       "avi_score": 611.4,
-      "bfi_score": 561.8,
+      "bfi_score": 611.7,
       "fgi_score": 34.8,
       "is_new": false
     },
@@ -1295,7 +1292,7 @@
         "grok-4.5"
       ],
       "base_metrics": {
-        "speed_tps": 54.2418986600197,
+        "speed_tps": 55.3843309623328,
         "lm_elo": 1552.0,
         "aa_quality": 38.8121153240657
       },
@@ -1328,7 +1325,7 @@
       "blended_price": 2.8,
       "effective_cost": 3.53,
       "avi_score": 282.6,
-      "bfi_score": 20.5,
+      "bfi_score": 20.9,
       "fgi_score": 75.9,
       "is_new": false
     },
@@ -1355,21 +1352,21 @@
         "qwen3-coder-480b-a35b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 53.2958853055786,
+        "speed_tps": 53.6834527715051,
         "lm_elo": 1274.0,
         "aa_quality": 11.8990256096549
       },
       "aa_live_quality": 11.8990256096549,
       "context_length": 262144,
-      "composite_score": 71.8,
-      "capability_q": 71.8,
-      "p_success": 49.4,
-      "token_multiplier": 3.25,
+      "composite_score": 71.7,
+      "capability_q": 71.7,
+      "p_success": 49.1,
+      "token_multiplier": 3.28,
       "blended_price": 0.44,
-      "effective_cost": 1.43,
-      "avi_score": 259.6,
-      "bfi_score": 61.9,
-      "fgi_score": 24.9,
+      "effective_cost": 1.44,
+      "avi_score": 258.0,
+      "bfi_score": 62.2,
+      "fgi_score": 24.7,
       "is_new": false
     },
     {
@@ -1430,7 +1427,7 @@
         "qwen3-8-max"
       ],
       "base_metrics": {
-        "speed_tps": 37.907667729179,
+        "speed_tps": 39.3449275530768,
         "lm_elo": 1671.0,
         "aa_quality": 45.4152084980521
       },
@@ -1462,7 +1459,7 @@
       "blended_price": 2.8,
       "effective_cost": 3.16,
       "avi_score": 342.0,
-      "bfi_score": 15.3,
+      "bfi_score": 15.8,
       "fgi_score": 88.1,
       "is_new": false
     },
@@ -1487,7 +1484,7 @@
         "qwen3-8-flash-next"
       ],
       "base_metrics": {
-        "speed_tps": 53.045331093103,
+        "speed_tps": 53.7224088362749,
         "lm_elo": 1637.0,
         "aa_quality": 39.8223021864741
       },
@@ -1519,7 +1516,7 @@
       "blended_price": 0.11,
       "effective_cost": 0.13,
       "avi_score": 1002.0,
-      "bfi_score": 179.8,
+      "bfi_score": 182.1,
       "fgi_score": 82.2,
       "is_new": false
     },
@@ -1544,7 +1541,7 @@
         "qwen3.8-27b"
       ],
       "base_metrics": {
-        "speed_tps": 46.082166562284,
+        "speed_tps": 46.114996793696,
         "lm_elo": 1591.0,
         "aa_quality": 33.6962858057476
       },
@@ -1605,7 +1602,7 @@
         "deepseek-v4.1-flash-20260910"
       ],
       "base_metrics": {
-        "speed_tps": 213.26826879237,
+        "speed_tps": 209.383766021677,
         "lm_elo": 1620.0,
         "aa_quality": 39.456167472527
       },
@@ -1638,7 +1635,7 @@
       "blended_price": 0.24,
       "effective_cost": 0.29,
       "avi_score": 828.9,
-      "bfi_score": 468.5,
+      "bfi_score": 459.9,
       "fgi_score": 81.0,
       "is_new": false
     },
@@ -1666,7 +1663,7 @@
         "deepseek-v4-flash-high"
       ],
       "base_metrics": {
-        "speed_tps": 215.159580835818,
+        "speed_tps": 216.334229982997,
         "lm_elo": 1581.0,
         "aa_quality": 34.3305129347816
       },
@@ -1692,15 +1689,15 @@
       },
       "aa_live_quality": 34.3305129347816,
       "context_length": 1048576,
-      "composite_score": 89.1,
-      "capability_q": 89.1,
-      "p_success": 88.6,
-      "token_multiplier": 1.28,
+      "composite_score": 89.0,
+      "capability_q": 89.0,
+      "p_success": 88.5,
+      "token_multiplier": 1.29,
       "blended_price": 0.07,
       "effective_cost": 0.09,
-      "avi_score": 967.6,
-      "bfi_score": 874.8,
-      "fgi_score": 74.3,
+      "avi_score": 965.2,
+      "bfi_score": 878.6,
+      "fgi_score": 74.1,
       "is_new": false
     },
     {
@@ -1722,7 +1719,7 @@
         "deepseek-v4-pro"
       ],
       "base_metrics": {
-        "speed_tps": 109.154442746936,
+        "speed_tps": 106.579000690217,
         "lm_elo": 1446.0,
         "aa_quality": 35.9967791278402
       },
@@ -1755,7 +1752,7 @@
       "blended_price": 0.49,
       "effective_cost": 0.71,
       "avi_score": 519.4,
-      "bfi_score": 139.9,
+      "bfi_score": 136.6,
       "fgi_score": 65.7,
       "is_new": false
     },
@@ -1779,7 +1776,7 @@
         "kimi-k3-low"
       ],
       "base_metrics": {
-        "speed_tps": 36.1149439589275,
+        "speed_tps": 33.7371270862654,
         "lm_elo": 1658.0,
         "aa_quality": 43.5938229518782
       },
@@ -1812,7 +1809,7 @@
       "blended_price": 5.4,
       "effective_cost": 6.21,
       "avi_score": 251.2,
-      "bfi_score": 8.6,
+      "bfi_score": 8.1,
       "fgi_score": 86.0,
       "is_new": false
     },
@@ -1836,7 +1833,7 @@
         "kimi-k2.7-code"
       ],
       "base_metrics": {
-        "speed_tps": 93.3546962350277,
+        "speed_tps": 90.4843392321725,
         "lm_elo": 1473.0,
         "aa_quality": 25.8121062401836
       },
@@ -1869,7 +1866,7 @@
       "blended_price": 1.56,
       "effective_cost": 2.51,
       "avi_score": 274.2,
-      "bfi_score": 50.6,
+      "bfi_score": 49.0,
       "fgi_score": 57.3,
       "is_new": false
     },
@@ -1897,7 +1894,7 @@
         "glm-5.3-max"
       ],
       "base_metrics": {
-        "speed_tps": 71.4304838549835,
+        "speed_tps": 70.718836735313,
         "lm_elo": 1623.0,
         "aa_quality": 44.777392385614
       },
@@ -1930,7 +1927,7 @@
       "blended_price": 2.0,
       "effective_cost": 2.32,
       "avi_score": 377.5,
-      "bfi_score": 36.5,
+      "bfi_score": 36.1,
       "fgi_score": 84.9,
       "is_new": false
     },
@@ -1958,7 +1955,7 @@
         "glm-5.2-max"
       ],
       "base_metrics": {
-        "speed_tps": 93.2602365421243,
+        "speed_tps": 84.219982249121,
         "lm_elo": 1605.0,
         "aa_quality": 33.7054572377545
       },
@@ -1991,7 +1988,7 @@
       "blended_price": 2.0,
       "effective_cost": 2.54,
       "avi_score": 324.5,
-      "bfi_score": 45.3,
+      "bfi_score": 40.9,
       "fgi_score": 75.3,
       "is_new": false
     },
@@ -2016,7 +2013,7 @@
         "glm-5.3-flash"
       ],
       "base_metrics": {
-        "speed_tps": 52.3809170489892,
+        "speed_tps": 54.127852347375,
         "lm_elo": 1616.0,
         "aa_quality": 41.807466113455
       },
@@ -2049,7 +2046,7 @@
       "blended_price": 0.22,
       "effective_cost": 0.26,
       "avi_score": 868.0,
-      "bfi_score": 122.2,
+      "bfi_score": 126.3,
       "fgi_score": 82.4,
       "is_new": false
     },
@@ -2139,7 +2136,7 @@
         "gpt-5-6-luna"
       ],
       "base_metrics": {
-        "speed_tps": 125.108696802292,
+        "speed_tps": 124.805363398541,
         "lm_elo": 1518.0,
         "aa_quality": 37.3244239690841
       },
@@ -2172,7 +2169,7 @@
       "blended_price": 0.4,
       "effective_cost": 0.52,
       "avi_score": 625.6,
-      "bfi_score": 190.3,
+      "bfi_score": 189.9,
       "fgi_score": 72.4,
       "is_new": false
     },
@@ -2197,7 +2194,7 @@
         "minimax-m3"
       ],
       "base_metrics": {
-        "speed_tps": 83.7547445519799,
+        "speed_tps": 87.6174319225597,
         "lm_elo": 1482.0,
         "aa_quality": 29.2202932236316
       },
@@ -2223,15 +2220,15 @@
       },
       "aa_live_quality": 29.2202932236316,
       "context_length": 1048576,
-      "composite_score": 84.3,
-      "capability_q": 84.3,
-      "p_success": 81.4,
-      "token_multiplier": 1.5,
+      "composite_score": 84.2,
+      "capability_q": 84.2,
+      "p_success": 81.2,
+      "token_multiplier": 1.51,
       "blended_price": 0.48,
       "effective_cost": 0.72,
-      "avi_score": 498.1,
-      "bfi_score": 107.6,
-      "fgi_score": 61.9,
+      "avi_score": 496.8,
+      "bfi_score": 112.5,
+      "fgi_score": 61.6,
       "is_new": false
     },
     {
@@ -2259,7 +2256,7 @@
         "mimo-v2-5-pro"
       ],
       "base_metrics": {
-        "speed_tps": 60.4699690099026,
+        "speed_tps": 57.8682206777709,
         "lm_elo": 1438.0,
         "aa_quality": 25.1743063555572
       },
@@ -2272,7 +2269,7 @@
       "blended_price": 0.17,
       "effective_cost": 0.29,
       "avi_score": 633.4,
-      "bfi_score": 144.9,
+      "bfi_score": 138.7,
       "fgi_score": 53.8,
       "is_new": false
     },
@@ -2309,7 +2306,7 @@
         "meta/muse-spark-1.3"
       ],
       "base_metrics": {
-        "speed_tps": 134.517542001713,
+        "speed_tps": 151.635856681946,
         "lm_elo": 1624.0,
         "aa_quality": 48.0923107719685
       },
@@ -2342,7 +2339,7 @@
       "blended_price": 0.58,
       "effective_cost": 0.66,
       "avi_score": 677.1,
-      "bfi_score": 171.8,
+      "bfi_score": 193.7,
       "fgi_score": 87.4,
       "is_new": false
     },
@@ -2371,7 +2368,7 @@
         "qwen3-8-27b"
       ],
       "base_metrics": {
-        "speed_tps": 46.082166562284,
+        "speed_tps": 46.114996793696,
         "lm_elo": 1591.0,
         "aa_quality": 33.6962858057476
       },
@@ -2405,7 +2402,7 @@
       "blended_price": 0.28,
       "effective_cost": 0.36,
       "avi_score": 723.0,
-      "bfi_score": 89.0,
+      "bfi_score": 89.1,
       "fgi_score": 74.3,
       "is_new": false
     },
@@ -2431,7 +2428,7 @@
         "kimi-k-3"
       ],
       "base_metrics": {
-        "speed_tps": 36.1149439589275,
+        "speed_tps": 33.7371270862654,
         "lm_elo": 1658.0,
         "aa_quality": 43.5938229518782
       },
@@ -2465,7 +2462,7 @@
       "blended_price": 1.28,
       "effective_cost": 1.47,
       "avi_score": 471.3,
-      "bfi_score": 25.9,
+      "bfi_score": 24.2,
       "fgi_score": 86.0,
       "is_new": false
     },
@@ -2487,7 +2484,7 @@
         "glm-4-5v"
       ],
       "base_metrics": {
-        "speed_tps": 50.5801082993065,
+        "speed_tps": 53.0002994082779,
         "aa_quality": 6.69669796944385
       },
       "aa_live_quality": 6.69669796944385,
@@ -2498,7 +2495,7 @@
       "blended_price": 0.84,
       "effective_cost": 2.76,
       "avi_score": 192.0,
-      "bfi_score": 37.4,
+      "bfi_score": 39.2,
       "fgi_score": 24.7,
       "is_new": false
     },
@@ -2520,7 +2517,7 @@
         "gemini-3-5-flash"
       ],
       "base_metrics": {
-        "speed_tps": 215.875711237817,
+        "speed_tps": 215.953965533822,
         "lm_elo": 1499.0,
         "aa_quality": 32.5983283695905
       },
@@ -2578,15 +2575,15 @@
         "aa_quality": 18.6626376411117
       },
       "aa_live_quality": 18.6626376411117,
-      "composite_score": 80.5,
-      "capability_q": 80.5,
-      "p_success": 73.5,
-      "token_multiplier": 1.79,
+      "composite_score": 80.4,
+      "capability_q": 80.4,
+      "p_success": 73.3,
+      "token_multiplier": 1.8,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 50.7,
+      "fgi_score": 50.5,
       "is_new": false
     },
     {
@@ -2607,7 +2604,7 @@
         "gpt-6-sol-low"
       ],
       "base_metrics": {
-        "speed_tps": 78.8623965585807,
+        "speed_tps": 78.2348904045234,
         "lm_elo": 1689.0,
         "aa_quality": 34.1548755585733
       },
@@ -2640,7 +2637,7 @@
       "blended_price": 3.6,
       "effective_cost": 4.28,
       "avi_score": 275.7,
-      "bfi_score": 25.2,
+      "bfi_score": 25.0,
       "fgi_score": 81.2,
       "first_seen": "2026-09-22T21:15:52.482335+00:00",
       "is_new": false
@@ -2663,7 +2660,7 @@
         "mercury-2"
       ],
       "base_metrics": {
-        "speed_tps": 845.733777993096,
+        "speed_tps": 921.746300781005,
         "lm_elo": 1170.0,
         "aa_quality": 13.7691315513812
       },
@@ -2676,7 +2673,7 @@
       "blended_price": 0.35,
       "effective_cost": 1.4,
       "avi_score": 243.2,
-      "bfi_score": 1103.7,
+      "bfi_score": 1202.9,
       "fgi_score": 19.1,
       "is_new": false
     },
@@ -2698,7 +2695,7 @@
         "qwen3-5-omni-plus"
       ],
       "base_metrics": {
-        "speed_tps": 116.208540287245,
+        "speed_tps": 107.579423573374,
         "aa_quality": 20.3839890713777
       },
       "aa_live_quality": 20.3839890713777,
@@ -2709,7 +2706,7 @@
       "blended_price": 1.28,
       "effective_cost": 2.16,
       "avi_score": 285.8,
-      "bfi_score": 72.0,
+      "bfi_score": 66.7,
       "fgi_score": 54.3,
       "is_new": false
     },
@@ -2764,7 +2761,7 @@
         "qwen3-5-122b-a10b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 141.125962330902,
+        "speed_tps": 140.578765010979,
         "lm_elo": 1360.0,
         "aa_quality": 17.7480154665397
       },
@@ -2776,7 +2773,7 @@
       "blended_price": 0.96,
       "effective_cost": 2.21,
       "avi_score": 244.0,
-      "bfi_score": 101.0,
+      "bfi_score": 100.6,
       "fgi_score": 38.1,
       "is_new": false
     },
@@ -2798,19 +2795,19 @@
         "gemma-4-12b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 116.511826203535,
+        "speed_tps": 117.685502906005,
         "aa_quality": 9.37989472421056
       },
       "aa_live_quality": 9.37989472421056,
-      "composite_score": 73.7,
-      "capability_q": 73.7,
-      "p_success": 55.1,
-      "token_multiplier": 2.79,
+      "composite_score": 73.6,
+      "capability_q": 73.6,
+      "p_success": 54.8,
+      "token_multiplier": 2.81,
       "blended_price": 0.14,
       "effective_cost": 0.39,
-      "avi_score": 464.3,
-      "bfi_score": 279.3,
-      "fgi_score": 30.1,
+      "avi_score": 462.9,
+      "bfi_score": 281.7,
+      "fgi_score": 29.9,
       "is_new": false
     },
     {
@@ -3035,15 +3032,15 @@
         "aa_quality": 25.2162736582441
       },
       "aa_live_quality": 25.2162736582441,
-      "composite_score": 85.3,
-      "capability_q": 85.3,
-      "p_success": 83.1,
+      "composite_score": 85.2,
+      "capability_q": 85.2,
+      "p_success": 83.0,
       "token_multiplier": 1.45,
       "blended_price": 2.8,
       "effective_cost": 4.06,
-      "avi_score": 237.6,
+      "avi_score": 237.0,
       "bfi_score": 21.5,
-      "fgi_score": 64.6,
+      "fgi_score": 64.4,
       "is_new": false
     },
     {
@@ -3081,7 +3078,7 @@
       "is_new": false
     },
     {
-      "display": "Claude Fable 5.1 (Low, Default Fallback)",
+      "display": "Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)",
       "provider": "Anthropic",
       "pool": "api",
       "tier": "Upstream API",
@@ -3098,7 +3095,7 @@
         "claude-fable-5-1-low"
       ],
       "base_metrics": {
-        "speed_tps": 51.7082550643765,
+        "speed_tps": 52.8173002535604,
         "lm_elo": 1749.0,
         "aa_quality": 46.8163422014862
       },
@@ -3130,7 +3127,7 @@
       "blended_price": 18.0,
       "effective_cost": 19.62,
       "avi_score": 183.8,
-      "bfi_score": 5.0,
+      "bfi_score": 5.1,
       "fgi_score": 92.9,
       "is_new": false
     },
@@ -3186,20 +3183,20 @@
         "gpt-5-nano-minimal"
       ],
       "base_metrics": {
-        "speed_tps": 140.223429631399,
+        "speed_tps": 143.153374807972,
         "aa_quality": 7.08879356535892
       },
       "aa_live_quality": 7.08879356535892,
       "context_length": 400000,
-      "composite_score": 72.0,
-      "capability_q": 72.0,
-      "p_success": 50.0,
-      "token_multiplier": 3.2,
+      "composite_score": 71.9,
+      "capability_q": 71.9,
+      "p_success": 49.7,
+      "token_multiplier": 3.23,
       "blended_price": 0.12,
-      "effective_cost": 0.38,
-      "avi_score": 444.8,
-      "bfi_score": 356.3,
-      "fgi_score": 25.5,
+      "effective_cost": 0.39,
+      "avi_score": 439.7,
+      "bfi_score": 363.2,
+      "fgi_score": 25.2,
       "is_new": false
     },
     {
@@ -3253,7 +3250,7 @@
         "o3-mini-high"
       ],
       "base_metrics": {
-        "speed_tps": 191.790736721231,
+        "speed_tps": 191.563881804587,
         "aa_quality": 10.9643866525084
       },
       "aa_live_quality": 10.9643866525084,
@@ -3265,7 +3262,7 @@
       "blended_price": 1.76,
       "effective_cost": 4.52,
       "avi_score": 170.1,
-      "bfi_score": 85.8,
+      "bfi_score": 85.7,
       "fgi_score": 33.3,
       "is_new": false
     },
@@ -3388,7 +3385,7 @@
         "gpt-6-1-sol-xhigh"
       ],
       "base_metrics": {
-        "speed_tps": 50.5413403802954,
+        "speed_tps": 53.4464260411092,
         "lm_elo": 1758.0,
         "aa_quality": 51.0377679093761
       },
@@ -3420,7 +3417,7 @@
       "blended_price": 3.6,
       "effective_cost": 3.89,
       "avi_score": 342.6,
-      "bfi_score": 17.5,
+      "bfi_score": 18.5,
       "fgi_score": 94.8,
       "first_seen": "2026-09-30T05:00:18.696224+00:00",
       "is_new": true
@@ -3443,7 +3440,7 @@
         "gemini-3-5-flash-lite"
       ],
       "base_metrics": {
-        "speed_tps": 354.484656133381,
+        "speed_tps": 359.95987899047,
         "lm_elo": 1440.0,
         "aa_quality": 22.1685424839812
       },
@@ -3476,7 +3473,7 @@
       "blended_price": 0.74,
       "effective_cost": 1.33,
       "avi_score": 344.1,
-      "bfi_score": 321.7,
+      "bfi_score": 326.7,
       "fgi_score": 50.5,
       "is_new": false
     },
@@ -3498,7 +3495,7 @@
         "step-5"
       ],
       "base_metrics": {
-        "speed_tps": 85.1225268283193,
+        "speed_tps": 85.8856641943286,
         "lm_elo": 1570.0,
         "aa_quality": 43.7343049141614
       },
@@ -3510,7 +3507,7 @@
       "blended_price": 1.34,
       "effective_cost": 1.59,
       "avi_score": 428.8,
-      "bfi_score": 57.5,
+      "bfi_score": 58.1,
       "fgi_score": 81.2,
       "first_seen": "2026-09-19T05:00:18.163491+00:00",
       "is_new": false
@@ -3571,15 +3568,15 @@
         "aa_quality": 8.61676079574885
       },
       "aa_live_quality": 8.61676079574885,
-      "composite_score": 68.3,
-      "capability_q": 68.3,
-      "p_success": 39.1,
-      "token_multiplier": 4.43,
+      "composite_score": 68.2,
+      "capability_q": 68.2,
+      "p_success": 38.8,
+      "token_multiplier": 4.47,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 16.7,
+      "fgi_score": 16.5,
       "is_new": false
     },
     {
@@ -3604,15 +3601,15 @@
         "aa_quality": 7.87908981990033
       },
       "aa_live_quality": 7.87908981990033,
-      "composite_score": 72.6,
-      "capability_q": 72.6,
-      "p_success": 51.8,
-      "token_multiplier": 3.05,
+      "composite_score": 72.5,
+      "capability_q": 72.5,
+      "p_success": 51.5,
+      "token_multiplier": 3.07,
       "blended_price": 5.4,
-      "effective_cost": 16.47,
-      "avi_score": 99.0,
+      "effective_cost": 16.58,
+      "avi_score": 98.5,
       "bfi_score": 11.0,
-      "fgi_score": 27.1,
+      "fgi_score": 26.8,
       "is_new": false
     },
     {
@@ -3666,7 +3663,7 @@
         "qwen3-omni-30b-a3b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 96.4965870666991,
+        "speed_tps": 96.5283269887802,
         "aa_quality": 6.00611816793457
       },
       "aa_live_quality": 6.00611816793457,
@@ -3699,7 +3696,7 @@
         "grok-build-0-1-06-16"
       ],
       "base_metrics": {
-        "speed_tps": 66.6943792239122,
+        "speed_tps": 64.9647099906916,
         "aa_quality": 27.1714438189407
       },
       "aa_live_quality": 27.1714438189407,
@@ -3710,7 +3707,7 @@
       "blended_price": 1.2,
       "effective_cost": 1.66,
       "avi_score": 367.2,
-      "bfi_score": 46.0,
+      "bfi_score": 44.8,
       "fgi_score": 68.4,
       "is_new": false
     },
@@ -3732,7 +3729,7 @@
         "granite-4-2-3b"
       ],
       "base_metrics": {
-        "speed_tps": 220.262850581475,
+        "speed_tps": 220.981032000397,
         "aa_quality": 9.05588232376756
       },
       "aa_live_quality": 9.05588232376756,
@@ -3743,7 +3740,7 @@
       "blended_price": 0.05,
       "effective_cost": 0.14,
       "avi_score": 592.1,
-      "bfi_score": 859.5,
+      "bfi_score": 862.3,
       "fgi_score": 29.3,
       "is_new": false
     },
@@ -3765,19 +3762,19 @@
         "nova-2-0-pro-reasoning-medium"
       ],
       "base_metrics": {
-        "speed_tps": 121.248077614753,
+        "speed_tps": 125.005857706062,
         "aa_quality": 14.1554948903666
       },
       "aa_live_quality": 14.1554948903666,
-      "composite_score": 77.2,
-      "capability_q": 77.2,
-      "p_success": 65.1,
-      "token_multiplier": 2.18,
+      "composite_score": 77.1,
+      "capability_q": 77.1,
+      "p_success": 64.8,
+      "token_multiplier": 2.2,
       "blended_price": 3.0,
-      "effective_cost": 6.54,
-      "avi_score": 157.0,
-      "bfi_score": 37.3,
-      "fgi_score": 40.5,
+      "effective_cost": 6.6,
+      "avi_score": 156.0,
+      "bfi_score": 38.4,
+      "fgi_score": 40.2,
       "is_new": false
     },
     {
@@ -3798,7 +3795,7 @@
         "inkling"
       ],
       "base_metrics": {
-        "speed_tps": 171.530836044569,
+        "speed_tps": 171.226778214674,
         "lm_elo": 1413.0,
         "aa_quality": 24.9847810999384
       },
@@ -3831,7 +3828,7 @@
       "blended_price": 1.61,
       "effective_cost": 2.85,
       "avi_score": 245.5,
-      "bfi_score": 88.5,
+      "bfi_score": 88.4,
       "fgi_score": 51.4,
       "is_new": false
     },
@@ -3853,7 +3850,7 @@
         "kimi-k2-6"
       ],
       "base_metrics": {
-        "speed_tps": 59.8766276843789,
+        "speed_tps": 68.0683129118693,
         "lm_elo": 1509.0,
         "aa_quality": 26.9791999742844
       },
@@ -3865,7 +3862,7 @@
       "blended_price": 1.56,
       "effective_cost": 2.36,
       "avi_score": 293.3,
-      "bfi_score": 33.0,
+      "bfi_score": 37.5,
       "fgi_score": 61.6,
       "is_new": false
     },
@@ -3986,7 +3983,7 @@
         "qwen3-5-397b-a17b"
       ],
       "base_metrics": {
-        "speed_tps": 87.4284630592786,
+        "speed_tps": 87.5084575970938,
         "lm_elo": 1399.0,
         "aa_quality": 18.4204249294815
       },
@@ -3998,7 +3995,7 @@
       "blended_price": 1.2,
       "effective_cost": 2.52,
       "avi_score": 239.3,
-      "bfi_score": 54.1,
+      "bfi_score": 54.2,
       "fgi_score": 42.4,
       "is_new": false
     },
@@ -4086,19 +4083,19 @@
         "granite-4-2-30b"
       ],
       "base_metrics": {
-        "speed_tps": 76.4586835428204,
+        "speed_tps": 76.7442189164068,
         "aa_quality": 14.8312405050789
       },
       "aa_live_quality": 14.8312405050789,
-      "composite_score": 77.7,
-      "capability_q": 77.7,
-      "p_success": 66.5,
-      "token_multiplier": 2.11,
+      "composite_score": 77.6,
+      "capability_q": 77.6,
+      "p_success": 66.2,
+      "token_multiplier": 2.12,
       "blended_price": 0.26,
-      "effective_cost": 0.54,
-      "avi_score": 465.7,
-      "bfi_score": 135.5,
-      "fgi_score": 42.1,
+      "effective_cost": 0.55,
+      "avi_score": 461.2,
+      "bfi_score": 135.9,
+      "fgi_score": 41.8,
       "is_new": false
     },
     {
@@ -4123,15 +4120,15 @@
         "aa_quality": 20.5958819421354
       },
       "aa_live_quality": 20.5958819421354,
-      "composite_score": 81.9,
-      "capability_q": 81.9,
-      "p_success": 76.6,
-      "token_multiplier": 1.67,
+      "composite_score": 81.8,
+      "capability_q": 81.8,
+      "p_success": 76.4,
+      "token_multiplier": 1.68,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 54.9,
+      "fgi_score": 54.6,
       "first_seen": "2026-09-18T05:00:17.769504+00:00",
       "is_new": false
     },
@@ -4153,20 +4150,20 @@
         "mimo-v2-6-flash"
       ],
       "base_metrics": {
-        "speed_tps": 48.2222075277781,
+        "speed_tps": 51.2350720046311,
         "aa_quality": 37.8843590141754
       },
       "aa_live_quality": 37.8843590141754,
       "context_length": 1050000,
-      "composite_score": 94.6,
-      "capability_q": 94.6,
-      "p_success": 93.8,
+      "composite_score": 94.5,
+      "capability_q": 94.5,
+      "p_success": 93.7,
       "token_multiplier": 1.15,
       "blended_price": 0.17,
       "effective_cost": 0.19,
-      "avi_score": 975.5,
-      "bfi_score": 134.2,
-      "fgi_score": 85.9,
+      "avi_score": 973.3,
+      "bfi_score": 142.4,
+      "fgi_score": 85.7,
       "first_seen": "2026-09-28T05:00:19.424545+00:00",
       "is_new": true
     },
@@ -4221,7 +4218,7 @@
         "minimax-m2-5"
       ],
       "base_metrics": {
-        "speed_tps": 96.2828414626724,
+        "speed_tps": 102.29593940118,
         "lm_elo": 1386.0,
         "aa_quality": 22.7966473221872
       },
@@ -4234,7 +4231,7 @@
       "blended_price": 0.48,
       "effective_cost": 0.93,
       "avi_score": 388.9,
-      "bfi_score": 116.1,
+      "bfi_score": 123.4,
       "fgi_score": 46.4,
       "is_new": false
     },
@@ -4256,19 +4253,19 @@
         "mistral-small-4-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 167.338071158774,
+        "speed_tps": 172.701542994344,
         "aa_quality": 8.99008610259603
       },
       "aa_live_quality": 8.99008610259603,
-      "composite_score": 73.4,
-      "capability_q": 73.4,
-      "p_success": 54.2,
-      "token_multiplier": 2.86,
+      "composite_score": 73.3,
+      "capability_q": 73.3,
+      "p_success": 53.9,
+      "token_multiplier": 2.88,
       "blended_price": 0.24,
       "effective_cost": 0.69,
-      "avi_score": 373.7,
-      "bfi_score": 292.9,
-      "fgi_score": 29.3,
+      "avi_score": 372.5,
+      "bfi_score": 301.9,
+      "fgi_score": 29.0,
       "is_new": false
     },
     {
@@ -4293,15 +4290,15 @@
         "aa_quality": 17.7114460194322
       },
       "aa_live_quality": 17.7114460194322,
-      "composite_score": 79.8,
-      "capability_q": 79.8,
-      "p_success": 71.8,
-      "token_multiplier": 1.86,
+      "composite_score": 79.7,
+      "capability_q": 79.7,
+      "p_success": 71.6,
+      "token_multiplier": 1.87,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 48.6,
+      "fgi_score": 48.3,
       "is_new": false
     },
     {
@@ -4360,15 +4357,15 @@
       },
       "aa_live_quality": 26.5965803042835,
       "context_length": 202752,
-      "composite_score": 86.3,
-      "capability_q": 86.3,
-      "p_success": 84.8,
-      "token_multiplier": 1.39,
+      "composite_score": 86.2,
+      "capability_q": 86.2,
+      "p_success": 84.6,
+      "token_multiplier": 1.4,
       "blended_price": 1.76,
-      "effective_cost": 2.45,
-      "avi_score": 304.5,
-      "bfi_score": 31.0,
-      "fgi_score": 67.4,
+      "effective_cost": 2.46,
+      "avi_score": 303.1,
+      "bfi_score": 30.9,
+      "fgi_score": 67.1,
       "is_new": false
     },
     {
@@ -4422,20 +4419,20 @@
         "gpt-oss-20b-low"
       ],
       "base_metrics": {
-        "speed_tps": 222.922538119093,
+        "speed_tps": 223.851008823451,
         "aa_quality": 9.95295342568922
       },
       "aa_live_quality": 9.95295342568922,
       "context_length": 131072,
-      "composite_score": 74.1,
-      "capability_q": 74.1,
-      "p_success": 56.3,
-      "token_multiplier": 2.71,
+      "composite_score": 74.0,
+      "capability_q": 74.0,
+      "p_success": 56.0,
+      "token_multiplier": 2.73,
       "blended_price": 0.1,
       "effective_cost": 0.27,
-      "avi_score": 523.8,
-      "bfi_score": 642.2,
-      "fgi_score": 31.3,
+      "avi_score": 522.3,
+      "bfi_score": 644.0,
+      "fgi_score": 31.0,
       "is_new": false
     },
     {
@@ -4490,7 +4487,7 @@
         "o3"
       ],
       "base_metrics": {
-        "speed_tps": 104.637361294676,
+        "speed_tps": 107.601752817214,
         "aa_quality": 20.200754789201
       },
       "aa_live_quality": 20.200754789201,
@@ -4502,7 +4499,7 @@
       "blended_price": 3.2,
       "effective_cost": 5.41,
       "avi_score": 191.3,
-      "bfi_score": 32.4,
+      "bfi_score": 33.3,
       "fgi_score": 54.1,
       "is_new": false
     },
@@ -4594,15 +4591,15 @@
         "aa_quality": 7.22847163984467
       },
       "aa_live_quality": 7.22847163984467,
-      "composite_score": 72.1,
-      "capability_q": 72.1,
-      "p_success": 50.3,
-      "token_multiplier": 3.17,
+      "composite_score": 72.0,
+      "capability_q": 72.0,
+      "p_success": 50.0,
+      "token_multiplier": 3.2,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 25.7,
+      "fgi_score": 25.5,
       "is_new": false
     },
     {
@@ -4623,7 +4620,7 @@
         "gpt-6-luna-xhigh"
       ],
       "base_metrics": {
-        "speed_tps": 138.4235939763,
+        "speed_tps": 137.574891847264,
         "lm_elo": 1579.0,
         "aa_quality": 34.5587320217785
       },
@@ -4656,7 +4653,7 @@
       "blended_price": 0.18,
       "effective_cost": 0.23,
       "avi_score": 818.6,
-      "bfi_score": 348.8,
+      "bfi_score": 346.6,
       "fgi_score": 74.3,
       "first_seen": "2026-09-22T21:15:52.482335+00:00",
       "is_new": false
@@ -4683,15 +4680,15 @@
         "aa_quality": 13.4758123489932
       },
       "aa_live_quality": 13.4758123489932,
-      "composite_score": 76.7,
-      "capability_q": 76.7,
-      "p_success": 63.7,
-      "token_multiplier": 2.25,
+      "composite_score": 76.6,
+      "capability_q": 76.6,
+      "p_success": 63.5,
+      "token_multiplier": 2.26,
       "blended_price": 0.8,
-      "effective_cost": 1.8,
-      "avi_score": 270.3,
+      "effective_cost": 1.81,
+      "avi_score": 268.8,
       "bfi_score": 49.1,
-      "fgi_score": 39.0,
+      "fgi_score": 38.8,
       "is_new": false
     },
     {
@@ -4745,7 +4742,7 @@
         "step-3-5-flash"
       ],
       "base_metrics": {
-        "speed_tps": 131.935772918426,
+        "speed_tps": 133.050254013404,
         "aa_quality": 16.964120603515
       },
       "aa_live_quality": 16.964120603515,
@@ -4756,7 +4753,7 @@
       "blended_price": 0.14,
       "effective_cost": 0.27,
       "avi_score": 606.4,
-      "bfi_score": 339.9,
+      "bfi_score": 342.7,
       "fgi_score": 46.7,
       "is_new": false
     },
@@ -4783,15 +4780,15 @@
       },
       "aa_live_quality": 6.7994617527877,
       "context_length": 131072,
-      "composite_score": 71.8,
-      "capability_q": 71.8,
-      "p_success": 49.4,
-      "token_multiplier": 3.25,
+      "composite_score": 71.7,
+      "capability_q": 71.7,
+      "p_success": 49.1,
+      "token_multiplier": 3.28,
       "blended_price": 2.8,
-      "effective_cost": 9.1,
-      "avi_score": 118.2,
+      "effective_cost": 9.18,
+      "avi_score": 117.5,
       "bfi_score": 18.1,
-      "fgi_score": 24.9,
+      "fgi_score": 24.7,
       "is_new": false
     },
     {
@@ -4818,15 +4815,15 @@
       },
       "aa_live_quality": 28.1541333537469,
       "context_length": 524288,
-      "composite_score": 80.6,
-      "capability_q": 80.6,
-      "p_success": 73.7,
+      "composite_score": 80.5,
+      "capability_q": 80.5,
+      "p_success": 73.5,
       "token_multiplier": 1.79,
       "blended_price": 0.48,
       "effective_cost": 0.86,
-      "avi_score": 419.1,
-      "bfi_score": 134.2,
-      "fgi_score": 51.0,
+      "avi_score": 418.0,
+      "bfi_score": 134.0,
+      "fgi_score": 50.7,
       "is_new": false
     },
     {
@@ -4851,15 +4848,15 @@
         "aa_quality": 5.28869837981177
       },
       "aa_live_quality": 5.28869837981177,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -4947,19 +4944,19 @@
         "gemini-2-5-flash-lite"
       ],
       "base_metrics": {
-        "speed_tps": 286.172011638974,
+        "speed_tps": 297.17379230111,
         "aa_quality": 6.66853092464521
       },
       "aa_live_quality": 6.66853092464521,
-      "composite_score": 71.7,
-      "capability_q": 71.7,
-      "p_success": 49.1,
-      "token_multiplier": 3.28,
+      "composite_score": 71.6,
+      "capability_q": 71.6,
+      "p_success": 48.8,
+      "token_multiplier": 3.31,
       "blended_price": 0.16,
-      "effective_cost": 0.52,
-      "avi_score": 395.7,
-      "bfi_score": 620.2,
-      "fgi_score": 24.7,
+      "effective_cost": 0.53,
+      "avi_score": 391.7,
+      "bfi_score": 643.2,
+      "fgi_score": 24.4,
       "is_new": false
     },
     {
@@ -4980,19 +4977,19 @@
         "hermes-3-llama-3-1-70b"
       ],
       "base_metrics": {
-        "speed_tps": 30.9681886264778,
+        "speed_tps": 30.0893673386416,
         "aa_quality": 5.99680149700574
       },
       "aa_live_quality": 5.99680149700574,
-      "composite_score": 71.2,
-      "capability_q": 71.2,
-      "p_success": 47.6,
-      "token_multiplier": 3.42,
+      "composite_score": 71.1,
+      "capability_q": 71.1,
+      "p_success": 47.3,
+      "token_multiplier": 3.45,
       "blended_price": 0.7,
-      "effective_cost": 2.39,
-      "avi_score": 201.7,
-      "bfi_score": 25.9,
-      "fgi_score": 23.4,
+      "effective_cost": 2.42,
+      "avi_score": 199.9,
+      "bfi_score": 25.1,
+      "fgi_score": 23.1,
       "is_new": false
     },
     {
@@ -5114,7 +5111,7 @@
         "gpt-6-astra-xhigh"
       ],
       "base_metrics": {
-        "speed_tps": 49.371816323629,
+        "speed_tps": 49.3746993108566,
         "lm_elo": 1788.0,
         "aa_quality": 52.3863277108782
       },
@@ -5173,15 +5170,15 @@
         "aa_quality": 8.15087501101863
       },
       "aa_live_quality": 8.15087501101863,
-      "composite_score": 72.8,
-      "capability_q": 72.8,
-      "p_success": 52.4,
-      "token_multiplier": 3.0,
+      "composite_score": 72.7,
+      "capability_q": 72.7,
+      "p_success": 52.1,
+      "token_multiplier": 3.02,
       "blended_price": 0.74,
-      "effective_cost": 2.22,
-      "avi_score": 219.0,
-      "bfi_score": 49.3,
-      "fgi_score": 27.6,
+      "effective_cost": 2.23,
+      "avi_score": 217.9,
+      "bfi_score": 49.2,
+      "fgi_score": 27.3,
       "is_new": false
     },
     {
@@ -5239,15 +5236,15 @@
         "aa_quality": 5.57842403353134
       },
       "aa_live_quality": 5.57842403353134,
-      "composite_score": 70.9,
-      "capability_q": 70.9,
-      "p_success": 46.7,
-      "token_multiplier": 3.51,
+      "composite_score": 70.8,
+      "capability_q": 70.8,
+      "p_success": 46.4,
+      "token_multiplier": 3.54,
       "blended_price": 0.45,
-      "effective_cost": 1.58,
-      "avi_score": 241.3,
+      "effective_cost": 1.59,
+      "avi_score": 239.8,
       "bfi_score": 67.7,
-      "fgi_score": 22.6,
+      "fgi_score": 22.4,
       "is_new": false
     },
     {
@@ -5268,7 +5265,7 @@
         "grok-4-7-low"
       ],
       "base_metrics": {
-        "speed_tps": 73.8646726392321,
+        "speed_tps": 77.8980526487592,
         "lm_elo": 1638.0,
         "aa_quality": 42.2166560223448
       },
@@ -5280,7 +5277,7 @@
       "blended_price": 2.8,
       "effective_cost": 3.28,
       "avi_score": 319.6,
-      "bfi_score": 29.1,
+      "bfi_score": 30.6,
       "fgi_score": 83.9,
       "first_seen": "2026-10-02T05:00:18.458179+00:00",
       "is_new": true
@@ -5303,7 +5300,7 @@
         "qwen3-5-9b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 102.059870982589,
+        "speed_tps": 96.2333568121054,
         "aa_quality": 13.2659955355465
       },
       "aa_live_quality": 13.2659955355465,
@@ -5314,7 +5311,7 @@
       "blended_price": 0.19,
       "effective_cost": 0.42,
       "avi_score": 491.8,
-      "bfi_score": 216.6,
+      "bfi_score": 204.3,
       "fgi_score": 38.4,
       "is_new": false
     },
@@ -5340,15 +5337,15 @@
         "aa_quality": 5.03498213171439
       },
       "aa_live_quality": 5.03498213171439,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": 0.16,
-      "effective_cost": 0.58,
-      "avi_score": 366.0,
-      "bfi_score": 127.9,
-      "fgi_score": 21.6,
+      "effective_cost": 0.59,
+      "avi_score": 362.5,
+      "bfi_score": 127.7,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -5473,15 +5470,15 @@
         "aa_quality": 6.65822068462287
       },
       "aa_live_quality": 6.65822068462287,
-      "composite_score": 71.7,
-      "capability_q": 71.7,
-      "p_success": 49.1,
-      "token_multiplier": 3.28,
+      "composite_score": 71.6,
+      "capability_q": 71.6,
+      "p_success": 48.8,
+      "token_multiplier": 3.31,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 24.7,
+      "fgi_score": 24.4,
       "is_new": false
     },
     {
@@ -5502,7 +5499,7 @@
         "nvidia-nemotron-3-nano-30b-a3b"
       ],
       "base_metrics": {
-        "speed_tps": 236.413064870438,
+        "speed_tps": 236.999152313388,
         "aa_quality": 6.8478519055181
       },
       "aa_live_quality": 6.8478519055181,
@@ -5513,7 +5510,7 @@
       "blended_price": 0.08,
       "effective_cost": 0.26,
       "avi_score": 493.6,
-      "bfi_score": 729.8,
+      "bfi_score": 731.6,
       "fgi_score": 24.9,
       "is_new": false
     },
@@ -5539,15 +5536,15 @@
         "aa_quality": 12.1076211741685
       },
       "aa_live_quality": 12.1076211741685,
-      "composite_score": 75.7,
-      "capability_q": 75.7,
-      "p_success": 60.9,
-      "token_multiplier": 2.41,
+      "composite_score": 75.6,
+      "capability_q": 75.6,
+      "p_success": 60.6,
+      "token_multiplier": 2.43,
       "blended_price": 7.2,
-      "effective_cost": 17.35,
-      "avi_score": 106.8,
+      "effective_cost": 17.5,
+      "avi_score": 106.2,
       "bfi_score": 9.2,
-      "fgi_score": 36.0,
+      "fgi_score": 35.7,
       "is_new": false
     },
     {
@@ -5636,7 +5633,7 @@
         "mimo-v2-6-pro"
       ],
       "base_metrics": {
-        "speed_tps": 43.1148208622135,
+        "speed_tps": 45.5480243273755,
         "lm_elo": 1618.0,
         "aa_quality": 46.3242065310383
       },
@@ -5649,7 +5646,7 @@
       "blended_price": 0.52,
       "effective_cost": 0.6,
       "avi_score": 688.3,
-      "bfi_score": 58.7,
+      "bfi_score": 62.0,
       "fgi_score": 85.7,
       "first_seen": "2026-09-22T05:00:17.988708+00:00",
       "is_new": false
@@ -5672,7 +5669,7 @@
         "claude-opus-4-5-thinking"
       ],
       "base_metrics": {
-        "speed_tps": 49.5488326029846,
+        "speed_tps": 48.6228917099531,
         "aa_quality": 29.0955143334264
       },
       "aa_live_quality": 29.0955143334264,
@@ -5683,7 +5680,7 @@
       "blended_price": 9.0,
       "effective_cost": 11.88,
       "avi_score": 168.7,
-      "bfi_score": 7.4,
+      "bfi_score": 7.3,
       "fgi_score": 71.9,
       "is_new": false
     },
@@ -5705,7 +5702,7 @@
         "qwen3-next-80b-a3b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 169.860349209369,
+        "speed_tps": 168.988537712129,
         "aa_quality": 9.64335007559183
       },
       "aa_live_quality": 9.64335007559183,
@@ -5717,7 +5714,7 @@
       "blended_price": 0.36,
       "effective_cost": 1.0,
       "avi_score": 323.5,
-      "bfi_score": 231.5,
+      "bfi_score": 230.3,
       "fgi_score": 30.4,
       "is_new": false
     },
@@ -5743,15 +5740,15 @@
         "aa_quality": 7.36435496013793
       },
       "aa_live_quality": 7.36435496013793,
-      "composite_score": 72.2,
-      "capability_q": 72.2,
-      "p_success": 50.6,
-      "token_multiplier": 3.15,
+      "composite_score": 72.1,
+      "capability_q": 72.1,
+      "p_success": 50.3,
+      "token_multiplier": 3.17,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 26.0,
+      "fgi_score": 25.7,
       "is_new": false
     },
     {
@@ -5807,7 +5804,7 @@
         "minimax-m2-1"
       ],
       "base_metrics": {
-        "speed_tps": 97.8386693925867,
+        "speed_tps": 97.6143303050131,
         "lm_elo": 1384.0,
         "aa_quality": 20.9452850207622
       },
@@ -5820,7 +5817,7 @@
       "blended_price": 0.48,
       "effective_cost": 0.98,
       "avi_score": 371.8,
-      "bfi_score": 116.8,
+      "bfi_score": 116.5,
       "fgi_score": 43.9,
       "is_new": false
     },
@@ -5908,20 +5905,20 @@
         "gpt-5-mini"
       ],
       "base_metrics": {
-        "speed_tps": 139.899251305907,
+        "speed_tps": 132.813123943802,
         "aa_quality": 16.7730881042515
       },
       "aa_live_quality": 16.7730881042515,
       "context_length": 400000,
-      "composite_score": 79.1,
-      "capability_q": 79.1,
-      "p_success": 70.1,
-      "token_multiplier": 1.94,
+      "composite_score": 79.0,
+      "capability_q": 79.0,
+      "p_success": 69.8,
+      "token_multiplier": 1.95,
       "blended_price": 0.6,
-      "effective_cost": 1.16,
-      "avi_score": 353.0,
-      "bfi_score": 144.7,
-      "fgi_score": 46.4,
+      "effective_cost": 1.17,
+      "avi_score": 350.6,
+      "bfi_score": 137.2,
+      "fgi_score": 46.1,
       "is_new": false
     },
     {
@@ -5942,7 +5939,7 @@
         "nemotron-3-5-lightning"
       ],
       "base_metrics": {
-        "speed_tps": 298.613541565863,
+        "speed_tps": 301.433582316223,
         "aa_quality": 12.8572306217144
       },
       "aa_live_quality": 12.8572306217144,
@@ -5954,7 +5951,7 @@
       "blended_price": 0.09,
       "effective_cost": 0.21,
       "avi_score": 592.9,
-      "bfi_score": 936.1,
+      "bfi_score": 944.9,
       "fgi_score": 37.5,
       "is_new": false
     },
@@ -6013,15 +6010,15 @@
         "aa_quality": 7.90554657851904
       },
       "aa_live_quality": 7.90554657851904,
-      "composite_score": 72.6,
-      "capability_q": 72.6,
-      "p_success": 51.8,
-      "token_multiplier": 3.05,
+      "composite_score": 72.5,
+      "capability_q": 72.5,
+      "p_success": 51.5,
+      "token_multiplier": 3.07,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 27.1,
+      "fgi_score": 26.8,
       "is_new": false
     },
     {
@@ -6046,15 +6043,15 @@
         "aa_quality": 5.83837664836323
       },
       "aa_live_quality": 5.83837664836323,
-      "composite_score": 71.1,
-      "capability_q": 71.1,
-      "p_success": 47.3,
-      "token_multiplier": 3.45,
+      "composite_score": 71.0,
+      "capability_q": 71.0,
+      "p_success": 47.0,
+      "token_multiplier": 3.48,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.1,
+      "fgi_score": 22.9,
       "is_new": false
     },
     {
@@ -6141,7 +6138,7 @@
         "glm-4-7-flash"
       ],
       "base_metrics": {
-        "speed_tps": 67.7730073830777,
+        "speed_tps": 60.867411029878,
         "aa_quality": 14.8719733920138
       },
       "aa_live_quality": 14.8719733920138,
@@ -6152,7 +6149,7 @@
       "blended_price": 0.14,
       "effective_cost": 0.29,
       "avi_score": 570.2,
-      "bfi_score": 174.0,
+      "bfi_score": 156.2,
       "fgi_score": 42.1,
       "is_new": false
     },
@@ -6278,15 +6275,15 @@
         "aa_quality": 11.0641868989941
       },
       "aa_live_quality": 11.0641868989941,
-      "composite_score": 68.1,
-      "capability_q": 68.1,
-      "p_success": 38.5,
-      "token_multiplier": 4.51,
+      "composite_score": 68.0,
+      "capability_q": 68.0,
+      "p_success": 38.2,
+      "token_multiplier": 4.56,
       "blended_price": 0.26,
-      "effective_cost": 1.17,
-      "avi_score": 252.9,
-      "bfi_score": 92.8,
-      "fgi_score": 16.3,
+      "effective_cost": 1.19,
+      "avi_score": 250.2,
+      "bfi_score": 92.6,
+      "fgi_score": 16.1,
       "is_new": false
     },
     {
@@ -6373,7 +6370,7 @@
         "nvidia-nemotron-nano-9b-v2"
       ],
       "base_metrics": {
-        "speed_tps": 158.251556763004,
+        "speed_tps": 155.81592661083,
         "aa_quality": 6.84412514839364
       },
       "aa_live_quality": 6.84412514839364,
@@ -6384,7 +6381,7 @@
       "blended_price": 0.08,
       "effective_cost": 0.26,
       "avi_score": 493.6,
-      "bfi_score": 491.3,
+      "bfi_score": 483.8,
       "fgi_score": 24.9,
       "is_new": false
     },
@@ -6406,7 +6403,7 @@
         "command-a-plus"
       ],
       "base_metrics": {
-        "speed_tps": 227.899020116029,
+        "speed_tps": 215.351730415707,
         "aa_quality": 13.1335002685349
       },
       "aa_live_quality": 13.1335002685349,
@@ -6418,7 +6415,7 @@
       "blended_price": 0.0,
       "effective_cost": 0.0,
       "avi_score": null,
-      "bfi_score": 1741.1,
+      "bfi_score": 1645.3,
       "fgi_score": 38.1,
       "is_new": false
     },
@@ -6506,7 +6503,7 @@
         "qwen3-5-4b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 14.1767437822791,
+        "speed_tps": 12.2821532281696,
         "aa_quality": 10.812307683746
       },
       "aa_live_quality": 10.812307683746,
@@ -6517,7 +6514,7 @@
       "blended_price": 0.05,
       "effective_cost": 0.14,
       "avi_score": 615.4,
-      "bfi_score": 53.8,
+      "bfi_score": 46.6,
       "fgi_score": 33.0,
       "is_new": false
     },
@@ -6573,19 +6570,19 @@
         "qwen3-235b-a22b-instruct-2507"
       ],
       "base_metrics": {
-        "speed_tps": 60.3394732333104,
+        "speed_tps": 60.4991612231516,
         "aa_quality": 11.9970837221274
       },
       "aa_live_quality": 11.9970837221274,
-      "composite_score": 75.6,
-      "capability_q": 75.6,
-      "p_success": 60.6,
-      "token_multiplier": 2.43,
+      "composite_score": 75.5,
+      "capability_q": 75.5,
+      "p_success": 60.3,
+      "token_multiplier": 2.45,
       "blended_price": 0.37,
-      "effective_cost": 0.89,
-      "avi_score": 358.8,
-      "bfi_score": 83.0,
-      "fgi_score": 35.7,
+      "effective_cost": 0.9,
+      "avi_score": 356.0,
+      "bfi_score": 83.1,
+      "fgi_score": 35.4,
       "is_new": false
     },
     {
@@ -6710,15 +6707,15 @@
       },
       "aa_live_quality": 7.60691968274841,
       "context_length": 200000,
-      "composite_score": 72.4,
-      "capability_q": 72.4,
-      "p_success": 51.2,
-      "token_multiplier": 3.1,
+      "composite_score": 72.3,
+      "capability_q": 72.3,
+      "p_success": 50.9,
+      "token_multiplier": 3.12,
       "blended_price": 5.4,
-      "effective_cost": 16.74,
-      "avi_score": 97.9,
+      "effective_cost": 16.85,
+      "avi_score": 97.4,
       "bfi_score": 11.0,
-      "fgi_score": 26.5,
+      "fgi_score": 26.3,
       "is_new": false
     },
     {
@@ -6739,7 +6736,7 @@
         "nova-micro"
       ],
       "base_metrics": {
-        "speed_tps": 292.247775533559,
+        "speed_tps": 295.743422440133,
         "aa_quality": 5.8765232381273
       },
       "aa_live_quality": 5.8765232381273,
@@ -6750,7 +6747,7 @@
       "blended_price": 0.06,
       "effective_cost": 0.19,
       "avi_score": 520.5,
-      "bfi_score": 1040.7,
+      "bfi_score": 1053.1,
       "fgi_score": 23.1,
       "is_new": false
     },
@@ -6776,15 +6773,15 @@
         "aa_quality": 5.31069666559541
       },
       "aa_live_quality": 5.31069666559541,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": 0.0,
       "effective_cost": 0.0,
       "avi_score": null,
-      "bfi_score": 424.2,
-      "fgi_score": 22.1,
+      "bfi_score": 423.6,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -6805,7 +6802,7 @@
         "qwen-turbo"
       ],
       "base_metrics": {
-        "speed_tps": 108.979091846938,
+        "speed_tps": 109.066103307104,
         "aa_quality": 6.43324005500213
       },
       "aa_live_quality": 6.43324005500213,
@@ -6816,7 +6813,7 @@
       "blended_price": 0.08,
       "effective_cost": 0.27,
       "avi_score": 484.2,
-      "bfi_score": 335.0,
+      "bfi_score": 335.3,
       "fgi_score": 24.2,
       "is_new": false
     },
@@ -6875,15 +6872,15 @@
         "aa_quality": 10.6061102858178
       },
       "aa_live_quality": 10.6061102858178,
-      "composite_score": 74.6,
-      "capability_q": 74.6,
-      "p_success": 57.7,
-      "token_multiplier": 2.61,
+      "composite_score": 74.5,
+      "capability_q": 74.5,
+      "p_success": 57.4,
+      "token_multiplier": 2.63,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 32.7,
+      "fgi_score": 32.4,
       "is_new": false
     },
     {
@@ -6937,7 +6934,7 @@
         "gpt-5-4-mini-medium"
       ],
       "base_metrics": {
-        "speed_tps": 188.301785578729,
+        "speed_tps": 185.712827737132,
         "lm_elo": 1397.0,
         "aa_quality": 19.7484210566215
       },
@@ -6949,7 +6946,7 @@
       "blended_price": 1.5,
       "effective_cost": 3.06,
       "avi_score": 222.5,
-      "bfi_score": 99.4,
+      "bfi_score": 98.0,
       "fgi_score": 43.9,
       "is_new": false
     },
@@ -7004,7 +7001,7 @@
         "qwen3-6-27b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 55.4496777045887,
+        "speed_tps": 55.8006223743444,
         "aa_quality": 19.8288203580036
       },
       "aa_live_quality": 19.8288203580036,
@@ -7015,7 +7012,7 @@
       "blended_price": 1.2,
       "effective_cost": 2.06,
       "avi_score": 288.9,
-      "bfi_score": 35.9,
+      "bfi_score": 36.1,
       "fgi_score": 53.1,
       "is_new": false
     },
@@ -7041,15 +7038,15 @@
         "aa_quality": 28.1990972887912
       },
       "aa_live_quality": 28.1990972887912,
-      "composite_score": 87.5,
-      "capability_q": 87.5,
-      "p_success": 86.5,
-      "token_multiplier": 1.34,
+      "composite_score": 87.4,
+      "capability_q": 87.4,
+      "p_success": 86.4,
+      "token_multiplier": 1.35,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 70.4,
+      "fgi_score": 70.2,
       "is_new": false
     },
     {
@@ -7070,7 +7067,7 @@
         "gpt-4-1"
       ],
       "base_metrics": {
-        "speed_tps": 134.785705860413,
+        "speed_tps": 139.391996301705,
         "aa_quality": 12.6913226077818
       },
       "aa_live_quality": 12.6913226077818,
@@ -7082,7 +7079,7 @@
       "blended_price": 3.2,
       "effective_cost": 7.49,
       "avi_score": 144.4,
-      "bfi_score": 38.9,
+      "bfi_score": 40.2,
       "fgi_score": 37.2,
       "is_new": false
     },
@@ -7104,7 +7101,7 @@
         "command-a"
       ],
       "base_metrics": {
-        "speed_tps": 64.4131412389422,
+        "speed_tps": 65.00060234508,
         "aa_quality": 6.9581988704518
       },
       "aa_live_quality": 6.9581988704518,
@@ -7116,7 +7113,7 @@
       "blended_price": 4.0,
       "effective_cost": 12.92,
       "avi_score": 104.9,
-      "bfi_score": 14.8,
+      "bfi_score": 14.9,
       "fgi_score": 25.2,
       "is_new": false
     },
@@ -7171,7 +7168,7 @@
         "qwen3-vl-8b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 119.95241078095,
+        "speed_tps": 119.907538273668,
         "aa_quality": 7.25835272478202
       },
       "aa_live_quality": 7.25835272478202,
@@ -7183,7 +7180,7 @@
       "blended_price": 0.28,
       "effective_cost": 0.9,
       "avi_score": 321.7,
-      "bfi_score": 185.9,
+      "bfi_score": 185.8,
       "fgi_score": 25.7,
       "is_new": false
     },
@@ -7304,19 +7301,19 @@
         "qwen3-30b-a3b-instruct-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 107.288344126685,
+        "speed_tps": 107.222239952728,
         "aa_quality": 7.62614322282085
       },
       "aa_live_quality": 7.62614322282085,
-      "composite_score": 72.4,
-      "capability_q": 72.4,
-      "p_success": 51.2,
-      "token_multiplier": 3.1,
+      "composite_score": 72.3,
+      "capability_q": 72.3,
+      "p_success": 50.9,
+      "token_multiplier": 3.12,
       "blended_price": 0.64,
-      "effective_cost": 1.98,
-      "avi_score": 227.9,
-      "bfi_score": 97.1,
-      "fgi_score": 26.5,
+      "effective_cost": 2.0,
+      "avi_score": 226.2,
+      "bfi_score": 96.9,
+      "fgi_score": 26.3,
       "is_new": false
     },
     {
@@ -7436,21 +7433,21 @@
         "glm-5"
       ],
       "base_metrics": {
-        "speed_tps": 76.5805500577966,
+        "speed_tps": 76.8360487224029,
         "lm_elo": 1434.0,
         "aa_quality": 27.9111550817227
       },
       "aa_live_quality": 27.9111550817227,
       "context_length": 204800,
-      "composite_score": 82.4,
-      "capability_q": 82.4,
-      "p_success": 77.7,
-      "token_multiplier": 1.63,
+      "composite_score": 82.3,
+      "capability_q": 82.3,
+      "p_success": 77.5,
+      "token_multiplier": 1.64,
       "blended_price": 1.44,
-      "effective_cost": 2.35,
-      "avi_score": 280.2,
-      "bfi_score": 43.9,
-      "fgi_score": 56.4,
+      "effective_cost": 2.36,
+      "avi_score": 279.0,
+      "bfi_score": 44.0,
+      "fgi_score": 56.2,
       "is_new": false
     },
     {
@@ -7475,15 +7472,15 @@
         "aa_quality": 5.4363632246188
       },
       "aa_live_quality": 5.4363632246188,
-      "composite_score": 70.8,
-      "capability_q": 70.8,
-      "p_success": 46.4,
-      "token_multiplier": 3.54,
+      "composite_score": 70.7,
+      "capability_q": 70.7,
+      "p_success": 46.1,
+      "token_multiplier": 3.57,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.4,
+      "fgi_score": 22.1,
       "is_new": false
     },
     {
@@ -7508,15 +7505,15 @@
         "aa_quality": 7.07110907005398
       },
       "aa_live_quality": 7.07110907005398,
-      "composite_score": 72.0,
-      "capability_q": 72.0,
-      "p_success": 50.0,
-      "token_multiplier": 3.2,
+      "composite_score": 71.9,
+      "capability_q": 71.9,
+      "p_success": 49.7,
+      "token_multiplier": 3.23,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 25.5,
+      "fgi_score": 25.2,
       "is_new": false
     },
     {
@@ -7537,7 +7534,7 @@
         "glm-4-6v"
       ],
       "base_metrics": {
-        "speed_tps": 89.0607795336971,
+        "speed_tps": 84.6155765873401,
         "aa_quality": 8.35003925872647
       },
       "aa_live_quality": 8.35003925872647,
@@ -7548,7 +7545,7 @@
       "blended_price": 0.42,
       "effective_cost": 1.25,
       "avi_score": 285.2,
-      "bfi_score": 108.3,
+      "bfi_score": 102.9,
       "fgi_score": 27.9,
       "is_new": false
     },
@@ -7574,15 +7571,15 @@
         "aa_quality": 7.90554657851904
       },
       "aa_live_quality": 7.90554657851904,
-      "composite_score": 72.6,
-      "capability_q": 72.6,
-      "p_success": 51.8,
-      "token_multiplier": 3.05,
+      "composite_score": 72.5,
+      "capability_q": 72.5,
+      "p_success": 51.5,
+      "token_multiplier": 3.07,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 27.1,
+      "fgi_score": 26.8,
       "is_new": false
     },
     {
@@ -7670,19 +7667,19 @@
         "qwen3-235b-a22b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 64.3538853899409,
+        "speed_tps": 65.9132984470655,
         "aa_quality": 8.29469219577047
       },
       "aa_live_quality": 8.29469219577047,
-      "composite_score": 72.9,
-      "capability_q": 72.9,
-      "p_success": 52.7,
-      "token_multiplier": 2.97,
+      "composite_score": 72.8,
+      "capability_q": 72.8,
+      "p_success": 52.4,
+      "token_multiplier": 3.0,
       "blended_price": 1.12,
-      "effective_cost": 3.33,
-      "avi_score": 183.2,
-      "bfi_score": 39.3,
-      "fgi_score": 27.9,
+      "effective_cost": 3.36,
+      "avi_score": 182.0,
+      "bfi_score": 40.2,
+      "fgi_score": 27.6,
       "is_new": false
     },
     {
@@ -7769,7 +7766,7 @@
         "kimi-k2"
       ],
       "base_metrics": {
-        "speed_tps": 51.7534700965412,
+        "speed_tps": 52.1464733839586,
         "aa_quality": 12.7154830817268
       },
       "aa_live_quality": 12.7154830817268,
@@ -7781,7 +7778,7 @@
       "blended_price": 0.92,
       "effective_cost": 2.14,
       "avi_score": 245.5,
-      "bfi_score": 38.2,
+      "bfi_score": 38.4,
       "fgi_score": 37.2,
       "is_new": false
     },
@@ -7836,19 +7833,19 @@
         "qwen3-14b-instruct-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 60.6966852216856,
+        "speed_tps": 61.3613962796748,
         "aa_quality": 8.15433529883621
       },
       "aa_live_quality": 8.15433529883621,
-      "composite_score": 72.8,
-      "capability_q": 72.8,
-      "p_success": 52.4,
-      "token_multiplier": 3.0,
+      "composite_score": 72.7,
+      "capability_q": 72.7,
+      "p_success": 52.1,
+      "token_multiplier": 3.02,
       "blended_price": 1.12,
-      "effective_cost": 3.36,
-      "avi_score": 182.0,
-      "bfi_score": 37.0,
-      "fgi_score": 27.6,
+      "effective_cost": 3.38,
+      "avi_score": 180.9,
+      "bfi_score": 37.3,
+      "fgi_score": 27.3,
       "is_new": false
     },
     {
@@ -7935,7 +7932,7 @@
         "llama-3-1-instruct-70b"
       ],
       "base_metrics": {
-        "speed_tps": 43.6578357404899,
+        "speed_tps": 44.738585972109,
         "aa_quality": 6.60404957812628
       },
       "aa_live_quality": 6.60404957812628,
@@ -7946,7 +7943,7 @@
       "blended_price": 0.56,
       "effective_cost": 1.85,
       "avi_score": 229.4,
-      "bfi_score": 42.9,
+      "bfi_score": 43.9,
       "fgi_score": 24.4,
       "is_new": false
     },
@@ -7968,20 +7965,20 @@
         "qwen3-5-35b-a3b"
       ],
       "base_metrics": {
-        "speed_tps": 148.517277764247,
+        "speed_tps": 148.405121366862,
         "lm_elo": 1253.0,
         "aa_quality": 19.3295292724173
       },
       "aa_live_quality": 19.3295292724173,
-      "composite_score": 73.9,
-      "capability_q": 73.9,
-      "p_success": 55.7,
-      "token_multiplier": 2.75,
+      "composite_score": 73.8,
+      "capability_q": 73.8,
+      "p_success": 55.4,
+      "token_multiplier": 2.77,
       "blended_price": 0.6,
-      "effective_cost": 1.65,
-      "avi_score": 259.1,
-      "bfi_score": 143.6,
-      "fgi_score": 30.7,
+      "effective_cost": 1.66,
+      "avi_score": 257.6,
+      "bfi_score": 143.3,
+      "fgi_score": 30.4,
       "is_new": false
     },
     {
@@ -7993,13 +7990,13 @@
       "price_in": null,
       "price_out": null,
       "live_aliases": [
-        "jt-4-1-flash-236b-a21b"
+        "jt236b"
       ],
       "lm_aliases": [
-        "jt-4-1-flash-236b-a21b"
+        "jt236b"
       ],
       "aa_aliases": [
-        "jt-4-1-flash-236b-a21b"
+        "jt236b"
       ],
       "base_metrics": {
         "speed_tps": 60.0,
@@ -8015,7 +8012,8 @@
       "avi_score": null,
       "bfi_score": null,
       "fgi_score": 79.9,
-      "is_new": false
+      "first_seen": "2026-10-04T05:00:18.950439+00:00",
+      "is_new": true
     },
     {
       "display": "Ring-flash-2.0",
@@ -8101,21 +8099,21 @@
         "gpt-5"
       ],
       "base_metrics": {
-        "speed_tps": 83.9400642041411,
+        "speed_tps": 76.9756362138456,
         "lm_elo": 1417.0,
         "aa_quality": 22.9827995216189
       },
       "aa_live_quality": 22.9827995216189,
       "context_length": 400000,
-      "composite_score": 80.1,
-      "capability_q": 80.1,
-      "p_success": 72.6,
-      "token_multiplier": 1.83,
+      "composite_score": 80.0,
+      "capability_q": 80.0,
+      "p_success": 72.3,
+      "token_multiplier": 1.84,
       "blended_price": 3.0,
-      "effective_cost": 5.49,
-      "avi_score": 182.6,
-      "bfi_score": 26.8,
-      "fgi_score": 49.5,
+      "effective_cost": 5.52,
+      "avi_score": 181.7,
+      "bfi_score": 24.6,
+      "fgi_score": 49.2,
       "is_new": false
     },
     {
@@ -8136,7 +8134,7 @@
         "mistral-large-3"
       ],
       "base_metrics": {
-        "speed_tps": 79.2231491154689,
+        "speed_tps": 79.0311448250419,
         "lm_elo": 1230.0,
         "aa_quality": 9.26608812860467
       },
@@ -8148,7 +8146,7 @@
       "blended_price": 0.7,
       "effective_cost": 2.77,
       "avi_score": 178.9,
-      "bfi_score": 64.6,
+      "bfi_score": 64.5,
       "fgi_score": 19.3,
       "is_new": false
     },
@@ -8170,7 +8168,7 @@
         "gpt-5-2"
       ],
       "base_metrics": {
-        "speed_tps": 78.7987213164821,
+        "speed_tps": 80.0094420878989,
         "lm_elo": 1415.0,
         "aa_quality": 30.448181916806
       },
@@ -8182,7 +8180,7 @@
       "blended_price": 4.2,
       "effective_cost": 6.76,
       "avi_score": 180.4,
-      "bfi_score": 20.0,
+      "bfi_score": 20.3,
       "fgi_score": 57.3,
       "is_new": false
     },
@@ -8241,15 +8239,15 @@
         "aa_quality": 7.88824581191087
       },
       "aa_live_quality": 7.88824581191087,
-      "composite_score": 72.6,
-      "capability_q": 72.6,
-      "p_success": 51.8,
-      "token_multiplier": 3.05,
+      "composite_score": 72.5,
+      "capability_q": 72.5,
+      "p_success": 51.5,
+      "token_multiplier": 3.07,
       "blended_price": 0.78,
-      "effective_cost": 2.38,
-      "avi_score": 210.9,
-      "bfi_score": 47.4,
-      "fgi_score": 27.1,
+      "effective_cost": 2.39,
+      "avi_score": 209.9,
+      "bfi_score": 47.3,
+      "fgi_score": 26.8,
       "is_new": false
     },
     {
@@ -8270,7 +8268,7 @@
         "minimax-m2-7"
       ],
       "base_metrics": {
-        "speed_tps": 56.8327541031365,
+        "speed_tps": 57.0540182167503,
         "lm_elo": 1397.0,
         "aa_quality": 22.7578150287271
       },
@@ -8283,7 +8281,7 @@
       "blended_price": 0.48,
       "effective_cost": 0.92,
       "avi_score": 394.0,
-      "bfi_score": 68.8,
+      "bfi_score": 69.1,
       "fgi_score": 47.3,
       "is_new": false
     },
@@ -8371,7 +8369,7 @@
         "gpt-5-1"
       ],
       "base_metrics": {
-        "speed_tps": 105.148738324191,
+        "speed_tps": 114.476340692858,
         "lm_elo": 1341.0,
         "aa_quality": 24.7357540558308
       },
@@ -8383,7 +8381,7 @@
       "blended_price": 3.0,
       "effective_cost": 6.06,
       "avi_score": 167.4,
-      "bfi_score": 32.9,
+      "bfi_score": 35.8,
       "fgi_score": 44.3,
       "is_new": false
     },
@@ -8409,15 +8407,15 @@
         "aa_quality": 16.6142232043434
       },
       "aa_live_quality": 16.6142232043434,
-      "composite_score": 79.0,
-      "capability_q": 79.0,
-      "p_success": 69.8,
-      "token_multiplier": 1.95,
+      "composite_score": 78.9,
+      "capability_q": 78.9,
+      "p_success": 69.6,
+      "token_multiplier": 1.96,
       "blended_price": 27.0,
-      "effective_cost": 52.65,
-      "avi_score": 86.3,
+      "effective_cost": 52.92,
+      "avi_score": 85.9,
       "bfi_score": 3.4,
-      "fgi_score": 46.1,
+      "fgi_score": 45.8,
       "is_new": false
     },
     {
@@ -8504,7 +8502,7 @@
         "qwen3-vl-30b-a3b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 113.567767237743,
+        "speed_tps": 114.039851233535,
         "aa_quality": 7.9263607036835
       },
       "aa_live_quality": 7.9263607036835,
@@ -8516,7 +8514,7 @@
       "blended_price": 0.32,
       "effective_cost": 0.98,
       "avi_score": 314.8,
-      "bfi_score": 164.3,
+      "bfi_score": 165.0,
       "fgi_score": 27.1,
       "is_new": false
     },
@@ -8542,15 +8540,15 @@
         "aa_quality": 14.4560679389612
       },
       "aa_live_quality": 14.4560679389612,
-      "composite_score": 77.4,
-      "capability_q": 77.4,
-      "p_success": 65.7,
-      "token_multiplier": 2.15,
+      "composite_score": 77.3,
+      "capability_q": 77.3,
+      "p_success": 65.4,
+      "token_multiplier": 2.16,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 41.2,
+      "fgi_score": 40.9,
       "is_new": false
     },
     {
@@ -8571,7 +8569,7 @@
         "gemma-4-e4b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 65.0235354155365,
+        "speed_tps": 70.3875517208394,
         "aa_quality": 7.45765296912625
       },
       "aa_live_quality": 7.45765296912625,
@@ -8582,7 +8580,7 @@
       "blended_price": 0.04,
       "effective_cost": 0.11,
       "avi_score": 593.2,
-      "bfi_score": 276.2,
+      "bfi_score": 299.0,
       "fgi_score": 26.0,
       "is_new": false
     },
@@ -8675,15 +8673,15 @@
         "aa_quality": 5.9708764479062
       },
       "aa_live_quality": 5.9708764479062,
-      "composite_score": 71.2,
-      "capability_q": 71.2,
-      "p_success": 47.6,
-      "token_multiplier": 3.42,
+      "composite_score": 71.1,
+      "capability_q": 71.1,
+      "p_success": 47.3,
+      "token_multiplier": 3.45,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.4,
+      "fgi_score": 23.1,
       "is_new": false
     },
     {
@@ -8836,7 +8834,7 @@
         "muse-glimmer"
       ],
       "base_metrics": {
-        "speed_tps": 136.844268047731,
+        "speed_tps": 140.112337450071,
         "lm_elo": 1355.0,
         "aa_quality": 17.4754176089465
       },
@@ -8848,7 +8846,7 @@
       "blended_price": 0.53,
       "effective_cost": 1.23,
       "avi_score": 316.7,
-      "bfi_score": 148.6,
+      "bfi_score": 152.1,
       "fgi_score": 37.5,
       "is_new": false
     },
@@ -8907,15 +8905,15 @@
         "aa_quality": 5.3045047203477
       },
       "aa_live_quality": 5.3045047203477,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -8940,15 +8938,15 @@
         "aa_quality": 10.3644352600556
       },
       "aa_live_quality": 10.3644352600556,
-      "composite_score": 74.4,
-      "capability_q": 74.4,
-      "p_success": 57.2,
-      "token_multiplier": 2.65,
+      "composite_score": 74.3,
+      "capability_q": 74.3,
+      "p_success": 56.9,
+      "token_multiplier": 2.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 32.2,
+      "fgi_score": 31.9,
       "is_new": false
     },
     {
@@ -8969,7 +8967,7 @@
         "gpt-5-3-codex"
       ],
       "base_metrics": {
-        "speed_tps": 94.5986494520914,
+        "speed_tps": 95.366129026145,
         "aa_quality": 32.5028174368983
       },
       "aa_live_quality": 32.5028174368983,
@@ -8980,7 +8978,7 @@
       "blended_price": 4.2,
       "effective_cost": 5.21,
       "avi_score": 244.5,
-      "bfi_score": 26.4,
+      "bfi_score": 26.6,
       "fgi_score": 77.7,
       "is_new": false
     },
@@ -9102,7 +9100,7 @@
         "glm-5-1"
       ],
       "base_metrics": {
-        "speed_tps": 43.568543149315,
+        "speed_tps": 42.9077700123649,
         "lm_elo": 1508.0,
         "aa_quality": 26.0585912980095
       },
@@ -9114,7 +9112,7 @@
       "blended_price": 1.84,
       "effective_cost": 2.82,
       "avi_score": 268.6,
-      "bfi_score": 21.1,
+      "bfi_score": 20.8,
       "fgi_score": 60.8,
       "is_new": false
     },
@@ -9136,7 +9134,7 @@
         "qwen3-max-preview"
       ],
       "base_metrics": {
-        "speed_tps": 57.1107177396457,
+        "speed_tps": 58.1789916206851,
         "aa_quality": 12.5883955174617
       },
       "aa_live_quality": 12.5883955174617,
@@ -9148,7 +9146,7 @@
       "blended_price": 2.16,
       "effective_cost": 5.1,
       "avi_score": 167.6,
-      "bfi_score": 22.2,
+      "bfi_score": 22.7,
       "fgi_score": 36.9,
       "is_new": false
     },
@@ -9241,15 +9239,15 @@
         "aa_quality": 6.66571545482029
       },
       "aa_live_quality": 6.66571545482029,
-      "composite_score": 71.7,
-      "capability_q": 71.7,
-      "p_success": 49.1,
-      "token_multiplier": 3.28,
+      "composite_score": 71.6,
+      "capability_q": 71.6,
+      "p_success": 48.8,
+      "token_multiplier": 3.31,
       "blended_price": 0.1,
-      "effective_cost": 0.31,
-      "avi_score": 468.9,
-      "bfi_score": 491.1,
-      "fgi_score": 24.7,
+      "effective_cost": 0.32,
+      "avi_score": 463.1,
+      "bfi_score": 490.4,
+      "fgi_score": 24.4,
       "is_new": false
     },
     {
@@ -9369,7 +9367,7 @@
         "glm-4-5-air"
       ],
       "base_metrics": {
-        "speed_tps": 85.8192298607082,
+        "speed_tps": 84.3184952824221,
         "aa_quality": 11.0889137659922
       },
       "aa_live_quality": 11.0889137659922,
@@ -9381,7 +9379,7 @@
       "blended_price": 0.33,
       "effective_cost": 0.85,
       "avi_score": 358.4,
-      "bfi_score": 125.1,
+      "bfi_score": 122.9,
       "fgi_score": 33.6,
       "is_new": false
     },
@@ -9407,15 +9405,15 @@
         "aa_quality": 8.98704047108094
       },
       "aa_live_quality": 8.98704047108094,
-      "composite_score": 73.4,
-      "capability_q": 73.4,
-      "p_success": 54.2,
-      "token_multiplier": 2.86,
+      "composite_score": 73.3,
+      "capability_q": 73.3,
+      "p_success": 53.9,
+      "token_multiplier": 2.88,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 29.3,
+      "fgi_score": 29.0,
       "is_new": false
     },
     {
@@ -9440,15 +9438,15 @@
         "aa_quality": 30.1054806103209
       },
       "aa_live_quality": 30.1054806103209,
-      "composite_score": 88.9,
-      "capability_q": 88.9,
-      "p_success": 88.4,
+      "composite_score": 88.8,
+      "capability_q": 88.8,
+      "p_success": 88.2,
       "token_multiplier": 1.29,
       "blended_price": 0.52,
       "effective_cost": 0.67,
-      "avi_score": 576.3,
-      "bfi_score": 140.8,
-      "fgi_score": 73.9,
+      "avi_score": 574.9,
+      "bfi_score": 140.6,
+      "fgi_score": 73.6,
       "is_new": false
     },
     {
@@ -9502,19 +9500,19 @@
         "qwen3-30b-a3b-2507-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 144.68391064843,
+        "speed_tps": 144.837570111202,
         "aa_quality": 9.80537532870426
       },
       "aa_live_quality": 9.80537532870426,
-      "composite_score": 74.0,
-      "capability_q": 74.0,
-      "p_success": 56.0,
-      "token_multiplier": 2.73,
+      "composite_score": 73.9,
+      "capability_q": 73.9,
+      "p_success": 55.7,
+      "token_multiplier": 2.75,
       "blended_price": 0.64,
-      "effective_cost": 1.75,
-      "avi_score": 253.0,
-      "bfi_score": 133.9,
-      "fgi_score": 31.0,
+      "effective_cost": 1.76,
+      "avi_score": 251.6,
+      "bfi_score": 133.8,
+      "fgi_score": 30.7,
       "is_new": false
     },
     {
@@ -9569,7 +9567,7 @@
         "qwen3-8-max-0803"
       ],
       "base_metrics": {
-        "speed_tps": 37.8089540582966,
+        "speed_tps": 39.3588848302511,
         "lm_elo": 1671.0,
         "aa_quality": 40.1528623585941
       },
@@ -9594,15 +9592,15 @@
         }
       },
       "aa_live_quality": 40.1528623585941,
-      "composite_score": 93.9,
-      "capability_q": 93.9,
-      "p_success": 93.3,
+      "composite_score": 93.8,
+      "capability_q": 93.8,
+      "p_success": 93.2,
       "token_multiplier": 1.16,
       "blended_price": 2.8,
       "effective_cost": 3.25,
-      "avi_score": 323.2,
-      "bfi_score": 14.9,
-      "fgi_score": 84.6,
+      "avi_score": 322.4,
+      "bfi_score": 15.5,
+      "fgi_score": 84.4,
       "first_seen": "2026-09-16T05:00:16.665269+00:00",
       "is_new": false
     },
@@ -9624,7 +9622,7 @@
         "grok-4-3-medium"
       ],
       "base_metrics": {
-        "speed_tps": 126.589070032176,
+        "speed_tps": 123.63731931741,
         "lm_elo": 1357.0,
         "aa_quality": 24.7816938151637
       },
@@ -9636,7 +9634,7 @@
       "blended_price": 1.5,
       "effective_cost": 2.94,
       "avi_score": 230.4,
-      "bfi_score": 67.3,
+      "bfi_score": 65.8,
       "fgi_score": 45.8,
       "is_new": false
     },
@@ -9662,15 +9660,15 @@
         "aa_quality": 22.4866809354881
       },
       "aa_live_quality": 22.4866809354881,
-      "composite_score": 83.3,
-      "capability_q": 83.3,
-      "p_success": 79.5,
+      "composite_score": 83.2,
+      "capability_q": 83.2,
+      "p_success": 79.3,
       "token_multiplier": 1.57,
       "blended_price": 5.4,
       "effective_cost": 8.48,
-      "avi_score": 168.2,
+      "avi_score": 167.7,
       "bfi_score": 12.6,
-      "fgi_score": 59.0,
+      "fgi_score": 58.8,
       "is_new": false
     },
     {
@@ -9691,7 +9689,7 @@
         "llama-3-2-instruct-11b-vision"
       ],
       "base_metrics": {
-        "speed_tps": 16.5919835601418,
+        "speed_tps": 16.6600848398431,
         "aa_quality": 5.40802026647316
       },
       "aa_live_quality": 5.40802026647316,
@@ -9702,7 +9700,7 @@
       "blended_price": 0.34,
       "effective_cost": 1.23,
       "avi_score": 268.6,
-      "bfi_score": 22.3,
+      "bfi_score": 22.4,
       "fgi_score": 22.1,
       "is_new": false
     },
@@ -9757,7 +9755,7 @@
         "qwen3-6-max"
       ],
       "base_metrics": {
-        "speed_tps": 72.9293847644568,
+        "speed_tps": 73.0074580537261,
         "lm_elo": 1482.0,
         "aa_quality": 28.3748690464685
       },
@@ -9770,7 +9768,7 @@
       "blended_price": 2.6,
       "effective_cost": 3.98,
       "avi_score": 231.1,
-      "bfi_score": 27.2,
+      "bfi_score": 27.3,
       "fgi_score": 60.8,
       "is_new": false
     },
@@ -9858,7 +9856,7 @@
         "nova-2-0-lite-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 182.176238840878,
+        "speed_tps": 185.893833974366,
         "aa_quality": 13.3740793005281
       },
       "aa_live_quality": 13.3740793005281,
@@ -9869,7 +9867,7 @@
       "blended_price": 0.74,
       "effective_cost": 1.67,
       "avi_score": 278.9,
-      "bfi_score": 157.5,
+      "bfi_score": 160.7,
       "fgi_score": 38.8,
       "is_new": false
     },
@@ -9924,7 +9922,7 @@
         "solar-mini4"
       ],
       "base_metrics": {
-        "speed_tps": 195.437102628822,
+        "speed_tps": 202.194472580324,
         "aa_quality": 24.0522018844171
       },
       "aa_live_quality": 24.0522018844171,
@@ -9936,7 +9934,7 @@
       "blended_price": 0.16,
       "effective_cost": 0.24,
       "avi_score": 719.0,
-      "bfi_score": 498.6,
+      "bfi_score": 515.8,
       "fgi_score": 62.2,
       "first_seen": "2026-10-01T05:00:18.845052+00:00",
       "is_new": true
@@ -9959,7 +9957,7 @@
         "nvidia-nemotron-3-super-120b-a12b"
       ],
       "base_metrics": {
-        "speed_tps": 160.889248593936,
+        "speed_tps": 161.970323720019,
         "aa_quality": 12.8287575290979
       },
       "aa_live_quality": 12.8287575290979,
@@ -9970,7 +9968,7 @@
       "blended_price": 0.42,
       "effective_cost": 0.98,
       "avi_score": 350.2,
-      "bfi_score": 204.5,
+      "bfi_score": 205.8,
       "fgi_score": 37.5,
       "is_new": false
     },
@@ -10025,7 +10023,7 @@
         "grok-4-20-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 105.944688173758,
+        "speed_tps": 105.446282559025,
         "aa_quality": 14.2010039023924
       },
       "aa_live_quality": 14.2010039023924,
@@ -10036,7 +10034,7 @@
       "blended_price": 1.5,
       "effective_cost": 3.27,
       "avi_score": 209.5,
-      "bfi_score": 55.1,
+      "bfi_score": 54.9,
       "fgi_score": 40.5,
       "is_new": false
     },
@@ -10091,7 +10089,7 @@
         "kimi-k2-0905"
       ],
       "base_metrics": {
-        "speed_tps": 52.3403657585647,
+        "speed_tps": 52.4464179387315,
         "aa_quality": 15.2941620102232
       },
       "aa_live_quality": 15.2941620102232,
@@ -10158,7 +10156,7 @@
         "qwen3-6-35b-a3b-non-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 137.222035826474,
+        "speed_tps": 141.31531011023,
         "aa_quality": 15.2320772647744
       },
       "aa_live_quality": 15.2320772647744,
@@ -10169,7 +10167,7 @@
       "blended_price": 0.75,
       "effective_cost": 1.56,
       "avi_score": 298.5,
-      "bfi_score": 119.5,
+      "bfi_score": 123.1,
       "fgi_score": 42.7,
       "is_new": false
     },
@@ -10191,7 +10189,7 @@
         "ministral-3-3b"
       ],
       "base_metrics": {
-        "speed_tps": 206.249772515877,
+        "speed_tps": 194.274629037079,
         "aa_quality": 4.83760020546443
       },
       "aa_live_quality": 4.83760020546443,
@@ -10202,7 +10200,7 @@
       "blended_price": 0.1,
       "effective_cost": 0.37,
       "avi_score": 425.6,
-      "bfi_score": 560.9,
+      "bfi_score": 528.4,
       "fgi_score": 21.2,
       "is_new": false
     },
@@ -10290,7 +10288,7 @@
         "qwen3-7-max"
       ],
       "base_metrics": {
-        "speed_tps": 202.795718906201,
+        "speed_tps": 203.136598583569,
         "aa_quality": 29.4571634255623
       },
       "livebench": {
@@ -10315,15 +10313,15 @@
       },
       "aa_live_quality": 29.4571634255623,
       "context_length": 1000000,
-      "composite_score": 88.4,
-      "capability_q": 88.4,
-      "p_success": 87.7,
+      "composite_score": 88.3,
+      "capability_q": 88.3,
+      "p_success": 87.6,
       "token_multiplier": 1.31,
       "blended_price": 3.5,
       "effective_cost": 4.58,
-      "avi_score": 244.3,
+      "avi_score": 243.7,
       "bfi_score": 63.5,
-      "fgi_score": 72.6,
+      "fgi_score": 72.4,
       "is_new": false
     },
     {
@@ -10344,7 +10342,7 @@
         "glm-4-6-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 35.1645002859599,
+        "speed_tps": 35.3302106345745,
         "lm_elo": 1339.0,
         "aa_quality": 18.5297479165936
       },
@@ -10356,7 +10354,7 @@
       "blended_price": 0.88,
       "effective_cost": 2.06,
       "avi_score": 249.8,
-      "bfi_score": 26.7,
+      "bfi_score": 26.8,
       "fgi_score": 37.2,
       "is_new": false
     },
@@ -10416,15 +10414,15 @@
         "aa_quality": 5.30069788678423
       },
       "aa_live_quality": 5.30069788678423,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -10450,15 +10448,15 @@
       },
       "aa_live_quality": 19.4812572685302,
       "context_length": 262144,
-      "composite_score": 81.1,
-      "capability_q": 81.1,
-      "p_success": 74.9,
-      "token_multiplier": 1.74,
+      "composite_score": 81.0,
+      "capability_q": 81.0,
+      "p_success": 74.6,
+      "token_multiplier": 1.75,
       "blended_price": 0.39,
       "effective_cost": 0.68,
-      "avi_score": 468.1,
-      "bfi_score": 285.3,
-      "fgi_score": 52.6,
+      "avi_score": 466.8,
+      "bfi_score": 284.9,
+      "fgi_score": 52.2,
       "is_new": false
     },
     {
@@ -10479,7 +10477,7 @@
         "ling-3-0-flash-fin"
       ],
       "base_metrics": {
-        "speed_tps": 331.283875884238,
+        "speed_tps": 290.470192527382,
         "aa_quality": 22.5965828940594
       },
       "aa_live_quality": 22.5965828940594,
@@ -10491,7 +10489,7 @@
       "blended_price": 0.1,
       "effective_cost": 0.16,
       "avi_score": 763.5,
-      "bfi_score": 1047.1,
+      "bfi_score": 918.1,
       "fgi_score": 59.0,
       "first_seen": "2026-09-17T05:00:18.230302+00:00",
       "is_new": false
@@ -10548,7 +10546,7 @@
         "qwen3-vl-32b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 70.2193788586582,
+        "speed_tps": 71.3188593990388,
         "aa_quality": 8.38699329476692
       },
       "aa_live_quality": 8.38699329476692,
@@ -10560,7 +10558,7 @@
       "blended_price": 0.26,
       "effective_cost": 0.76,
       "avi_score": 353.9,
-      "bfi_score": 117.4,
+      "bfi_score": 119.2,
       "fgi_score": 27.9,
       "is_new": false
     },
@@ -10620,15 +10618,15 @@
         "aa_quality": 7.47796854824097
       },
       "aa_live_quality": 7.47796854824097,
-      "composite_score": 72.3,
-      "capability_q": 72.3,
-      "p_success": 50.9,
-      "token_multiplier": 3.12,
+      "composite_score": 72.2,
+      "capability_q": 72.2,
+      "p_success": 50.6,
+      "token_multiplier": 3.15,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 26.3,
+      "fgi_score": 26.0,
       "is_new": false
     },
     {
@@ -10649,7 +10647,7 @@
         "qwen3-5-omni-flash"
       ],
       "base_metrics": {
-        "speed_tps": 220.790599706738,
+        "speed_tps": 220.281379234369,
         "aa_quality": 12.4740069826994
       },
       "aa_live_quality": 12.4740069826994,
@@ -10660,7 +10658,7 @@
       "blended_price": 0.24,
       "effective_cost": 0.57,
       "avi_score": 433.4,
-      "bfi_score": 399.7,
+      "bfi_score": 398.8,
       "fgi_score": 36.6,
       "is_new": false
     },
@@ -10682,7 +10680,7 @@
         "glm-4-7"
       ],
       "base_metrics": {
-        "speed_tps": 68.5811454164012,
+        "speed_tps": 68.3114912708934,
         "lm_elo": 1434.0,
         "aa_quality": 22.2402659332875
       },
@@ -10694,7 +10692,7 @@
       "blended_price": 0.92,
       "effective_cost": 1.67,
       "avi_score": 309.4,
-      "bfi_score": 53.2,
+      "bfi_score": 53.0,
       "fgi_score": 50.1,
       "is_new": false
     },
@@ -10720,15 +10718,15 @@
         "aa_quality": 8.59366235978288
       },
       "aa_live_quality": 8.59366235978288,
-      "composite_score": 73.1,
-      "capability_q": 73.1,
-      "p_success": 53.3,
-      "token_multiplier": 2.93,
+      "composite_score": 73.0,
+      "capability_q": 73.0,
+      "p_success": 53.0,
+      "token_multiplier": 2.95,
       "blended_price": 0.7,
-      "effective_cost": 2.05,
-      "avi_score": 229.1,
-      "bfi_score": 51.5,
-      "fgi_score": 28.4,
+      "effective_cost": 2.07,
+      "avi_score": 227.4,
+      "bfi_score": 51.4,
+      "fgi_score": 28.2,
       "is_new": false
     },
     {
@@ -10749,7 +10747,7 @@
         "ministral-3-14b"
       ],
       "base_metrics": {
-        "speed_tps": 71.4464937807031,
+        "speed_tps": 64.8363862369291,
         "aa_quality": 6.04436817215002
       },
       "aa_live_quality": 6.04436817215002,
@@ -10760,7 +10758,7 @@
       "blended_price": 0.2,
       "effective_cost": 0.68,
       "avi_score": 351.5,
-      "bfi_score": 135.3,
+      "bfi_score": 122.8,
       "fgi_score": 23.4,
       "is_new": false
     },
@@ -10819,15 +10817,15 @@
         "aa_quality": 5.70063694214945
       },
       "aa_live_quality": 5.70063694214945,
-      "composite_score": 71.0,
-      "capability_q": 71.0,
-      "p_success": 47.0,
-      "token_multiplier": 3.48,
+      "composite_score": 70.9,
+      "capability_q": 70.9,
+      "p_success": 46.7,
+      "token_multiplier": 3.51,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.9,
+      "fgi_score": 22.6,
       "is_new": false
     },
     {
@@ -10881,21 +10879,21 @@
         "inkling-small"
       ],
       "base_metrics": {
-        "speed_tps": 178.837110488654,
+        "speed_tps": 180.406826222591,
         "lm_elo": 1408.0,
         "aa_quality": 25.6582584411942
       },
       "aa_live_quality": 25.6582584411942,
       "context_length": 524288,
-      "composite_score": 80.8,
-      "capability_q": 80.8,
-      "p_success": 74.2,
-      "token_multiplier": 1.76,
+      "composite_score": 80.7,
+      "capability_q": 80.7,
+      "p_success": 74.0,
+      "token_multiplier": 1.77,
       "blended_price": 0.48,
-      "effective_cost": 0.84,
-      "avi_score": 425.6,
-      "bfi_score": 220.3,
-      "fgi_score": 51.6,
+      "effective_cost": 0.85,
+      "avi_score": 422.3,
+      "bfi_score": 222.0,
+      "fgi_score": 51.4,
       "is_new": false
     },
     {
@@ -10916,7 +10914,7 @@
         "gpt-4-1-nano"
       ],
       "base_metrics": {
-        "speed_tps": 130.247086575152,
+        "speed_tps": 121.189354828996,
         "aa_quality": 7.81796186868883
       },
       "aa_live_quality": 7.81796186868883,
@@ -10928,7 +10926,7 @@
       "blended_price": 0.16,
       "effective_cost": 0.49,
       "avi_score": 414.3,
-      "bfi_score": 285.4,
+      "bfi_score": 265.6,
       "fgi_score": 26.8,
       "is_new": false
     },
@@ -10954,15 +10952,15 @@
         "aa_quality": 6.9438219838506
       },
       "aa_live_quality": 6.9438219838506,
-      "composite_score": 71.9,
-      "capability_q": 71.9,
-      "p_success": 49.7,
-      "token_multiplier": 3.23,
+      "composite_score": 71.8,
+      "capability_q": 71.8,
+      "p_success": 49.4,
+      "token_multiplier": 3.25,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 25.2,
+      "fgi_score": 24.9,
       "is_new": false
     },
     {
@@ -10983,19 +10981,19 @@
         "llama-3-1-instruct-8b"
       ],
       "base_metrics": {
-        "speed_tps": 140.124414038097,
+        "speed_tps": 139.331279849612,
         "aa_quality": 6.93350756346201
       },
       "aa_live_quality": 6.93350756346201,
-      "composite_score": 71.9,
-      "capability_q": 71.9,
-      "p_success": 49.7,
-      "token_multiplier": 3.23,
+      "composite_score": 71.8,
+      "capability_q": 71.8,
+      "p_success": 49.4,
+      "token_multiplier": 3.25,
       "blended_price": 0.03,
       "effective_cost": 0.08,
-      "avi_score": 611.9,
-      "bfi_score": 654.4,
-      "fgi_score": 25.2,
+      "avi_score": 610.1,
+      "bfi_score": 649.8,
+      "fgi_score": 24.9,
       "is_new": false
     },
     {
@@ -11119,15 +11117,15 @@
         "aa_quality": 5.29816467823515
       },
       "aa_live_quality": 5.29816467823515,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -11214,7 +11212,7 @@
         "mercury-2-5"
       ],
       "base_metrics": {
-        "speed_tps": 711.249767631567,
+        "speed_tps": 711.681254557508,
         "aa_quality": 12.3408453757638
       },
       "aa_live_quality": 12.3408453757638,
@@ -11226,7 +11224,7 @@
       "blended_price": 0.35,
       "effective_cost": 0.84,
       "avi_score": 369.8,
-      "bfi_score": 1013.8,
+      "bfi_score": 1014.4,
       "fgi_score": 36.3,
       "first_seen": "2026-09-24T05:00:17.704147+00:00",
       "is_new": false
@@ -11249,7 +11247,7 @@
         "gpt-4-turbo"
       ],
       "base_metrics": {
-        "speed_tps": 32.2096167438872,
+        "speed_tps": 32.0340571065557,
         "aa_quality": 7.04351520157305
       },
       "aa_live_quality": 7.04351520157305,
@@ -11287,15 +11285,15 @@
         "aa_quality": 5.3045047203477
       },
       "aa_live_quality": 5.3045047203477,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -11353,15 +11351,15 @@
         "aa_quality": 8.72397483423503
       },
       "aa_live_quality": 8.72397483423503,
-      "composite_score": 73.2,
-      "capability_q": 73.2,
-      "p_success": 53.6,
-      "token_multiplier": 2.9,
+      "composite_score": 73.1,
+      "capability_q": 73.1,
+      "p_success": 53.3,
+      "token_multiplier": 2.93,
       "blended_price": 27.0,
-      "effective_cost": 78.3,
-      "avi_score": 66.5,
+      "effective_cost": 79.11,
+      "avi_score": 66.1,
       "bfi_score": 3.1,
-      "fgi_score": 28.7,
+      "fgi_score": 28.4,
       "is_new": false
     },
     {
@@ -11382,7 +11380,7 @@
         "gemini-3-6-flash"
       ],
       "base_metrics": {
-        "speed_tps": 198.253068217921,
+        "speed_tps": 189.409335519061,
         "lm_elo": 1536.0,
         "aa_quality": 33.9785928920714
       },
@@ -11414,7 +11412,7 @@
       "blended_price": 1.35,
       "effective_cost": 1.81,
       "avi_score": 361.1,
-      "bfi_score": 126.6,
+      "bfi_score": 121.0,
       "fgi_score": 70.7,
       "is_new": false
     },
@@ -11436,7 +11434,7 @@
         "gemini-3-flash"
       ],
       "base_metrics": {
-        "speed_tps": 190.819944869927,
+        "speed_tps": 189.978754684448,
         "lm_elo": 1439.0,
         "aa_quality": 17.9336848163786
       },
@@ -11448,7 +11446,7 @@
       "blended_price": 1.0,
       "effective_cost": 1.97,
       "avi_score": 275.2,
-      "bfi_score": 136.7,
+      "bfi_score": 136.1,
       "fgi_score": 45.5,
       "is_new": false
     },
@@ -11574,15 +11572,15 @@
         "aa_quality": 5.84842869297048
       },
       "aa_live_quality": 5.84842869297048,
-      "composite_score": 71.1,
-      "capability_q": 71.1,
-      "p_success": 47.3,
-      "token_multiplier": 3.45,
+      "composite_score": 71.0,
+      "capability_q": 71.0,
+      "p_success": 47.0,
+      "token_multiplier": 3.48,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.1,
+      "fgi_score": 22.9,
       "is_new": false
     },
     {
@@ -11669,7 +11667,7 @@
         "ling-3-0-tiny"
       ],
       "base_metrics": {
-        "speed_tps": 56.6918610426526,
+        "speed_tps": 58.2095287806773,
         "aa_quality": 11.0636233769305
       },
       "aa_live_quality": 11.0636233769305,
@@ -11680,7 +11678,7 @@
       "blended_price": 0.0,
       "effective_cost": 0.0,
       "avi_score": null,
-      "bfi_score": 424.6,
+      "bfi_score": 436.0,
       "fgi_score": 33.6,
       "is_new": false
     },
@@ -11900,19 +11898,19 @@
         "hermes-4-llama-3-1-405b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 37.0958670944555,
+        "speed_tps": 35.0664792093079,
         "aa_quality": 7.49497809925135
       },
       "aa_live_quality": 7.49497809925135,
-      "composite_score": 72.3,
-      "capability_q": 72.3,
-      "p_success": 50.9,
-      "token_multiplier": 3.12,
+      "composite_score": 72.2,
+      "capability_q": 72.2,
+      "p_success": 50.6,
+      "token_multiplier": 3.15,
       "blended_price": 1.4,
-      "effective_cost": 4.37,
-      "avi_score": 160.1,
-      "bfi_score": 19.0,
-      "fgi_score": 26.3,
+      "effective_cost": 4.41,
+      "avi_score": 159.0,
+      "bfi_score": 18.0,
+      "fgi_score": 26.0,
       "is_new": false
     },
     {
@@ -12005,15 +12003,15 @@
         "aa_quality": 5.03498213171439
       },
       "aa_live_quality": 5.03498213171439,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.6,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -12034,7 +12032,7 @@
         "o4-mini"
       ],
       "base_metrics": {
-        "speed_tps": 145.993820302472,
+        "speed_tps": 143.158269367395,
         "aa_quality": 16.653105214846
       },
       "aa_live_quality": 16.653105214846,
@@ -12046,7 +12044,7 @@
       "blended_price": 1.76,
       "effective_cost": 3.43,
       "avi_score": 215.8,
-      "bfi_score": 69.0,
+      "bfi_score": 67.6,
       "fgi_score": 46.1,
       "is_new": false
     },
@@ -12105,15 +12103,15 @@
         "aa_quality": 12.3823294842565
       },
       "aa_live_quality": 12.3823294842565,
-      "composite_score": 75.9,
-      "capability_q": 75.9,
-      "p_success": 61.5,
-      "token_multiplier": 2.38,
+      "composite_score": 75.8,
+      "capability_q": 75.8,
+      "p_success": 61.2,
+      "token_multiplier": 2.39,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 36.6,
+      "fgi_score": 36.3,
       "is_new": false
     },
     {
@@ -12167,7 +12165,7 @@
         "ling-flash-2-0"
       ],
       "base_metrics": {
-        "speed_tps": 6.13584136118804,
+        "speed_tps": 3.81477095596686,
         "aa_quality": 7.8074626926252
       },
       "aa_live_quality": 7.8074626926252,
@@ -12178,7 +12176,7 @@
       "blended_price": 0.23,
       "effective_cost": 0.69,
       "avi_score": 363.7,
-      "bfi_score": 11.0,
+      "bfi_score": 6.8,
       "fgi_score": 26.8,
       "is_new": false
     },
@@ -12200,19 +12198,19 @@
         "gpt-5-4-nano-medium"
       ],
       "base_metrics": {
-        "speed_tps": 161.000038295577,
+        "speed_tps": 162.018096282591,
         "aa_quality": 20.0139276661357
       },
       "aa_live_quality": 20.0139276661357,
-      "composite_score": 81.5,
-      "capability_q": 81.5,
-      "p_success": 75.8,
-      "token_multiplier": 1.7,
+      "composite_score": 81.4,
+      "capability_q": 81.4,
+      "p_success": 75.5,
+      "token_multiplier": 1.71,
       "blended_price": 0.41,
       "effective_cost": 0.7,
-      "avi_score": 467.7,
-      "bfi_score": 222.4,
-      "fgi_score": 53.8,
+      "avi_score": 466.5,
+      "bfi_score": 223.5,
+      "fgi_score": 53.4,
       "is_new": false
     },
     {
@@ -12270,15 +12268,15 @@
         "aa_quality": 24.3839569152521
       },
       "aa_live_quality": 24.3839569152521,
-      "composite_score": 84.7,
-      "capability_q": 84.7,
-      "p_success": 82.1,
-      "token_multiplier": 1.48,
+      "composite_score": 84.6,
+      "capability_q": 84.6,
+      "p_success": 81.9,
+      "token_multiplier": 1.49,
       "blended_price": 0.14,
       "effective_cost": 0.2,
-      "avi_score": 756.4,
-      "bfi_score": 167.2,
-      "fgi_score": 63.0,
+      "avi_score": 754.5,
+      "bfi_score": 167.0,
+      "fgi_score": 62.7,
       "is_new": false
     },
     {
@@ -12332,20 +12330,20 @@
         "gpt-4o-2024-08-06"
       ],
       "base_metrics": {
-        "speed_tps": 111.10805549234,
+        "speed_tps": 105.221488981295,
         "aa_quality": 7.73970909995321
       },
       "aa_live_quality": 7.73970909995321,
       "context_length": 128000,
-      "composite_score": 72.5,
-      "capability_q": 72.5,
-      "p_success": 51.5,
-      "token_multiplier": 3.07,
+      "composite_score": 72.4,
+      "capability_q": 72.4,
+      "p_success": 51.2,
+      "token_multiplier": 3.1,
       "blended_price": 4.0,
-      "effective_cost": 12.28,
-      "avi_score": 108.7,
-      "bfi_score": 25.7,
-      "fgi_score": 26.8,
+      "effective_cost": 12.4,
+      "avi_score": 108.0,
+      "bfi_score": 24.3,
+      "fgi_score": 26.5,
       "is_new": false
     },
     {
@@ -12366,7 +12364,7 @@
         "nemotron-3-nano-omni-30b-a3b"
       ],
       "base_metrics": {
-        "speed_tps": 272.3605867405,
+        "speed_tps": 270.115215347491,
         "aa_quality": 10.2506761710987
       },
       "aa_live_quality": 10.2506761710987,
@@ -12378,7 +12376,7 @@
       "blended_price": 0.38,
       "effective_cost": 1.0,
       "avi_score": 328.4,
-      "bfi_score": 363.8,
+      "bfi_score": 360.8,
       "fgi_score": 31.9,
       "is_new": false
     },
@@ -12468,7 +12466,7 @@
         "qwen3-8-2-4t-a95b"
       ],
       "base_metrics": {
-        "speed_tps": 38.6979984301502,
+        "speed_tps": 39.6156379794367,
         "aa_quality": 39.8861723105325
       },
       "aa_live_quality": 39.8861723105325,
@@ -12480,7 +12478,7 @@
       "blended_price": 2.8,
       "effective_cost": 3.14,
       "avi_score": 344.5,
-      "bfi_score": 15.6,
+      "bfi_score": 16.0,
       "fgi_score": 88.5,
       "is_new": false
     },
@@ -12506,15 +12504,15 @@
         "aa_quality": 5.98428477265092
       },
       "aa_live_quality": 5.98428477265092,
-      "composite_score": 71.2,
-      "capability_q": 71.2,
-      "p_success": 47.6,
-      "token_multiplier": 3.42,
+      "composite_score": 71.1,
+      "capability_q": 71.1,
+      "p_success": 47.3,
+      "token_multiplier": 3.45,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.4,
+      "fgi_score": 23.1,
       "is_new": false
     },
     {
@@ -12551,6 +12549,39 @@
       "is_new": false
     },
     {
+      "display": "JT-4.1 Flash 236B A21B (Non-reasoning)",
+      "provider": "Upstream API",
+      "pool": "api",
+      "tier": "Upstream API",
+      "sub_cost": "API",
+      "price_in": null,
+      "price_out": null,
+      "live_aliases": [
+        "jt-4-1-flash-236b-a21b"
+      ],
+      "lm_aliases": [
+        "jt-4-1-flash-236b-a21b"
+      ],
+      "aa_aliases": [
+        "jt-4-1-flash-236b-a21b"
+      ],
+      "base_metrics": {
+        "speed_tps": 60.0,
+        "aa_quality": 27.2926268381758
+      },
+      "aa_live_quality": 27.2926268381758,
+      "composite_score": 86.8,
+      "capability_q": 86.8,
+      "p_success": 85.5,
+      "token_multiplier": 1.37,
+      "blended_price": null,
+      "effective_cost": null,
+      "avi_score": null,
+      "bfi_score": null,
+      "fgi_score": 68.6,
+      "is_new": false
+    },
+    {
       "display": "Claude 4.5 Sonnet (Reasoning)",
       "provider": "Anthropic",
       "pool": "api",
@@ -12568,7 +12599,7 @@
         "claude-4-5-sonnet-thinking"
       ],
       "base_metrics": {
-        "speed_tps": 47.4347407892503,
+        "speed_tps": 46.7422192119738,
         "aa_quality": 20.6661943537112
       },
       "aa_live_quality": 20.6661943537112,
@@ -12579,7 +12610,7 @@
       "blended_price": 5.4,
       "effective_cost": 9.02,
       "avi_score": 158.4,
-      "bfi_score": 9.8,
+      "bfi_score": 9.7,
       "fgi_score": 54.9,
       "is_new": false
     },
@@ -12605,15 +12636,15 @@
         "aa_quality": 5.86186404175178
       },
       "aa_live_quality": 5.86186404175178,
-      "composite_score": 71.1,
-      "capability_q": 71.1,
-      "p_success": 47.3,
-      "token_multiplier": 3.45,
+      "composite_score": 71.0,
+      "capability_q": 71.0,
+      "p_success": 47.0,
+      "token_multiplier": 3.48,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.1,
+      "fgi_score": 22.9,
       "is_new": false
     },
     {
@@ -12638,15 +12669,15 @@
         "aa_quality": 9.67895987024967
       },
       "aa_live_quality": 9.67895987024967,
-      "composite_score": 73.9,
-      "capability_q": 73.9,
-      "p_success": 55.7,
-      "token_multiplier": 2.75,
+      "composite_score": 73.8,
+      "capability_q": 73.8,
+      "p_success": 55.4,
+      "token_multiplier": 2.77,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 30.7,
+      "fgi_score": 30.4,
       "is_new": false
     },
     {
@@ -12667,7 +12698,7 @@
         "llama-4-maverick"
       ],
       "base_metrics": {
-        "speed_tps": 77.4450676227952,
+        "speed_tps": 78.3831537981177,
         "aa_quality": 9.9905959756501
       },
       "aa_live_quality": 9.9905959756501,
@@ -12679,7 +12710,7 @@
       "blended_price": 0.39,
       "effective_cost": 1.06,
       "avi_score": 318.2,
-      "bfi_score": 100.5,
+      "bfi_score": 101.8,
       "fgi_score": 31.3,
       "is_new": false
     },
@@ -12705,15 +12736,15 @@
         "aa_quality": 5.96740520286191
       },
       "aa_live_quality": 5.96740520286191,
-      "composite_score": 71.2,
-      "capability_q": 71.2,
-      "p_success": 47.6,
-      "token_multiplier": 3.42,
+      "composite_score": 71.1,
+      "capability_q": 71.1,
+      "p_success": 47.3,
+      "token_multiplier": 3.45,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 23.4,
+      "fgi_score": 23.1,
       "is_new": false
     },
     {
@@ -12833,7 +12864,7 @@
         "ministral-3-8b"
       ],
       "base_metrics": {
-        "speed_tps": 98.5784732864293,
+        "speed_tps": 100.188551503621,
         "aa_quality": 5.47767370454416
       },
       "aa_live_quality": 5.47767370454416,
@@ -12844,7 +12875,7 @@
       "blended_price": 0.15,
       "effective_cost": 0.53,
       "avi_score": 382.1,
-      "bfi_score": 218.6,
+      "bfi_score": 222.2,
       "fgi_score": 22.4,
       "is_new": false
     },
@@ -12866,7 +12897,7 @@
         "llama-3-3-instruct-70b"
       ],
       "base_metrics": {
-        "speed_tps": 78.801614810839,
+        "speed_tps": 80.3192948594486,
         "aa_quality": 7.66380859299009
       },
       "aa_live_quality": 7.66380859299009,
@@ -12877,7 +12908,7 @@
       "blended_price": 0.71,
       "effective_cost": 2.21,
       "avi_score": 216.8,
-      "bfi_score": 66.2,
+      "bfi_score": 67.5,
       "fgi_score": 26.5,
       "is_new": false
     },
@@ -12969,15 +13000,15 @@
         "aa_quality": 11.725328542655
       },
       "aa_live_quality": 11.725328542655,
-      "composite_score": 75.4,
-      "capability_q": 75.4,
-      "p_success": 60.1,
-      "token_multiplier": 2.46,
+      "composite_score": 75.3,
+      "capability_q": 75.3,
+      "p_success": 59.8,
+      "token_multiplier": 2.48,
       "blended_price": 0.88,
-      "effective_cost": 2.16,
-      "avi_score": 239.5,
+      "effective_cost": 2.18,
+      "avi_score": 237.8,
       "bfi_score": 45.1,
-      "fgi_score": 35.1,
+      "fgi_score": 34.8,
       "is_new": false
     },
     {
@@ -13002,15 +13033,15 @@
         "aa_quality": 6.4088295766243
       },
       "aa_live_quality": 6.4088295766243,
-      "composite_score": 71.5,
-      "capability_q": 71.5,
-      "p_success": 48.5,
-      "token_multiplier": 3.34,
+      "composite_score": 71.4,
+      "capability_q": 71.4,
+      "p_success": 48.2,
+      "token_multiplier": 3.36,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 24.2,
+      "fgi_score": 23.9,
       "is_new": false
     },
     {
@@ -13031,7 +13062,7 @@
         "qwen3-8b-instruct-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 42.5469302590308,
+        "speed_tps": 42.2919200111526,
         "aa_quality": 7.27634965725808
       },
       "aa_live_quality": 7.27634965725808,
@@ -13042,7 +13073,7 @@
       "blended_price": 0.56,
       "effective_cost": 1.79,
       "avi_score": 236.5,
-      "bfi_score": 41.9,
+      "bfi_score": 41.6,
       "fgi_score": 25.7,
       "is_new": false
     },
@@ -13068,15 +13099,15 @@
         "aa_quality": 5.58581054715502
       },
       "aa_live_quality": 5.58581054715502,
-      "composite_score": 70.9,
-      "capability_q": 70.9,
-      "p_success": 46.7,
-      "token_multiplier": 3.51,
+      "composite_score": 70.8,
+      "capability_q": 70.8,
+      "p_success": 46.4,
+      "token_multiplier": 3.54,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.6,
+      "fgi_score": 22.4,
       "is_new": false
     },
     {
@@ -13165,18 +13196,18 @@
       ],
       "base_metrics": {
         "speed_tps": 60.0,
-        "aa_quality": 4.76910061591993
+        "aa_quality": 7.38161312356127
       },
-      "aa_live_quality": 4.76910061591993,
-      "composite_score": 70.3,
-      "capability_q": 70.3,
-      "p_success": 44.9,
-      "token_multiplier": 3.7,
+      "aa_live_quality": 7.38161312356127,
+      "composite_score": 72.2,
+      "capability_q": 72.2,
+      "p_success": 50.6,
+      "token_multiplier": 3.15,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.2,
+      "fgi_score": 26.0,
       "is_new": false
     },
     {
@@ -13197,7 +13228,7 @@
         "gpt-4-1-mini"
       ],
       "base_metrics": {
-        "speed_tps": 147.653446397181,
+        "speed_tps": 141.899560813922,
         "aa_quality": 10.1588744766829
       },
       "aa_live_quality": 10.1588744766829,
@@ -13209,7 +13240,7 @@
       "blended_price": 0.64,
       "effective_cost": 1.72,
       "avi_score": 256.5,
-      "bfi_score": 137.0,
+      "bfi_score": 131.7,
       "fgi_score": 31.6,
       "is_new": false
     },
@@ -13331,7 +13362,7 @@
         "nova-2-0-pro"
       ],
       "base_metrics": {
-        "speed_tps": 107.481720416957,
+        "speed_tps": 110.785462075021,
         "aa_quality": 9.95904965562327
       },
       "aa_live_quality": 9.95904965562327,
@@ -13342,7 +13373,7 @@
       "blended_price": 3.0,
       "effective_cost": 8.13,
       "avi_score": 132.1,
-      "bfi_score": 31.8,
+      "bfi_score": 32.7,
       "fgi_score": 31.3,
       "is_new": false
     },
@@ -13368,15 +13399,15 @@
         "aa_quality": 10.8974845417933
       },
       "aa_live_quality": 10.8974845417933,
-      "composite_score": 74.8,
-      "capability_q": 74.8,
-      "p_success": 58.3,
-      "token_multiplier": 2.57,
+      "composite_score": 74.7,
+      "capability_q": 74.7,
+      "p_success": 58.0,
+      "token_multiplier": 2.59,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 33.3,
+      "fgi_score": 33.0,
       "is_new": false
     },
     {
@@ -13401,15 +13432,15 @@
         "aa_quality": 5.01437141074802
       },
       "aa_live_quality": 5.01437141074802,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.6,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -13434,15 +13465,15 @@
         "aa_quality": 32.3147020976362
       },
       "aa_live_quality": 32.3147020976362,
-      "composite_score": 90.5,
-      "capability_q": 90.5,
-      "p_success": 90.2,
+      "composite_score": 90.4,
+      "capability_q": 90.4,
+      "p_success": 90.1,
       "token_multiplier": 1.24,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 77.5,
+      "fgi_score": 77.3,
       "is_new": false
     },
     {
@@ -13695,7 +13726,7 @@
         "qwen3-vl-235b-a22b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 55.3007763750589,
+        "speed_tps": 55.4635724324615,
         "aa_quality": 13.4375683732418
       },
       "aa_live_quality": 13.4375683732418,
@@ -13706,7 +13737,7 @@
       "blended_price": 1.12,
       "effective_cost": 2.53,
       "avi_score": 230.8,
-      "bfi_score": 35.5,
+      "bfi_score": 35.6,
       "fgi_score": 38.8,
       "is_new": false
     },
@@ -13899,15 +13930,15 @@
         "aa_quality": 5.45277882640287
       },
       "aa_live_quality": 5.45277882640287,
-      "composite_score": 70.8,
-      "capability_q": 70.8,
-      "p_success": 46.4,
-      "token_multiplier": 3.54,
+      "composite_score": 70.7,
+      "capability_q": 70.7,
+      "p_success": 46.1,
+      "token_multiplier": 3.57,
       "blended_price": 1.07,
-      "effective_cost": 3.79,
-      "avi_score": 162.4,
-      "bfi_score": 36.8,
-      "fgi_score": 22.4,
+      "effective_cost": 3.82,
+      "avi_score": 161.4,
+      "bfi_score": 36.7,
+      "fgi_score": 22.1,
       "is_new": false
     },
     {
@@ -13965,15 +13996,15 @@
         "aa_quality": 5.03498213171439
       },
       "aa_live_quality": 5.03498213171439,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.6,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -14064,15 +14095,15 @@
         "aa_quality": 7.20987771468693
       },
       "aa_live_quality": 7.20987771468693,
-      "composite_score": 72.1,
-      "capability_q": 72.1,
-      "p_success": 50.3,
-      "token_multiplier": 3.17,
+      "composite_score": 72.0,
+      "capability_q": 72.0,
+      "p_success": 50.0,
+      "token_multiplier": 3.2,
       "blended_price": 5.4,
-      "effective_cost": 17.12,
-      "avi_score": 96.3,
+      "effective_cost": 17.28,
+      "avi_score": 95.7,
       "bfi_score": 10.9,
-      "fgi_score": 25.7,
+      "fgi_score": 25.5,
       "is_new": false
     },
     {
@@ -14126,7 +14157,7 @@
         "llama-4-scout"
       ],
       "base_metrics": {
-        "speed_tps": 101.461201329161,
+        "speed_tps": 108.090412782503,
         "aa_quality": 8.07503439053102
       },
       "aa_live_quality": 8.07503439053102,
@@ -14138,7 +14169,7 @@
       "blended_price": 0.29,
       "effective_cost": 0.87,
       "avi_score": 332.4,
-      "bfi_score": 157.1,
+      "bfi_score": 167.4,
       "fgi_score": 27.3,
       "is_new": false
     },
@@ -14160,7 +14191,7 @@
         "granite-4-2-8b"
       ],
       "base_metrics": {
-        "speed_tps": 58.6619539543262,
+        "speed_tps": 61.7986557967062,
         "aa_quality": 11.0812712267815
       },
       "aa_live_quality": 11.0812712267815,
@@ -14172,7 +14203,7 @@
       "blended_price": 0.1,
       "effective_cost": 0.25,
       "avi_score": 547.2,
-      "bfi_score": 171.7,
+      "bfi_score": 180.8,
       "fgi_score": 33.6,
       "is_new": false
     },
@@ -14265,15 +14296,15 @@
         "aa_quality": 5.56262049746202
       },
       "aa_live_quality": 5.56262049746202,
-      "composite_score": 70.9,
-      "capability_q": 70.9,
-      "p_success": 46.7,
-      "token_multiplier": 3.51,
+      "composite_score": 70.8,
+      "capability_q": 70.8,
+      "p_success": 46.4,
+      "token_multiplier": 3.54,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.6,
+      "fgi_score": 22.4,
       "is_new": false
     },
     {
@@ -14294,19 +14325,19 @@
         "qwen3-32b-instruct-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 104.708901024907,
+        "speed_tps": 104.951018163365,
         "aa_quality": 8.58694071653199
       },
       "aa_live_quality": 8.58694071653199,
-      "composite_score": 73.1,
-      "capability_q": 73.1,
-      "p_success": 53.3,
-      "token_multiplier": 2.93,
+      "composite_score": 73.0,
+      "capability_q": 73.0,
+      "p_success": 53.0,
+      "token_multiplier": 2.95,
       "blended_price": 0.26,
-      "effective_cost": 0.75,
-      "avi_score": 358.0,
-      "bfi_score": 175.5,
-      "fgi_score": 28.4,
+      "effective_cost": 0.76,
+      "avi_score": 355.0,
+      "bfi_score": 175.6,
+      "fgi_score": 28.2,
       "is_new": false
     },
     {
@@ -14464,15 +14495,15 @@
         "aa_quality": 22.3196165324532
       },
       "aa_live_quality": 22.3196165324532,
-      "composite_score": 80.5,
-      "capability_q": 80.5,
-      "p_success": 73.5,
-      "token_multiplier": 1.79,
+      "composite_score": 80.4,
+      "capability_q": 80.4,
+      "p_success": 73.3,
+      "token_multiplier": 1.8,
       "blended_price": 4.0,
-      "effective_cost": 7.16,
-      "avi_score": 166.3,
+      "effective_cost": 7.2,
+      "avi_score": 165.4,
       "bfi_score": 15.4,
-      "fgi_score": 50.7,
+      "fgi_score": 50.5,
       "is_new": false
     },
     {
@@ -14497,15 +14528,15 @@
         "aa_quality": 5.4363632246188
       },
       "aa_live_quality": 5.4363632246188,
-      "composite_score": 70.8,
-      "capability_q": 70.8,
-      "p_success": 46.4,
-      "token_multiplier": 3.54,
+      "composite_score": 70.7,
+      "capability_q": 70.7,
+      "p_success": 46.1,
+      "token_multiplier": 3.57,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.4,
+      "fgi_score": 22.1,
       "is_new": false
     },
     {
@@ -14691,20 +14722,20 @@
         "gpt-4o-mini"
       ],
       "base_metrics": {
-        "speed_tps": 102.251757201996,
+        "speed_tps": 107.839831795456,
         "aa_quality": 6.66432562957107
       },
       "aa_live_quality": 6.66432562957107,
       "context_length": 128000,
-      "composite_score": 71.7,
-      "capability_q": 71.7,
-      "p_success": 49.1,
-      "token_multiplier": 3.28,
+      "composite_score": 71.6,
+      "capability_q": 71.6,
+      "p_success": 48.8,
+      "token_multiplier": 3.31,
       "blended_price": 0.24,
       "effective_cost": 0.79,
-      "avi_score": 335.8,
-      "bfi_score": 174.9,
-      "fgi_score": 24.7,
+      "avi_score": 334.7,
+      "bfi_score": 184.2,
+      "fgi_score": 24.4,
       "is_new": false
     },
     {
@@ -14725,7 +14756,7 @@
         "trinity-large-thinking"
       ],
       "base_metrics": {
-        "speed_tps": 351.374363261297,
+        "speed_tps": 354.501877418655,
         "lm_elo": 1238.0,
         "aa_quality": 10.8242425924218
       },
@@ -14738,7 +14769,7 @@
       "blended_price": 0.36,
       "effective_cost": 1.33,
       "avi_score": 256.1,
-      "bfi_score": 456.1,
+      "bfi_score": 460.1,
       "fgi_score": 21.2,
       "is_new": false
     },
@@ -14793,7 +14824,7 @@
         "solar-pro-3"
       ],
       "base_metrics": {
-        "speed_tps": 137.619537210785,
+        "speed_tps": 146.066814856292,
         "aa_quality": 7.81551744502774
       },
       "aa_live_quality": 7.81551744502774,
@@ -14805,7 +14836,7 @@
       "blended_price": 0.24,
       "effective_cost": 0.74,
       "avi_score": 353.5,
-      "bfi_score": 238.0,
+      "bfi_score": 252.6,
       "fgi_score": 26.8,
       "is_new": false
     },
@@ -14827,19 +14858,19 @@
         "qwen3-omni-30b-a3b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 101.645436106524,
+        "speed_tps": 101.725857577973,
         "aa_quality": 7.76082961984319
       },
       "aa_live_quality": 7.76082961984319,
-      "composite_score": 72.5,
-      "capability_q": 72.5,
-      "p_success": 51.5,
-      "token_multiplier": 3.07,
+      "composite_score": 72.4,
+      "capability_q": 72.4,
+      "p_success": 51.2,
+      "token_multiplier": 3.1,
       "blended_price": 0.39,
-      "effective_cost": 1.21,
-      "avi_score": 285.9,
+      "effective_cost": 1.22,
+      "avi_score": 284.0,
       "bfi_score": 128.2,
-      "fgi_score": 26.8,
+      "fgi_score": 26.5,
       "is_new": false
     },
     {
@@ -14864,15 +14895,15 @@
         "aa_quality": 8.01995268843494
       },
       "aa_live_quality": 8.01995268843494,
-      "composite_score": 72.7,
-      "capability_q": 72.7,
-      "p_success": 52.1,
-      "token_multiplier": 3.02,
+      "composite_score": 72.6,
+      "capability_q": 72.6,
+      "p_success": 51.8,
+      "token_multiplier": 3.05,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 27.3,
+      "fgi_score": 27.1,
       "is_new": false
     },
     {
@@ -14893,7 +14924,7 @@
         "k2-horizon-375b-a23b"
       ],
       "base_metrics": {
-        "speed_tps": 120.539161359711,
+        "speed_tps": 124.019517169591,
         "aa_quality": 30.5015302696723
       },
       "aa_live_quality": 30.5015302696723,
@@ -14904,7 +14935,7 @@
       "blended_price": 0.0,
       "effective_cost": 0.0,
       "avi_score": null,
-      "bfi_score": 1074.0,
+      "bfi_score": 1105.0,
       "fgi_score": 74.3,
       "is_new": false
     },
@@ -15025,20 +15056,20 @@
         "gpt-4o"
       ],
       "base_metrics": {
-        "speed_tps": 117.81729576655,
+        "speed_tps": 118.760788617484,
         "aa_quality": 8.4416392330287
       },
       "aa_live_quality": 8.4416392330287,
       "context_length": 128000,
-      "composite_score": 73.0,
-      "capability_q": 73.0,
-      "p_success": 53.0,
-      "token_multiplier": 2.95,
+      "composite_score": 72.9,
+      "capability_q": 72.9,
+      "p_success": 52.7,
+      "token_multiplier": 2.97,
       "blended_price": 4.0,
-      "effective_cost": 11.8,
-      "avi_score": 111.8,
-      "bfi_score": 27.5,
-      "fgi_score": 28.2,
+      "effective_cost": 11.88,
+      "avi_score": 111.2,
+      "bfi_score": 27.6,
+      "fgi_score": 27.9,
       "is_new": false
     },
     {
@@ -15129,15 +15160,15 @@
         "aa_quality": 26.0135173401368
       },
       "aa_live_quality": 26.0135173401368,
-      "composite_score": 85.9,
-      "capability_q": 85.9,
-      "p_success": 84.1,
+      "composite_score": 85.8,
+      "capability_q": 85.8,
+      "p_success": 84.0,
       "token_multiplier": 1.42,
       "blended_price": 10.0,
       "effective_cost": 14.2,
-      "avi_score": 150.3,
+      "avi_score": 150.0,
       "bfi_score": 15.8,
-      "fgi_score": 66.3,
+      "fgi_score": 66.1,
       "is_new": false
     },
     {
@@ -15162,15 +15193,15 @@
         "aa_quality": 5.03498213171439
       },
       "aa_live_quality": 5.03498213171439,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.6,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -15290,20 +15321,20 @@
         "step-3-5-flash-0202"
       ],
       "base_metrics": {
-        "speed_tps": 125.231860787562,
+        "speed_tps": 138.404664006226,
         "aa_quality": 16.6169431254306
       },
       "aa_live_quality": 16.6169431254306,
       "context_length": 262144,
-      "composite_score": 79.0,
-      "capability_q": 79.0,
-      "p_success": 69.8,
-      "token_multiplier": 1.95,
+      "composite_score": 78.9,
+      "capability_q": 78.9,
+      "p_success": 69.6,
+      "token_multiplier": 1.96,
       "blended_price": 0.14,
       "effective_cost": 0.27,
-      "avi_score": 603.1,
-      "bfi_score": 321.8,
-      "fgi_score": 46.1,
+      "avi_score": 601.4,
+      "bfi_score": 355.2,
+      "fgi_score": 45.8,
       "is_new": false
     },
     {
@@ -15357,7 +15388,7 @@
         "qwen3-next-80b-a3b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 179.175222241469,
+        "speed_tps": 177.606619006266,
         "aa_quality": 11.1973684395653
       },
       "aa_live_quality": 11.1973684395653,
@@ -15368,7 +15399,7 @@
       "blended_price": 0.36,
       "effective_cost": 0.91,
       "avi_score": 349.2,
-      "bfi_score": 248.1,
+      "bfi_score": 245.9,
       "fgi_score": 33.9,
       "is_new": false
     },
@@ -15458,7 +15489,7 @@
         "qwen3-max-thinking-preview"
       ],
       "base_metrics": {
-        "speed_tps": 58.3989912102475,
+        "speed_tps": 56.2180716650911,
         "aa_quality": 16.290984641221
       },
       "aa_live_quality": 16.290984641221,
@@ -15470,7 +15501,7 @@
       "blended_price": 2.16,
       "effective_cost": 4.28,
       "avi_score": 194.6,
-      "bfi_score": 23.5,
+      "bfi_score": 22.7,
       "fgi_score": 45.2,
       "is_new": false
     },
@@ -15592,7 +15623,7 @@
         "qwen3-vl-30b-a3b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 113.261543242679,
+        "speed_tps": 113.364940626229,
         "aa_quality": 9.45305611694923
       },
       "aa_live_quality": 9.45305611694923,
@@ -15603,7 +15634,7 @@
       "blended_price": 0.64,
       "effective_cost": 1.79,
       "avi_score": 248.2,
-      "bfi_score": 104.4,
+      "bfi_score": 104.5,
       "fgi_score": 30.1,
       "is_new": false
     },
@@ -15762,15 +15793,15 @@
         "aa_quality": 52.5605655745982
       },
       "aa_live_quality": 52.5605655745982,
-      "composite_score": 98.7,
-      "capability_q": 98.7,
+      "composite_score": 98.6,
+      "capability_q": 98.6,
       "p_success": 96.1,
       "token_multiplier": 1.09,
       "blended_price": 3.6,
       "effective_cost": 3.92,
-      "avi_score": 332.5,
+      "avi_score": 331.8,
       "bfi_score": 20.5,
-      "fgi_score": 93.0,
+      "fgi_score": 92.9,
       "first_seen": "2026-10-01T05:00:18.845052+00:00",
       "is_new": true
     },
@@ -15792,7 +15823,7 @@
         "qwen3-vl-32b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 90.7911332456896,
+        "speed_tps": 90.8104004542158,
         "aa_quality": 11.8701729641937
       },
       "aa_live_quality": 11.8701729641937,
@@ -15803,7 +15834,7 @@
       "blended_price": 0.26,
       "effective_cost": 0.63,
       "avi_score": 412.2,
-      "bfi_score": 157.1,
+      "bfi_score": 157.2,
       "fgi_score": 35.4,
       "is_new": false
     },
@@ -15858,20 +15889,20 @@
         "qwen3-vl-235b-a22b-instruct"
       ],
       "base_metrics": {
-        "speed_tps": 53.0477170146349,
+        "speed_tps": 53.1940017219812,
         "aa_quality": 9.93699415502801
       },
       "aa_live_quality": 9.93699415502801,
       "context_length": 262144,
-      "composite_score": 74.1,
-      "capability_q": 74.1,
-      "p_success": 56.3,
-      "token_multiplier": 2.71,
+      "composite_score": 74.0,
+      "capability_q": 74.0,
+      "p_success": 56.0,
+      "token_multiplier": 2.73,
       "blended_price": 0.64,
-      "effective_cost": 1.73,
-      "avi_score": 255.1,
+      "effective_cost": 1.75,
+      "avi_score": 253.0,
       "bfi_score": 49.2,
-      "fgi_score": 31.3,
+      "fgi_score": 31.0,
       "is_new": false
     },
     {
@@ -15892,7 +15923,7 @@
         "muse-spark-1-1"
       ],
       "base_metrics": {
-        "speed_tps": 119.177276736637,
+        "speed_tps": 123.80982646028,
         "lm_elo": 1542.0,
         "aa_quality": 33.7298425919846
       },
@@ -15924,7 +15955,7 @@
       "blended_price": 1.85,
       "effective_cost": 2.46,
       "avi_score": 314.9,
-      "bfi_score": 60.2,
+      "bfi_score": 62.6,
       "fgi_score": 70.9,
       "is_new": false
     },
@@ -15950,49 +15981,15 @@
         "aa_quality": 6.4088294637731
       },
       "aa_live_quality": 6.4088294637731,
-      "composite_score": 71.5,
-      "capability_q": 71.5,
-      "p_success": 48.5,
-      "token_multiplier": 3.34,
+      "composite_score": 71.4,
+      "capability_q": 71.4,
+      "p_success": 48.2,
+      "token_multiplier": 3.36,
       "blended_price": 0.15,
       "effective_cost": 0.5,
-      "avi_score": 398.9,
-      "bfi_score": 134.4,
-      "fgi_score": 24.2,
-      "is_new": false
-    },
-    {
-      "display": "Qwen3 Coder 30B A3B Instruct",
-      "provider": "Alibaba",
-      "pool": "api",
-      "tier": "Upstream API",
-      "sub_cost": "API",
-      "price_in": 0.45,
-      "price_out": 2.25,
-      "live_aliases": [
-        "qwen3-coder-30b-a3b-instruct"
-      ],
-      "lm_aliases": [
-        "qwen3-coder-30b-a3b-instruct"
-      ],
-      "aa_aliases": [
-        "qwen3-coder-30b-a3b-instruct"
-      ],
-      "base_metrics": {
-        "speed_tps": 84.8636412322337,
-        "aa_quality": 9.58537639337592
-      },
-      "aa_live_quality": 9.58537639337592,
-      "context_length": 262144,
-      "composite_score": 73.8,
-      "capability_q": 73.8,
-      "p_success": 55.4,
-      "token_multiplier": 2.77,
-      "blended_price": 0.81,
-      "effective_cost": 2.24,
-      "avi_score": 224.7,
-      "bfi_score": 66.3,
-      "fgi_score": 30.4,
+      "avi_score": 397.7,
+      "bfi_score": 134.2,
+      "fgi_score": 23.9,
       "is_new": false
     },
     {
@@ -16046,7 +16043,7 @@
         "reka-flash-3"
       ],
       "base_metrics": {
-        "speed_tps": 89.6541121906621,
+        "speed_tps": 60.0,
         "aa_quality": 5.64602230491152
       },
       "aa_live_quality": 5.64602230491152,
@@ -16058,7 +16055,7 @@
       "blended_price": 0.32,
       "effective_cost": 1.12,
       "avi_score": 281.8,
-      "bfi_score": 126.6,
+      "bfi_score": 84.8,
       "fgi_score": 22.6,
       "is_new": false
     },
@@ -16080,7 +16077,7 @@
         "mistral-medium-3-5"
       ],
       "base_metrics": {
-        "speed_tps": 168.219396385607,
+        "speed_tps": 165.42076427647,
         "lm_elo": 1263.0,
         "aa_quality": 14.1889227802691
       },
@@ -16093,7 +16090,7 @@
       "blended_price": 2.7,
       "effective_cost": 8.42,
       "avi_score": 123.5,
-      "bfi_score": 52.6,
+      "bfi_score": 51.7,
       "fgi_score": 26.3,
       "is_new": false
     },
@@ -16181,19 +16178,19 @@
         "qwen3-vl-8b-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 114.99057000872,
+        "speed_tps": 114.104787985407,
         "aa_quality": 8.17229749994459
       },
       "aa_live_quality": 8.17229749994459,
-      "composite_score": 72.8,
-      "capability_q": 72.8,
-      "p_success": 52.4,
-      "token_multiplier": 3.0,
+      "composite_score": 72.7,
+      "capability_q": 72.7,
+      "p_success": 52.1,
+      "token_multiplier": 3.02,
       "blended_price": 0.56,
-      "effective_cost": 1.69,
-      "avi_score": 248.0,
-      "bfi_score": 114.3,
-      "fgi_score": 27.6,
+      "effective_cost": 1.7,
+      "avi_score": 246.6,
+      "bfi_score": 113.3,
+      "fgi_score": 27.3,
       "is_new": false
     },
     {
@@ -16251,15 +16248,15 @@
         "aa_quality": 11.0361387091137
       },
       "aa_live_quality": 11.0361387091137,
-      "composite_score": 74.9,
-      "capability_q": 74.9,
-      "p_success": 58.6,
-      "token_multiplier": 2.55,
+      "composite_score": 74.8,
+      "capability_q": 74.8,
+      "p_success": 58.3,
+      "token_multiplier": 2.57,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 33.6,
+      "fgi_score": 33.3,
       "is_new": false
     },
     {
@@ -16383,15 +16380,15 @@
         "aa_quality": 7.21643567343487
       },
       "aa_live_quality": 7.21643567343487,
-      "composite_score": 72.1,
-      "capability_q": 72.1,
-      "p_success": 50.3,
-      "token_multiplier": 3.17,
+      "composite_score": 72.0,
+      "capability_q": 72.0,
+      "p_success": 50.0,
+      "token_multiplier": 3.2,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 25.7,
+      "fgi_score": 25.5,
       "is_new": false
     },
     {
@@ -16412,7 +16409,7 @@
         "ling-3-0-flash"
       ],
       "base_metrics": {
-        "speed_tps": 353.406480649847,
+        "speed_tps": 325.383530825118,
         "aa_quality": 20.1332521865481
       },
       "aa_live_quality": 20.1332521865481,
@@ -16424,7 +16421,7 @@
       "blended_price": 0.1,
       "effective_cost": 0.18,
       "avi_score": 710.8,
-      "bfi_score": 1092.9,
+      "bfi_score": 1006.2,
       "fgi_score": 53.8,
       "is_new": false
     },
@@ -16549,15 +16546,15 @@
         "aa_quality": 6.67120856746569
       },
       "aa_live_quality": 6.67120856746569,
-      "composite_score": 71.7,
-      "capability_q": 71.7,
-      "p_success": 49.1,
-      "token_multiplier": 3.28,
+      "composite_score": 71.6,
+      "capability_q": 71.6,
+      "p_success": 48.8,
+      "token_multiplier": 3.31,
       "blended_price": 0.06,
-      "effective_cost": 0.18,
-      "avi_score": 536.2,
-      "bfi_score": 215.5,
-      "fgi_score": 24.7,
+      "effective_cost": 0.19,
+      "avi_score": 528.6,
+      "bfi_score": 215.2,
+      "fgi_score": 24.4,
       "is_new": false
     },
     {
@@ -16616,15 +16613,15 @@
         "aa_quality": 5.16209285058134
       },
       "aa_live_quality": 5.16209285058134,
-      "composite_score": 70.6,
-      "capability_q": 70.6,
-      "p_success": 45.8,
-      "token_multiplier": 3.6,
+      "composite_score": 70.5,
+      "capability_q": 70.5,
+      "p_success": 45.5,
+      "token_multiplier": 3.64,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.9,
+      "fgi_score": 21.6,
       "is_new": false
     },
     {
@@ -16645,20 +16642,20 @@
         "gpt-4o-2024-05-13"
       ],
       "base_metrics": {
-        "speed_tps": 109.301935011146,
+        "speed_tps": 100.925455740548,
         "aa_quality": 7.33166741584823
       },
       "aa_live_quality": 7.33166741584823,
       "context_length": 128000,
-      "composite_score": 72.2,
-      "capability_q": 72.2,
-      "p_success": 50.6,
-      "token_multiplier": 3.15,
+      "composite_score": 72.1,
+      "capability_q": 72.1,
+      "p_success": 50.3,
+      "token_multiplier": 3.17,
       "blended_price": 7.0,
-      "effective_cost": 22.05,
-      "avi_score": 89.4,
-      "bfi_score": 16.3,
-      "fgi_score": 26.0,
+      "effective_cost": 22.19,
+      "avi_score": 89.0,
+      "bfi_score": 15.0,
+      "fgi_score": 25.7,
       "is_new": false
     },
     {
@@ -16712,19 +16709,19 @@
         "ring-2-6-1t"
       ],
       "base_metrics": {
-        "speed_tps": 121.205925979327,
+        "speed_tps": 117.603812865472,
         "aa_quality": 16.6172363768618
       },
       "aa_live_quality": 16.6172363768618,
-      "composite_score": 79.0,
-      "capability_q": 79.0,
-      "p_success": 69.8,
-      "token_multiplier": 1.95,
+      "composite_score": 78.9,
+      "capability_q": 78.9,
+      "p_success": 69.6,
+      "token_multiplier": 1.96,
       "blended_price": 0.74,
-      "effective_cost": 1.44,
-      "avi_score": 319.3,
-      "bfi_score": 108.1,
-      "fgi_score": 46.1,
+      "effective_cost": 1.45,
+      "avi_score": 317.4,
+      "bfi_score": 104.7,
+      "fgi_score": 45.8,
       "is_new": false
     },
     {
@@ -16782,15 +16779,15 @@
         "aa_quality": 5.28995755703256
       },
       "aa_live_quality": 5.28995755703256,
-      "composite_score": 70.7,
-      "capability_q": 70.7,
-      "p_success": 46.1,
-      "token_multiplier": 3.57,
+      "composite_score": 70.6,
+      "capability_q": 70.6,
+      "p_success": 45.8,
+      "token_multiplier": 3.6,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.1,
+      "fgi_score": 21.9,
       "is_new": false
     },
     {
@@ -16811,7 +16808,7 @@
         "phi-4"
       ],
       "base_metrics": {
-        "speed_tps": 32.731654660168,
+        "speed_tps": 39.5900836128083,
         "aa_quality": 5.92257028113751
       },
       "aa_live_quality": 5.92257028113751,
@@ -16823,12 +16820,12 @@
       "blended_price": 0.2,
       "effective_cost": 0.69,
       "avi_score": 348.4,
-      "bfi_score": 61.9,
+      "bfi_score": 74.9,
       "fgi_score": 23.1,
       "is_new": false
     },
     {
-      "display": "Claude Sonnet 4.6 (Non-reasoning, Low)",
+      "display": "Claude Sonnet 4.6 (Non-reasoning, Low Effort)",
       "provider": "Anthropic",
       "pool": "api",
       "tier": "Upstream API",
@@ -16845,19 +16842,19 @@
         "claude-sonnet-4-6-non-reasoning-low-effort"
       ],
       "base_metrics": {
-        "speed_tps": 45.1279716020515,
+        "speed_tps": 43.0389870539269,
         "aa_quality": 23.3035011715443
       },
       "aa_live_quality": 23.3035011715443,
-      "composite_score": 83.9,
-      "capability_q": 83.9,
-      "p_success": 80.7,
+      "composite_score": 83.8,
+      "capability_q": 83.8,
+      "p_success": 80.5,
       "token_multiplier": 1.53,
       "blended_price": 5.4,
       "effective_cost": 8.26,
-      "avi_score": 172.5,
-      "bfi_score": 9.6,
-      "fgi_score": 60.8,
+      "avi_score": 172.1,
+      "bfi_score": 9.1,
+      "fgi_score": 60.5,
       "is_new": false
     },
     {
@@ -16878,7 +16875,7 @@
         "qwen3-6-plus"
       ],
       "base_metrics": {
-        "speed_tps": 56.0756124198616,
+        "speed_tps": 56.0486977743491,
         "lm_elo": 1461.0,
         "aa_quality": 27.0099232636747
       },
@@ -16970,15 +16967,15 @@
         "aa_quality": 7.19889208713507
       },
       "aa_live_quality": 7.19889208713507,
-      "composite_score": 72.1,
-      "capability_q": 72.1,
-      "p_success": 50.3,
-      "token_multiplier": 3.17,
+      "composite_score": 72.0,
+      "capability_q": 72.0,
+      "p_success": 50.0,
+      "token_multiplier": 3.2,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 25.7,
+      "fgi_score": 25.5,
       "is_new": false
     },
     {
@@ -16999,7 +16996,7 @@
         "minimax-m2"
       ],
       "base_metrics": {
-        "speed_tps": 97.2305396858737,
+        "speed_tps": 86.6408528146247,
         "lm_elo": 1297.0,
         "aa_quality": 18.6256708551149
       },
@@ -17012,7 +17009,7 @@
       "blended_price": 0.48,
       "effective_cost": 1.22,
       "avi_score": 306.1,
-      "bfi_score": 111.0,
+      "bfi_score": 98.9,
       "fgi_score": 33.6,
       "is_new": false
     },
@@ -17071,15 +17068,15 @@
         "aa_quality": 5.57740289284295
       },
       "aa_live_quality": 5.57740289284295,
-      "composite_score": 70.9,
-      "capability_q": 70.9,
-      "p_success": 46.7,
-      "token_multiplier": 3.51,
+      "composite_score": 70.8,
+      "capability_q": 70.8,
+      "p_success": 46.4,
+      "token_multiplier": 3.54,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 22.6,
+      "fgi_score": 22.4,
       "is_new": false
     },
     {
@@ -17133,7 +17130,7 @@
         "quasar-438b"
       ],
       "base_metrics": {
-        "speed_tps": 145.186383177957,
+        "speed_tps": 142.874874359554,
         "aa_quality": 26.7372536607816
       },
       "aa_live_quality": 26.7372536607816,
@@ -17144,7 +17141,7 @@
       "blended_price": 0.84,
       "effective_cost": 1.17,
       "avi_score": 427.0,
-      "bfi_score": 129.3,
+      "bfi_score": 127.3,
       "fgi_score": 67.6,
       "is_new": false
     },
@@ -17171,15 +17168,15 @@
         "aa_quality": 18.5862731794299
       },
       "aa_live_quality": 18.5862731794299,
-      "composite_score": 73.7,
-      "capability_q": 73.7,
-      "p_success": 55.1,
-      "token_multiplier": 2.79,
+      "composite_score": 73.6,
+      "capability_q": 73.6,
+      "p_success": 54.8,
+      "token_multiplier": 2.81,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 30.1,
+      "fgi_score": 29.9,
       "is_new": false
     },
     {
@@ -17266,7 +17263,7 @@
         "qwen3-coder-next"
       ],
       "base_metrics": {
-        "speed_tps": 80.1098366022518,
+        "speed_tps": 74.7058468660414,
         "aa_quality": 9.23682203219174
       },
       "aa_live_quality": 9.23682203219174,
@@ -17278,7 +17275,7 @@
       "blended_price": 0.52,
       "effective_cost": 1.48,
       "avi_score": 269.1,
-      "bfi_score": 85.0,
+      "bfi_score": 79.3,
       "fgi_score": 29.6,
       "is_new": false
     },
@@ -17371,15 +17368,15 @@
         "aa_quality": 5.03498213171439
       },
       "aa_live_quality": 5.03498213171439,
-      "composite_score": 70.5,
-      "capability_q": 70.5,
-      "p_success": 45.5,
-      "token_multiplier": 3.64,
+      "composite_score": 70.4,
+      "capability_q": 70.4,
+      "p_success": 45.2,
+      "token_multiplier": 3.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 21.6,
+      "fgi_score": 21.4,
       "is_new": false
     },
     {
@@ -17400,7 +17397,7 @@
         "grok-3-mini-reasoning"
       ],
       "base_metrics": {
-        "speed_tps": 70.0604622462005,
+        "speed_tps": 63.8357597993419,
         "aa_quality": 14.6212806219199
       },
       "aa_live_quality": 14.6212806219199,
@@ -17411,7 +17408,7 @@
       "blended_price": 0.34,
       "effective_cost": 0.73,
       "avi_score": 411.6,
-      "bfi_score": 104.0,
+      "bfi_score": 94.8,
       "fgi_score": 41.5,
       "is_new": false
     },
@@ -17437,15 +17434,15 @@
         "aa_quality": 5.71179615992055
       },
       "aa_live_quality": 5.71179615992055,
-      "composite_score": 71.0,
-      "capability_q": 71.0,
-      "p_success": 47.0,
-      "token_multiplier": 3.48,
+      "composite_score": 70.9,
+      "capability_q": 70.9,
+      "p_success": 46.7,
+      "token_multiplier": 3.51,
       "blended_price": 0.09,
-      "effective_cost": 0.31,
-      "avi_score": 458.9,
-      "bfi_score": 173.4,
-      "fgi_score": 22.9,
+      "effective_cost": 0.32,
+      "avi_score": 453.2,
+      "bfi_score": 173.2,
+      "fgi_score": 22.6,
       "is_new": false
     },
     {
@@ -17505,7 +17502,7 @@
       "base_metrics": {
         "lm_elo": 1499.0,
         "aa_quality": 33.6325871590289,
-        "speed_tps": 211.693561376023
+        "speed_tps": 211.22173097855
       },
       "livebench": {
         "model": "gemini-3.5-flash-high",
@@ -17554,7 +17551,7 @@
       "base_metrics": {
         "lm_elo": 1397.0,
         "aa_quality": 24.0682169231964,
-        "speed_tps": 216.336182844182
+        "speed_tps": 212.069529569093
       },
       "livebench": {
         "model": "gpt-5.4-mini-xhigh",
@@ -17578,15 +17575,15 @@
       },
       "aa_live_quality": 24.0682169231964,
       "context_length": 400000,
-      "composite_score": 79.9,
-      "capability_q": 79.9,
-      "p_success": 72.1,
-      "token_multiplier": 1.85,
+      "composite_score": 79.8,
+      "capability_q": 79.8,
+      "p_success": 71.8,
+      "token_multiplier": 1.86,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 48.9,
+      "fgi_score": 48.6,
       "is_new": false
     },
     {
@@ -17602,7 +17599,7 @@
       ],
       "base_metrics": {
         "aa_quality": 20.7197352504557,
-        "speed_tps": 164.316686249409
+        "speed_tps": 163.751649342206
       },
       "livebench": {
         "model": "gpt-5.4-nano-xhigh",
@@ -17626,15 +17623,15 @@
       },
       "aa_live_quality": 20.7197352504557,
       "context_length": 400000,
-      "composite_score": 82.0,
-      "capability_q": 82.0,
-      "p_success": 76.9,
-      "token_multiplier": 1.66,
+      "composite_score": 81.9,
+      "capability_q": 81.9,
+      "p_success": 76.6,
+      "token_multiplier": 1.67,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 55.3,
+      "fgi_score": 54.9,
       "is_new": false
     },
     {
@@ -17651,7 +17648,7 @@
       "base_metrics": {
         "lm_elo": 1357.0,
         "aa_quality": 24.8801191398002,
-        "speed_tps": 143.872865704188
+        "speed_tps": 140.953468399947
       },
       "livebench": {
         "model": "grok-4.3",
@@ -17682,7 +17679,7 @@
       "blended_price": 1.5,
       "effective_cost": 2.92,
       "avi_score": 231.7,
-      "bfi_score": 76.6,
+      "bfi_score": 75.1,
       "fgi_score": 46.1,
       "is_new": false
     },
@@ -17744,7 +17741,7 @@
       "base_metrics": {
         "lm_elo": 1509.0,
         "aa_quality": 26.9791999742844,
-        "speed_tps": 59.8766276843789
+        "speed_tps": 68.0683129118693
       },
       "livebench": {
         "model": "kimi-k2.6-thinking",
@@ -17792,7 +17789,7 @@
       ],
       "base_metrics": {
         "aa_quality": 21.4279902240782,
-        "speed_tps": 56.5032678638904
+        "speed_tps": 57.5791599456194
       },
       "livebench": {
         "model": "qwen3.6-27b",
@@ -17823,7 +17820,7 @@
       "blended_price": 0.9,
       "effective_cost": 1.45,
       "avi_score": 350.2,
-      "bfi_score": 45.9,
+      "bfi_score": 46.8,
       "fgi_score": 56.7,
       "is_new": false
     },
@@ -17841,7 +17838,7 @@
       "base_metrics": {
         "lm_elo": 1461.0,
         "aa_quality": 27.0099232636747,
-        "speed_tps": 56.0756124198616
+        "speed_tps": 56.0486977743491
       },
       "livebench": {
         "model": "qwen3.6-plus",
@@ -17890,7 +17887,7 @@
       ],
       "base_metrics": {
         "aa_quality": 29.4571634255623,
-        "speed_tps": 202.795718906201
+        "speed_tps": 203.136598583569
       },
       "livebench": {
         "model": "qwen3.7-max",
@@ -17915,15 +17912,15 @@
       "aa_live_quality": 29.4571634255623,
       "context_length": 1000000,
       "signal_mirror_of": "qwen3-7-max",
-      "composite_score": 88.4,
-      "capability_q": 88.4,
-      "p_success": 87.7,
+      "composite_score": 88.3,
+      "capability_q": 88.3,
+      "p_success": 87.6,
       "token_multiplier": 1.31,
       "blended_price": 2.07,
       "effective_cost": 2.71,
-      "avi_score": 306.8,
-      "bfi_score": 95.0,
-      "fgi_score": 72.6,
+      "avi_score": 306.0,
+      "bfi_score": 95.1,
+      "fgi_score": 72.4,
       "is_new": false
     },
     {
@@ -17940,7 +17937,7 @@
       "base_metrics": {
         "lm_elo": 1542.0,
         "aa_quality": 33.7298425919846,
-        "speed_tps": 119.177276736637
+        "speed_tps": 123.80982646028
       },
       "livebench": {
         "model": "muse-spark-1.1-xhigh",
@@ -17990,7 +17987,7 @@
       "base_metrics": {
         "lm_elo": 1440.0,
         "aa_quality": 22.1685424839812,
-        "speed_tps": 354.484656133381
+        "speed_tps": 359.95987899047
       },
       "livebench": {
         "model": "gemini-3.5-flash-lite-high",
@@ -18040,7 +18037,7 @@
       "base_metrics": {
         "lm_elo": 1536.0,
         "aa_quality": 33.9785928920714,
-        "speed_tps": 198.253068217921
+        "speed_tps": 189.409335519061
       },
       "livebench": {
         "model": "gemini-3.6-flash-high",
@@ -18306,7 +18303,7 @@
       "base_metrics": {
         "lm_elo": 1638.0,
         "aa_quality": 46.4465506302286,
-        "speed_tps": 76.767148839853
+        "speed_tps": 81.0299419195682
       },
       "livebench": {
         "model": "grok-4.7-xhigh",
@@ -18356,7 +18353,7 @@
       "base_metrics": {
         "lm_elo": 1758.0,
         "aa_quality": 51.8332597011541,
-        "speed_tps": 54.9381971854246
+        "speed_tps": 63.1092717109668
       },
       "livebench": {
         "model": "gpt-6.1-sol-max",
@@ -18412,7 +18409,7 @@
       "base_metrics": {
         "lm_elo": 1749.0,
         "aa_quality": 53.3549259623252,
-        "speed_tps": 67.4584686437973
+        "speed_tps": 68.2754473664919
       },
       "livebench": {
         "model": "claude-fable-5-1-max-effort",
@@ -19397,7 +19394,7 @@
       "base_metrics": {
         "lm_elo": 1749.0,
         "aa_quality": 53.3549259623252,
-        "speed_tps": 67.4584686437973
+        "speed_tps": 68.2754473664919
       },
       "aa_live_quality": 53.3549259623252,
       "context_length": 1000000,
@@ -19495,7 +19492,7 @@
       "base_metrics": {
         "lm_elo": 1618.0,
         "aa_quality": 46.3242065310383,
-        "speed_tps": 43.1148208622135
+        "speed_tps": 45.5480243273755
       },
       "aa_live_quality": 46.3242065310383,
       "context_length": 1050000,
@@ -19507,7 +19504,7 @@
       "blended_price": 0.52,
       "effective_cost": 0.6,
       "avi_score": 688.3,
-      "bfi_score": 58.7,
+      "bfi_score": 62.0,
       "fgi_score": 85.7,
       "first_seen": "2026-09-22T05:00:17.988708+00:00",
       "is_new": false
@@ -19687,7 +19684,7 @@
       "base_metrics": {
         "lm_elo": 1508.0,
         "aa_quality": 26.0585912980095,
-        "speed_tps": 43.568543149315
+        "speed_tps": 42.9077700123649
       },
       "aa_live_quality": 26.0585912980095,
       "context_length": 204800,
@@ -19699,7 +19696,7 @@
       "blended_price": 2.0,
       "effective_cost": 3.06,
       "avi_score": 259.1,
-      "bfi_score": 19.9,
+      "bfi_score": 19.6,
       "fgi_score": 60.8,
       "is_new": false
     },
@@ -19817,19 +19814,19 @@
       "base_metrics": {
         "lm_elo": 1478.0,
         "aa_quality": 25.9868888896511,
-        "speed_tps": 35.8658410799064
+        "speed_tps": 33.8440495163911
       },
       "aa_live_quality": 25.9868888896511,
       "context_length": 1050000,
-      "composite_score": 83.0,
-      "capability_q": 83.0,
-      "p_success": 78.9,
-      "token_multiplier": 1.59,
+      "composite_score": 82.9,
+      "capability_q": 82.9,
+      "p_success": 78.7,
+      "token_multiplier": 1.6,
       "blended_price": 0.52,
-      "effective_cost": 0.83,
-      "avi_score": 453.8,
-      "bfi_score": 42.9,
-      "fgi_score": 58.2,
+      "effective_cost": 0.84,
+      "avi_score": 450.3,
+      "bfi_score": 40.4,
+      "fgi_score": 57.9,
       "is_new": false
     },
     {
@@ -20011,7 +20008,7 @@
       "base_metrics": {
         "lm_elo": 1434.0,
         "aa_quality": 22.2402659332875,
-        "speed_tps": 68.5811454164012
+        "speed_tps": 68.3114912708934
       },
       "aa_live_quality": 22.2402659332875,
       "context_length": 204800,
@@ -20023,7 +20020,7 @@
       "blended_price": 0.92,
       "effective_cost": 1.67,
       "avi_score": 309.4,
-      "bfi_score": 53.2,
+      "bfi_score": 53.0,
       "fgi_score": 50.1,
       "is_new": false
     },
@@ -20109,7 +20106,7 @@
       "base_metrics": {
         "lm_elo": 1399.0,
         "aa_quality": 18.4204249294815,
-        "speed_tps": 87.4284630592786
+        "speed_tps": 87.5084575970938
       },
       "aa_live_quality": 18.4204249294815,
       "context_length": 262144,
@@ -20145,7 +20142,7 @@
       "base_metrics": {
         "lm_elo": 1397.0,
         "aa_quality": 22.7578150287271,
-        "speed_tps": 56.8327541031365
+        "speed_tps": 57.0540182167503
       },
       "aa_live_quality": 22.7578150287271,
       "context_length": 204800,
@@ -20157,7 +20154,7 @@
       "blended_price": 0.34,
       "effective_cost": 0.64,
       "avi_score": 457.7,
-      "bfi_score": 87.1,
+      "bfi_score": 87.5,
       "fgi_score": 47.3,
       "is_new": false
     },
@@ -20181,7 +20178,7 @@
       "base_metrics": {
         "lm_elo": 1395.0,
         "aa_quality": 24.7357540558308,
-        "speed_tps": 105.148738324191
+        "speed_tps": 114.476340692858
       },
       "aa_live_quality": 24.7357540558308,
       "context_length": 400000,
@@ -20278,7 +20275,7 @@
       "base_metrics": {
         "lm_elo": 1386.0,
         "aa_quality": 22.7966473221872,
-        "speed_tps": 96.2828414626724
+        "speed_tps": 102.29593940118
       },
       "aa_live_quality": 22.7966473221872,
       "context_length": 204800,
@@ -20290,7 +20287,7 @@
       "blended_price": 0.43,
       "effective_cost": 0.84,
       "avi_score": 406.2,
-      "bfi_score": 124.7,
+      "bfi_score": 132.4,
       "fgi_score": 46.4,
       "is_new": false
     },
@@ -20376,7 +20373,7 @@
       "base_metrics": {
         "lm_elo": 1384.0,
         "aa_quality": 20.9452850207622,
-        "speed_tps": 97.8386693925867
+        "speed_tps": 97.6143303050131
       },
       "aa_live_quality": 20.9452850207622,
       "context_length": 204800,
@@ -20579,7 +20576,7 @@
       "base_metrics": {
         "lm_elo": 1339.0,
         "aa_quality": 14.9292992892622,
-        "speed_tps": 35.9350836853335
+        "speed_tps": 34.6721877032272
       },
       "aa_live_quality": 14.9292992892622,
       "context_length": 204800,
@@ -20590,7 +20587,7 @@
       "blended_price": 0.69,
       "effective_cost": 1.78,
       "avi_score": 257.1,
-      "bfi_score": 31.7,
+      "bfi_score": 30.6,
       "fgi_score": 33.3,
       "is_new": false
     },
@@ -20713,15 +20710,15 @@
         "aa_quality": 20.8177287591331
       },
       "aa_live_quality": 20.8177287591331,
-      "composite_score": 75.6,
-      "capability_q": 75.6,
-      "p_success": 60.6,
-      "token_multiplier": 2.43,
+      "composite_score": 75.5,
+      "capability_q": 75.5,
+      "p_success": 60.3,
+      "token_multiplier": 2.45,
       "blended_price": null,
       "effective_cost": null,
       "avi_score": null,
       "bfi_score": null,
-      "fgi_score": 35.7,
+      "fgi_score": 35.4,
       "is_new": false
     },
     {
@@ -20776,7 +20773,7 @@
       "base_metrics": {
         "lm_elo": 1263.0,
         "aa_quality": 14.1889227802691,
-        "speed_tps": 168.219396385607
+        "speed_tps": 165.42076427647
       },
       "aa_live_quality": 14.1889227802691,
       "signal_mirror_of": "mistral-medium-3-5",
@@ -20811,20 +20808,20 @@
       "base_metrics": {
         "lm_elo": 1253.0,
         "aa_quality": 19.3295292724173,
-        "speed_tps": 148.517277764247
+        "speed_tps": 148.405121366862
       },
       "aa_live_quality": 19.3295292724173,
       "context_length": 262144,
       "signal_mirror_of": "qwen3-5-35b-a3b",
-      "composite_score": 73.9,
-      "capability_q": 73.9,
-      "p_success": 55.7,
-      "token_multiplier": 2.75,
+      "composite_score": 73.8,
+      "capability_q": 73.8,
+      "p_success": 55.4,
+      "token_multiplier": 2.77,
       "blended_price": 0.32,
-      "effective_cost": 0.88,
-      "avi_score": 342.9,
-      "bfi_score": 218.7,
-      "fgi_score": 30.7,
+      "effective_cost": 0.89,
+      "avi_score": 340.2,
+      "bfi_score": 218.2,
+      "fgi_score": 30.4,
       "is_new": false
     },
     {

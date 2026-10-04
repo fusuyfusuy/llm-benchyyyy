@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-03T05:00:19.605168+00:00",
+  "generated_at": "2026-10-04T15:59:21.113642+00:00",
   "sources": {
     "opencode_docs": "https://opencode.ai/docs/go/",
     "opencode_api": "https://opencode.ai/zen/go/v1/models",
@@ -12,13 +12,11 @@
       "cap_week": 30.0,
       "cap_month": 60.0
     },
-    "usage_source": "cached ocgo_usage_20260910.json (23d old \u2014 run with --fetch)",
+    "usage_source": "cached ocgo_usage_20260910.json (25d old \u2014 run with --fetch)",
     "note": "per-model caps = account_cap * usage/60; per-model Usage from docs pricing table"
   },
   "catalog_diff": {
-    "added": [
-      "longcat-2.5-preview-free"
-    ],
+    "added": [],
     "removed": [],
     "total_current": 35,
     "total_previous": 35
@@ -592,7 +590,7 @@
         },
         "openrouter_id": "deepseek/deepseek-v4-flash",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.028,
+        "openrouter_prompt_per_1m": 0.0224,
         "composite_score": 80.6,
         "capability_q": 80.6,
         "p_success": 73.7,
@@ -1426,7 +1424,7 @@
         },
         "openrouter_id": "z-ai/glm-5.2",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.41,
+        "openrouter_prompt_per_1m": 0.38,
         "composite_score": 81.1,
         "capability_q": 81.1,
         "p_success": 74.9,
@@ -1821,7 +1819,7 @@
         },
         "openrouter_id": "moonshotai/kimi-k3",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 2.7,
+        "openrouter_prompt_per_1m": 0.72,
         "composite_score": 89.5,
         "capability_q": 89.5,
         "p_success": 89.1,
@@ -3514,8 +3512,8 @@
       "model_id": "deepseek-v4.1-flash",
       "display": "deepseek-v4.1-flash",
       "pricing": {
-        "input_per_1m": 0.3,
-        "output_per_1m": 1.2,
+        "input_per_1m": 0.003,
+        "output_per_1m": 2.4,
         "cached_read_per_1m": null,
         "cached_write_per_1m": null,
         "monthly_usage_limit_usd": 60
@@ -3577,7 +3575,7 @@
         },
         "openrouter_id": "deepseek/deepseek-v4.1-flash",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.3,
+        "openrouter_prompt_per_1m": 0.003,
         "composite_score": 85.4,
         "capability_q": 85.4,
         "p_success": 83.3,
@@ -3667,7 +3665,7 @@
         "livebench": null,
         "openrouter_id": "~deepseek/deepseek-flash-latest",
         "openrouter_context": 1048576,
-        "openrouter_prompt_per_1m": 0.02,
+        "openrouter_prompt_per_1m": 0.003,
         "composite_score": null,
         "capability_q": null,
         "p_success": null,
@@ -3882,7 +3880,7 @@
         "\u2014"
       ],
       "first_seen": "2026-09-27T05:00:18.424646+00:00",
-      "is_new": true,
+      "is_new": false,
       "is_docs_model": true
     },
     {

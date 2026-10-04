@@ -1,39 +1,17 @@
 {
   "pricing_standard": "USD per 1M tokens ($/1M)",
   "unit": "USD / 1M tokens",
-  "generated_at": "2026-10-03T05:00:22.140957+00:00",
+  "generated_at": "2026-10-04T05:00:22.350443+00:00",
   "providers": {
     "claude": {
       "title": "Anthropic (Claude)",
       "icon": "\ud83e\udde0",
-      "total_tracked": 44,
-      "with_pricing": 16,
+      "total_tracked": 40,
+      "with_pricing": 14,
       "models": [
         {
-          "model_id": "anthropic/claude-opus-5.5",
-          "display": "Claude Opus-5.5-max",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": 4.0,
-            "output_per_1m": 20.0,
-            "cache_read_per_1m": 0.19999999999999998,
-            "price_in_1m": 4.0,
-            "price_out_1m": 20.0,
-            "price_cache_1m": 0.19999999999999998,
-            "context_length": 1000000
-          },
-          "benchmarks": {
-            "livebench_overall": null,
-            "aa_quality": 57.6223698102963,
-            "arena_elo": 1815.0,
-            "composite_score": 86.43355471544444
-          }
-        },
-        {
           "model_id": "anthropic/claude-fable-5.1",
-          "display": "Claude Fable 5.1 (Low, Default Fallback)",
+          "display": "Claude Fable 5.1 (Adaptive Reasoning, Low Effort, Default Fallback)",
           "provider": "claude",
           "provider_title": "Anthropic (Claude)",
           "pricing": {
@@ -77,7 +55,7 @@
         },
         {
           "model_id": "anthropic/claude-opus-5.5",
-          "display": "Claude Opus 5.5 (Max, Default Fallback)",
+          "display": "Claude Opus 5.5",
           "provider": "claude",
           "provider_title": "Anthropic (Claude)",
           "pricing": {
@@ -139,50 +117,6 @@
             "aa_quality": 53.3549259623252,
             "arena_elo": 1749.0,
             "composite_score": 80.0323889434878
-          }
-        },
-        {
-          "model_id": "anthropic/claude-sonnet-5.5",
-          "display": "Claude Sonnet 5.5 (Medium, Default Fallback)",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": 2.0,
-            "output_per_1m": 10.0,
-            "cache_read_per_1m": 0.19999999999999998,
-            "price_in_1m": 2.0,
-            "price_out_1m": 10.0,
-            "price_cache_1m": 0.19999999999999998,
-            "context_length": 1000000
-          },
-          "benchmarks": {
-            "livebench_overall": 78.17,
-            "aa_quality": 40.838652287929,
-            "arena_elo": 1786.0,
-            "composite_score": 78.17
-          }
-        },
-        {
-          "model_id": "anthropic/claude-sonnet-5.5",
-          "display": "Claude Sonnet-5.5-xhigh",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": 2.0,
-            "output_per_1m": 10.0,
-            "cache_read_per_1m": 0.19999999999999998,
-            "price_in_1m": 2.0,
-            "price_out_1m": 10.0,
-            "price_cache_1m": 0.19999999999999998,
-            "context_length": 1000000
-          },
-          "benchmarks": {
-            "livebench_overall": null,
-            "aa_quality": 51.8955544183089,
-            "arena_elo": 1786.0,
-            "composite_score": 77.84333162746334
           }
         },
         {
@@ -249,6 +183,28 @@
             "aa_quality": 38.1638712882576,
             "arena_elo": 1539.0,
             "composite_score": 76.59
+          }
+        },
+        {
+          "model_id": "anthropic/claude-sonnet-5.5",
+          "display": "Claude Sonnet 5.5",
+          "provider": "claude",
+          "provider_title": "Anthropic (Claude)",
+          "pricing": {
+            "unit": "USD / 1M tokens",
+            "input_per_1m": 2.0,
+            "output_per_1m": 10.0,
+            "cache_read_per_1m": 0.19999999999999998,
+            "price_in_1m": 2.0,
+            "price_out_1m": 10.0,
+            "price_cache_1m": 0.19999999999999998,
+            "context_length": 1000000
+          },
+          "benchmarks": {
+            "livebench_overall": 75.75,
+            "aa_quality": 56.0001286580794,
+            "arena_elo": 1715.0,
+            "composite_score": 75.75
           }
         },
         {
@@ -319,7 +275,7 @@
         },
         {
           "model_id": "anthropic/claude-sonnet-4.6",
-          "display": "Claude Sonnet 4.6 (Non-reasoning, Low)",
+          "display": "Claude Sonnet 4.6 (Non-reasoning, Low Effort)",
           "provider": "claude",
           "provider_title": "Anthropic (Claude)",
           "pricing": {
@@ -381,50 +337,6 @@
             "aa_quality": 53.3549259623252,
             "arena_elo": 1749.0,
             "composite_score": 83.78
-          }
-        },
-        {
-          "model_id": "claude-opus-5-5-max",
-          "display": "Claude Opus-5-5-max",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": null,
-            "output_per_1m": null,
-            "cache_read_per_1m": null,
-            "price_in_1m": null,
-            "price_out_1m": null,
-            "price_cache_1m": null,
-            "context_length": null
-          },
-          "benchmarks": {
-            "livebench_overall": 83.19,
-            "aa_quality": 57.6223698102963,
-            "arena_elo": 1815.0,
-            "composite_score": 83.19
-          }
-        },
-        {
-          "model_id": "claude-sonnet-5-5-xhigh",
-          "display": "Claude Sonnet-5-5-xhigh",
-          "provider": "claude",
-          "provider_title": "Anthropic (Claude)",
-          "pricing": {
-            "unit": "USD / 1M tokens",
-            "input_per_1m": null,
-            "output_per_1m": null,
-            "cache_read_per_1m": null,
-            "price_in_1m": null,
-            "price_out_1m": null,
-            "price_cache_1m": null,
-            "context_length": null
-          },
-          "benchmarks": {
-            "livebench_overall": 78.17,
-            "aa_quality": 51.8955544183089,
-            "arena_elo": 1786.0,
-            "composite_score": 78.17
           }
         },
         {

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-03T05:00:21.713170+00:00",
+  "generated_at": "2026-10-04T05:00:21.955043+00:00",
   "sources": {
     "openrouter_api": "https://openrouter.ai/api/v1/models",
     "opencode_zen_api": "https://opencode.ai/zen/v1/models",
@@ -13,12 +13,11 @@
   "catalog_diff": {
     "added": [
       "fledge-alpha-free",
-      "ling-3.1-flash-free",
-      "longcat-2.5-preview-free"
+      "ling-3.1-flash-free"
     ],
     "removed": [],
     "total_current": 15,
-    "total_previous": 14
+    "total_previous": 15
   },
   "n_free": 15,
   "n_with_aa": 4,
@@ -330,7 +329,7 @@
       ],
       "composite": null,
       "first_seen": "2026-09-27T05:00:20.533187+00:00",
-      "is_new": true
+      "is_new": false
     },
     {
       "model_id": "muse-spark-1.2-contributor-free",
