@@ -399,7 +399,7 @@ pub fn partition_matched(models: Vec<Model>) -> (Vec<Model>, usize) {
             continue;
         }
         let p = pillars(&m);
-        if p.has_arena || p.has_aa {
+        if p.has_arena || p.has_aa || p.has_vals {
             matched.push(m);
         } else {
             unmatched += 1;

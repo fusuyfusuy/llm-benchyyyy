@@ -23,8 +23,10 @@ venv/
 .pi/
 .pi-glla/
 
-# Benchmark sync daemon runtime state
+# Benchmark sync daemon runtime state & raw response cache snapshots
 docs/data/sync_daemon.lock
 docs/data/sync_daemon.log
 sync_daemon.log
+docs/data/raw/*
+!docs/data/raw/.gitkeep
 checkerz/target/

@@ -55,6 +55,7 @@ from benchmark_common import (
     compute_effective_cost, compute_avi, compute_fgi, compute_bfi,
     compute_pareto_frontier, compute_priced_pareto_frontier,
     parse_livebench, parse_lmarena, parse_aa,
+    parse_vals_index, find_vals_for_model, VALS_INDEX_URL,
     display_len, pad_display, color_cell, medal_badge, pool_badge,
     compute_column_medals, render_banner_box, render_metric_guide_cli,
     score_color_q, score_color_p, score_color_avi, score_color_fgi,
@@ -901,21 +902,32 @@ def strip_effort_suffix(slug: str) -> str:
     )
 
 
-def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_map=None, or_pricing=None):
-    """Build universal catalog combining curated baseline models with all upstream benchmark evaluations (AA, LMArena, LiveBench)."""
+def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_map=None, vals_map=None, or_pricing=None):
+    """Build universal catalog combining curated baseline models with all upstream benchmark evaluations (AA, LMArena, LiveBench, Vals Index)."""
     import copy
     if base_catalog is None:
         catalog = copy.deepcopy(MODELS_CATALOG)
     else:
         catalog = copy.deepcopy(base_catalog)
 
+    if vals_map is None:
+        vals_map = load_vals_data(fetch=False)
+
     if or_pricing is None:
         or_pricing = load_openrouter_pricing_data()
 
     # Pre-index normalized maps for O(1) lookup
     live_norm = {bc.norm_id(k): v for k, v in (live_map or {}).items()}
-    lm_norm = {bc.norm_id(k): v for k, v in (lm_map or {}).items()}
-    aa_norm = {bc.norm_id(k): v for k, v in (aa_map or {}).items()}
+    lm_norm = {}
+    for k, v in (lm_map or {}).items():
+        lm_norm[bc.norm_id(k)] = v
+        lm_norm[bc.norm_id(k.replace(".", "-"))] = v
+        lm_norm[bc.norm_model_slug(k)] = v
+    aa_norm = {}
+    for k, v in (aa_map or {}).items():
+        aa_norm[bc.norm_id(k)] = v
+        aa_norm[bc.norm_id(k.replace(".", "-"))] = v
+        aa_norm[bc.norm_model_slug(k)] = v
 
     # Base map for LiveBench effort tiers
     live_base = {}
@@ -936,6 +948,10 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
         if b_dash and v.get("elo") is not None:
             if b_dash not in lm_base or (v.get("elo") or 0) > (lm_base[b_dash].get("elo") or 0):
                 lm_base[b_dash] = v
+        b_mslug = bc.norm_model_slug(strip_effort_suffix(k))
+        if b_mslug and v.get("elo") is not None:
+            if b_mslug not in lm_base or (v.get("elo") or 0) > (lm_base[b_mslug].get("elo") or 0):
+                lm_base[b_mslug] = v
 
     # Base map for Artificial Analysis effort tiers / stripped slugs
     aa_base = {}
@@ -948,28 +964,46 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
         if b_dash and v.get("intelligenceIndex") is not None:
             if b_dash not in aa_base or (v.get("intelligenceIndex") or 0) > (aa_base[b_dash].get("intelligenceIndex") or 0):
                 aa_base[b_dash] = v
+        b_mslug = bc.norm_model_slug(strip_effort_suffix(k))
+        if b_mslug and v.get("intelligenceIndex") is not None:
+            if b_mslug not in aa_base or (v.get("intelligenceIndex") or 0) > (aa_base[b_mslug].get("intelligenceIndex") or 0):
+                aa_base[b_mslug] = v
 
     key_index = {}
+
+    def _reg_keys(cid, *aliases):
+        for a in (cid, *aliases):
+            if not a:
+                continue
+            for k in (
+                bc.norm_id(a),
+                bc.norm_id(strip_effort_suffix(a)),
+                bc.norm_model_slug(a),
+                bc.norm_model_slug(strip_effort_suffix(a)),
+            ):
+                if k:
+                    key_index.setdefault(k, cid)
+
     for cid, info in catalog.items():
-        key_index[bc.norm_id(cid)] = cid
-        key_index[bc.norm_id(strip_effort_suffix(cid))] = cid
-        key_index[bc.norm_id(info.get("display", ""))] = cid
-        for a in info.get("live_aliases", []):
-            key_index[bc.norm_id(a)] = cid
-            key_index[bc.norm_id(strip_effort_suffix(a))] = cid
-        for a in info.get("lm_aliases", []):
-            key_index[bc.norm_id(a)] = cid
-            key_index[bc.norm_id(strip_effort_suffix(a))] = cid
-        for a in info.get("aa_aliases", []):
-            key_index[bc.norm_id(a)] = cid
-            key_index[bc.norm_id(strip_effort_suffix(a))] = cid
+        _reg_keys(
+            cid,
+            info.get("display", ""),
+            *info.get("live_aliases", []),
+            *info.get("lm_aliases", []),
+            *info.get("aa_aliases", []),
+        )
+
     # 1. Ingest from Artificial Analysis (intelligence index, coding index, speed, pricing)
     if aa_map:
         for slug, aa_info in aa_map.items():
-            nid = bc.norm_id(slug)
-            base_nid = bc.norm_id(strip_effort_suffix(slug))
-            if nid in key_index or base_nid in key_index:
+            if any(k in key_index for k in (
+                bc.norm_id(slug),
+                bc.norm_id(strip_effort_suffix(slug)),
+                bc.norm_model_slug(slug),
+                bc.norm_model_slug(strip_effort_suffix(slug)),
+            )):
                 continue
+            nid = bc.norm_id(slug)
             disp = aa_info.get("name") or slug
             disp_formatted, prov = format_model_display_name(slug)
             if not disp or disp == slug:
@@ -994,16 +1028,19 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                     "speed_tps": aa_info.get("medianTps") or 60.0,
                 },
             }
-            key_index[nid] = nid
-            key_index[base_nid] = nid
+            _reg_keys(nid, slug, disp)
 
     # 2. Ingest from LiveBench
     if live_map:
         for slug, lb_rec in live_map.items():
-            nid = bc.norm_id(slug)
-            base_nid = bc.norm_id(livebench_base_name(slug))
-            if nid in key_index or base_nid in key_index:
+            if any(k in key_index for k in (
+                bc.norm_id(slug),
+                bc.norm_id(livebench_base_name(slug)),
+                bc.norm_model_slug(slug),
+                bc.norm_model_slug(livebench_base_name(slug)),
+            )):
                 continue
+            nid = bc.norm_id(slug)
             disp_formatted, prov = format_model_display_name(slug)
             p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
             catalog[nid] = {
@@ -1017,16 +1054,19 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                 "aa_aliases": [slug],
                 "base_metrics": {},
             }
-            key_index[nid] = nid
-            key_index[base_nid] = nid
+            _reg_keys(nid, slug, livebench_base_name(slug), disp_formatted)
 
     # 3. Ingest from LMArena
     if lm_map:
         for slug, lm_rec in lm_map.items():
-            nid = bc.norm_id(slug)
-            base_nid = bc.norm_id(strip_effort_suffix(slug))
-            if nid in key_index or base_nid in key_index:
+            if any(k in key_index for k in (
+                bc.norm_id(slug),
+                bc.norm_id(strip_effort_suffix(slug)),
+                bc.norm_model_slug(slug),
+                bc.norm_model_slug(strip_effort_suffix(slug)),
+            )):
                 continue
+            nid = bc.norm_id(slug)
             disp_formatted, prov = format_model_display_name(slug)
             p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
             catalog[nid] = {
@@ -1042,8 +1082,41 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                 "aa_aliases": [slug],
                 "base_metrics": {},
             }
-            key_index[nid] = nid
-            key_index[base_nid] = nid
+            _reg_keys(nid, slug, disp_formatted)
+
+    # 4. Ingest from Vals Index
+    if vals_map:
+        for slug, vals_rec in vals_map.items():
+            if "/" not in slug:
+                continue
+            bare = vals_rec.get("bare_slug") or slug.split("/")[-1]
+            bare_clean = bare.replace("_", "-")
+            nid = bc.norm_id(bare_clean)
+            base_nid = bc.norm_id(strip_effort_suffix(bare_clean))
+            if any(k in key_index for k in (
+                bc.norm_id(slug),
+                nid,
+                base_nid,
+                bc.norm_model_slug(bare_clean),
+                bc.norm_model_slug(strip_effort_suffix(bare_clean)),
+            )):
+                continue
+            disp_formatted, prov = format_model_display_name(bare_clean)
+            p_in, p_out = _resolve_prices(nid, or_pricing, aa_norm)
+            catalog[nid] = {
+                "display": disp_formatted,
+                "provider": prov,
+                "pool": "api",
+                "tier": "Vals Model",
+                "sub_cost": "API",
+                "price_in": p_in,
+                "price_out": p_out,
+                "live_aliases": [slug, bare, bare_clean],
+                "lm_aliases": [slug, bare, bare_clean],
+                "aa_aliases": [slug, bare, bare_clean],
+                "base_metrics": {},
+            }
+            _reg_keys(nid, slug, bare, bare_clean, disp_formatted)
 
     # Multi-source signal attachment across all aliases + base slugs
     for mid, m in catalog.items():
@@ -1122,6 +1195,18 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
                         bm["speed_tps"] = matched_rec["medianTps"]
                     break
 
+        # Vals Index signal
+        if vals_map:
+            v_match = bc.find_vals_for_model(m, vals_map)
+            if v_match:
+                m["vals_metrics"] = v_match
+                m["vals_overall"] = v_match.get("vals_overall")
+                m["vals_coding"] = v_match.get("vals_coding")
+                m["vals_terminal"] = v_match.get("vals_terminal")
+                m["vals_coding_blend"] = v_match.get("vals_coding_blend")
+                m["vals_cost_per_test"] = v_match.get("vals_cost_per_test")
+                m["vals_latency"] = v_match.get("vals_latency")
+
         # Context length resolution (OpenRouter / AA / Catalog)
         if m.get("context_length") is None:
             cands_ctx = [mid, m.get("display")] + m.get("live_aliases", []) + m.get("lm_aliases", []) + m.get("aa_aliases", [])
@@ -1151,6 +1236,7 @@ def build_universal_catalog(base_catalog=None, live_map=None, lm_map=None, aa_ma
             m.get("aa_live_coding"),
             bm.get("lm_elo"),
             bm.get("lm_coding"),
+            m.get("vals_overall"),
         )
         n_signals = sum(1 for v in key if v is not None)
         if n_signals < 2:
@@ -1274,6 +1360,33 @@ def load_aa_data(verbose=False, fetch=False):
     return out
 
 
+def load_vals_data(verbose=False, fetch=False):
+    """Load Vals Index from the 24h response cache (docs/data/raw/) or live with fetch=True."""
+    out = {}
+    matches = sorted(glob.glob(str(RAW / "*vals_index*20*.html")))
+    for p_html in (matches[-1:] if matches else []):
+        try:
+            p = pathlib.Path(p_html)
+            data = parse_vals_index(p.read_text(encoding="utf-8", errors="ignore"), verbose=verbose)
+            out.update(data)
+        except Exception:
+            pass
+    if fetch:
+        try:
+            html_txt = fetch_url(VALS_INDEX_URL)
+            if html_txt:
+                stamp = dt.date.today().isoformat().replace("-", "")
+                s = RAW / f"vals_index_{stamp}.html"
+                if not s.exists():
+                    bc.atomic_write_text(s, html_txt)
+                    print(f"  saved Vals Index -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
+                live_data = parse_vals_index(html_txt, verbose=verbose)
+                out.update(live_data)
+        except Exception as e:
+            print(f"  WARN Vals Index fetch/save failed: {e}", file=sys.stderr)
+    return out
+
+
 def newest_snapshot_age_h(pattern):
     """Hours since the newest docs/data/raw/ snapshot matching `pattern`; None when none exists.
 
@@ -1294,6 +1407,7 @@ def cache_staleness_note():
         ("LiveBench", "*livebench*20*.csv"),
         ("LMArena", "*lmarena*20*.html"),
         ("Artificial Analysis", "*artificial_analysis*20*.html"),
+        ("Vals Index", "*vals_index*20*.html"),
     ):
         age = newest_snapshot_age_h(pat)
         if age is None:
@@ -1365,11 +1479,16 @@ def calculate_composite_scores(models_dict):
     z_lm_elo = _z_scores([m.get("base_metrics", {}).get("lm_elo") for m in m_list])
     z_lm_cod = _z_scores([m.get("base_metrics", {}).get("lm_coding") for m in m_list])
 
+    z_vals_overall = _z_scores([m.get("vals_overall") for m in m_list])
+    z_vals_cod = _z_scores([m.get("vals_coding_blend") or m.get("vals_coding") for m in m_list])
+
     signals = (
-        (0.250, z_lm_elo),
-        (0.250, z_lm_cod),
-        (0.250, z_aa_qual),
-        (0.250, z_aa_cod),
+        (0.175, z_lm_elo),
+        (0.175, z_lm_cod),
+        (0.175, z_aa_qual),
+        (0.175, z_aa_cod),
+        (0.150, z_vals_overall),
+        (0.150, z_vals_cod),
     )
 
     for i, k in enumerate(keys):
@@ -1457,44 +1576,68 @@ BCHECK_COL_MEDAL_KEYS = {
     "fgi": (lambda m: m.get("fgi_score") or 0.0, True, lambda m: m.get("fgi_score") is not None),
     "live": (lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float))),
     "arena": (lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float))),
+    "vals": (lambda m: m.get("vals_overall") or 0.0, True, lambda m: m.get("vals_overall") is not None),
     "speed": (lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float))),
     "price": (lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None),
 }
 
 
 def partition_models_by_benchmark_coverage(models_list):
-    """Partition model list into dual-verified cohort (Arena.ai + Artificial Analysis), missing-benchmark sub-cohorts, and unmatched models."""
+    """Partition model list into tri-verified cohort (Arena.ai + Artificial Analysis + Vals Index), dual-verified, missing-benchmark sub-cohorts, and unmatched models."""
+    tri_verified = []
     dual_verified = []
     missing_lmarena = []
     missing_aa = []
+    missing_vals = []
     single_source = []
     unmatched = []
 
     for m in models_list:
         has_arena = m.get("base_metrics", {}).get("lm_elo") is not None
         has_aa = (m.get("aa_live_quality") is not None) or (m.get("base_metrics", {}).get("aa_quality") is not None)
+        has_vals = m.get("vals_overall") is not None
 
-        count = (1 if has_arena else 0) + (1 if has_aa else 0)
-        if count == 2:
+        count = (1 if has_arena else 0) + (1 if has_aa else 0) + (1 if has_vals else 0)
+        if count >= 3:
+            tri_verified.append(m)
+        elif count == 2:
             dual_verified.append(m)
-        elif count == 1:
-            if not has_arena:
+            if not has_vals:
+                missing_vals.append(m)
+            elif not has_arena:
                 missing_lmarena.append(m)
             elif not has_aa:
                 missing_aa.append(m)
+        elif count == 1:
             single_source.append(m)
         else:
             unmatched.append(m)
 
+    verified = tri_verified if len(tri_verified) >= 30 else (tri_verified + dual_verified)
+
     return {
-        "tri_verified": dual_verified,
+        "tri_verified": verified,
+        "pure_tri": tri_verified,
         "dual_verified": dual_verified,
         "missing_livebench": [],
+        "missing_vals": missing_vals,
         "missing_lmarena": missing_lmarena,
         "missing_aa": missing_aa,
         "single_source": single_source,
         "unmatched": unmatched,
     }
+
+
+def _merge_unmatched_models(unmatched_models, partition_unmatched):
+    """Deduplicate unmatched models across catalog unmatched and partition unmatched while preserving order."""
+    seen = set()
+    merged = []
+    for m in list(unmatched_models or []) + list(partition_unmatched or []):
+        key = m.get("display") or m.get("model_id") or id(m)
+        if key not in seen:
+            seen.add(key)
+            merged.append(m)
+    return merged
 
 
 def render_unmatched_models_cli(unmatched_models, color=True):
@@ -1504,7 +1647,7 @@ def render_unmatched_models_cli(unmatched_models, color=True):
     lines = []
     w_total = 95
     header_text = "⚠️ UNMATCHED CATALOG MODELS (0 upstream benchmark evaluations found)"
-    sub_text = "See Something, Say Something: these catalog models have no verified evaluations:"
+    sub_text = "See Something, Say Something: these catalog models have no verified evaluations on Arena.ai, Artificial Analysis, or Vals Index:"
     if color:
         lines.append(f"\n{C_BOLD}{C_YELLOW}╭" + ("─" * w_total) + f"╮{C_RESET}")
         title_padded = f" {header_text}" + (" " * max(0, w_total - display_len(header_text) - 1))
@@ -1517,7 +1660,7 @@ def render_unmatched_models_cli(unmatched_models, color=True):
             p_badge_str = pool_badge(m.get("pool", "api"), color=False)
             la = ", ".join(m.get("live_aliases", [])[:2]) or "—"
             lma = ", ".join(m.get("lm_aliases", [])[:2]) or "—"
-            info = f"LiveBench ({la}) · Arena ({lma}) -> 0 matches"[:50]
+            info = f"Live ({la}) · Arena ({lma}) -> 0 matches"[:50]
             row_cells = [
                 color_cell(f"#{i}", C_GRAY, width=4, align="^", bg=BG_HEADER),
                 color_cell(disp, C_YELLOW, width=24, align="<", bg=BG_HEADER),
@@ -1536,7 +1679,7 @@ def render_unmatched_models_cli(unmatched_models, color=True):
             p = pool_badge(m.get("pool", "api"), color=False)
             la = ", ".join(m.get("live_aliases", [])[:2]) or "—"
             lma = ", ".join(m.get("lm_aliases", [])[:2]) or "—"
-            lines.append(f" #{i:<2} {disp:<24} {p:^5} | LiveBench ({la}) · Arena ({lma}) -> 0 matches")
+            lines.append(f" #{i:<2} {disp:<24} {p:^5} | Live ({la}) · Arena ({lma}) -> 0 matches")
         lines.append("-" * (w_total + 2))
     return "\n".join(lines)
 
@@ -1548,7 +1691,7 @@ def render_unmatched_models_md(unmatched_models):
     lines = [
         "",
         "### ⚠️ Unmatched Catalog Models (0 Upstream Benchmark Evaluations)",
-        "> **See Something, Say Something**: The following models configured in the catalog did not match any verified evaluation on LiveBench, LMArena, or Artificial Analysis:",
+        "> **See Something, Say Something**: The following models configured in the catalog did not match any verified evaluation on Arena.ai, Artificial Analysis, or Vals Index (or LiveBench):",
         "",
         "| Model | Pool | Checked LiveBench Aliases | Checked LMArena Aliases |",
         "| :--- | :---: | :--- | :--- |",
@@ -1577,7 +1720,7 @@ def render_unmatched_models_html(unmatched_models):
     return f"""
     <div style="background: #2a1515; border: 1px solid #ef4444; border-radius: 8px; padding: 16px; margin-top: 24px;">
         <h3 style="color: #ef4444; margin-top: 0;">⚠️ Unmatched Catalog Models (0 Upstream Benchmark Evaluations)</h3>
-        <p style="color: #cbd5e1; font-size: 0.9em;"><strong>See Something, Say Something</strong>: The following catalog models did not match any verified evaluation on LiveBench, LMArena, or Artificial Analysis:</p>
+        <p style="color: #cbd5e1; font-size: 0.9em;"><strong>See Something, Say Something</strong>: The following catalog models did not match any verified evaluation on Arena.ai, Artificial Analysis, or Vals Index (or LiveBench):</p>
         <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
             <thead>
                 <tr style="text-align: left; color: #94a3b8; border-bottom: 1px solid #475569;">
@@ -1598,28 +1741,37 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
         return ""
     display_sub = sub_models[:top_n]
     out = []
-    w_total = 95
+    sub_headers = [
+        ("Rank", 4, "^"),
+        ("Model", 22, "<"),
+        ("Pool", 5, "^"),
+        ("Q(Cap)", 6, ">"),
+        ("P(Succ)", 7, ">"),
+        ("Eff $/M", 7, ">"),
+        ("Live%", 6, ">"),
+        ("Arena", 5, ">"),
+        ("Vals%", 6, ">"),
+        ("AA Qual", 7, ">"),
+    ]
+    w_total = sum(w + 2 for _, w, _ in sub_headers) + len(sub_headers) - 1
     if color:
+        top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in sub_headers) + "┐"
+        mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in sub_headers) + "┤"
+        bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in sub_headers) + "┘"
+
         out.append(f"\n{C_BOLD}{C_CYAN}┌" + ("─" * w_total) + f"┐{C_RESET}")
         title_padded = f" {title}" + (" " * max(0, w_total - display_len(title) - 1))
         out.append(f"{C_BOLD}{C_CYAN}│{C_RESET}{C_BOLD}{C_WHITE}{title_padded}{C_RESET}{C_BOLD}{C_CYAN}│{C_RESET}")
-        out.append(f"{C_BOLD}{C_CYAN}├────┬──────────────────────────┬───────┬────────┬─────────┬────────┬────────┬────────┬────────────┤{C_RESET}")
+        out.append(f"{C_BOLD}{C_CYAN}{mid_border}{C_RESET}")
         hdr_cells = [
-            color_cell("Rank", C_BOLD + C_WHITE, width=4, align="^", bg=BG_HEADER),
-            color_cell("Model", C_BOLD + C_WHITE, width=24, align="<", bg=BG_HEADER),
-            color_cell("Pool", C_BOLD + C_WHITE, width=5, align="^", bg=BG_HEADER),
-            color_cell("Q(Cap)", C_BOLD + C_WHITE, width=6, align=">", bg=BG_HEADER),
-            color_cell("P(Succ)", C_BOLD + C_WHITE, width=7, align=">", bg=BG_HEADER),
-            color_cell("Eff $/M", C_BOLD + C_WHITE, width=7, align=">", bg=BG_HEADER),
-            color_cell("Live%", C_BOLD + C_WHITE, width=6, align=">", bg=BG_HEADER),
-            color_cell("Arena", C_BOLD + C_WHITE, width=6, align=">", bg=BG_HEADER),
-            color_cell("AA Qual", C_BOLD + C_WHITE, width=10, align=">", bg=BG_HEADER),
+            color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER)
+            for h, w, a in sub_headers
         ]
         out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
-        out.append(f"{C_BOLD}{C_CYAN}├────┼──────────────────────────┼───────┼────────┼─────────┼────────┼────────┼────────────┤{C_RESET}")
+        out.append(f"{C_BOLD}{C_CYAN}{mid_border}{C_RESET}")
         for i, m in enumerate(display_sub, 1):
             bg = BG_ODD if (i % 2 == 1) else BG_EVEN
-            mid = m["display"][:24]
+            mid = m["display"][:22]
             p_badge_str = pool_badge(m["pool"], color=False)
             q = m.get("capability_q", 0)
             p = m.get("p_success", 0)
@@ -1629,29 +1781,34 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
             lb_val = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
             elo = m.get("base_metrics", {}).get("lm_elo")
             elo_val = _int_str(elo)
+            vals_res = m.get("vals_overall")
+            vals_val = f"{vals_res:.1f}%" if isinstance(vals_res, (int, float)) else "—"
             aa = m.get("aa_live_quality")
             aa_val = f"{aa:.1f}" if isinstance(aa, (int, float)) else "—"
             row_cells = [
                 color_cell(f"#{i}", C_SILVER if i == 2 else (C_GOLD if i == 1 else (C_BRONZE if i == 3 else C_WHITE)), width=4, align="^", bg=bg),
-                color_cell(mid, C_WHITE, width=24, align="<", bg=bg),
+                color_cell(mid, C_WHITE, width=22, align="<", bg=bg),
                 color_cell(p_badge_str, "", width=5, align="^", bg=bg),
                 color_cell(f"{q:.1f}", score_color_q(q), width=6, align=">", bg=bg),
                 color_cell(f"{p:.1f}%", score_color_p(p), width=7, align=">", bg=bg),
                 color_cell(f"${c:.2f}" if c is not None else "—", C_CYAN if (c is not None and c < 10) else C_YELLOW, width=7, align=">", bg=bg),
                 color_cell(lb_val, C_GREEN if isinstance(lb_res, (int, float)) and lb_res >= 75 else C_GRAY, width=6, align=">", bg=bg),
-                color_cell(elo_val, C_GREEN if isinstance(elo, (int, float)) and elo >= 1480 else C_GRAY, width=6, align=">", bg=bg),
-                color_cell(aa_val, C_GREEN if isinstance(aa, (int, float)) and aa >= 50 else C_GRAY, width=10, align=">", bg=bg),
+                color_cell(elo_val, C_GREEN if isinstance(elo, (int, float)) and elo >= 1480 else C_GRAY, width=5, align=">", bg=bg),
+                color_cell(vals_val, C_GREEN if isinstance(vals_res, (int, float)) and vals_res >= 75 else C_GRAY, width=6, align=">", bg=bg),
+                color_cell(aa_val, C_GREEN if isinstance(aa, (int, float)) and aa >= 50 else C_GRAY, width=7, align=">", bg=bg),
             ]
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
-        out.append(f"{C_BOLD}{C_CYAN}└────┴──────────────────────────┴───────┴────────┴─────────┴────────┴────────┴────────┴────────────┘{C_RESET}")
+        out.append(f"{C_BOLD}{C_CYAN}{bot_border}{C_RESET}")
     else:
-        out.append(f"\n" + "=" * (w_total + 2))
+        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in sub_headers])
+        plain_w = len(hdr_str)
+        out.append(f"\n" + "=" * plain_w)
         out.append(f" {title}")
-        out.append("=" * (w_total + 2))
-        out.append("Rank Model                    Pool  Q(Cap) P(Succ)  Eff $/M  Live%  Arena    AA Qual")
-        out.append("-" * (w_total + 2))
+        out.append("=" * plain_w)
+        out.append(hdr_str)
+        out.append("-" * plain_w)
         for i, m in enumerate(display_sub, 1):
-            mid = m["display"][:24]
+            mid = m["display"][:22]
             p_badge_str = pool_badge(m["pool"], color=False)
             q = m.get("capability_q", 0)
             p = m.get("p_success", 0)
@@ -1661,11 +1818,25 @@ def render_sub_table_cli(sub_models, title, color=True, is_slim=False, top_n=10)
             lb_val = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
             elo = m.get("base_metrics", {}).get("lm_elo")
             elo_val = _int_str(elo)
+            vals_res = m.get("vals_overall")
+            vals_val = f"{vals_res:.1f}%" if isinstance(vals_res, (int, float)) else "—"
             aa = m.get("aa_live_quality")
             aa_val = f"{aa:.1f}" if isinstance(aa, (int, float)) else "—"
             eff_cell = f"${c:.2f}" if c is not None else "—"
-            out.append(f"#{i:<3} {mid:<24} {p_badge_str:^5} {q:>6.1f} {p:>6.1f}% {eff_cell:>8} {lb_val:>6} {elo_val:>6} {aa_val:>10}")
-        out.append("-" * (w_total + 2))
+            row_items = [
+                pad_display(f"#{i}", 4, "^"),
+                pad_display(mid, 22, "<"),
+                pad_display(p_badge_str, 5, "^"),
+                pad_display(f"{q:.1f}", 6, ">"),
+                pad_display(f"{p:.1f}%", 7, ">"),
+                pad_display(eff_cell, 7, ">"),
+                pad_display(lb_val, 6, ">"),
+                pad_display(elo_val, 5, ">"),
+                pad_display(vals_val, 6, ">"),
+                pad_display(aa_val, 7, ">"),
+            ]
+            out.append(" ".join(row_items))
+        out.append("-" * plain_w)
     return "\n".join(out)
 
 
@@ -1684,10 +1855,10 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
 
     partitions = partition_models_by_benchmark_coverage(models_list)
     tri_models = partitions["tri_verified"]
-    miss_live = partitions["missing_livebench"]
-    miss_arena = partitions["missing_lmarena"]
-    miss_aa = partitions["missing_aa"]
-    single_source = partitions["single_source"]
+    miss_vals = partitions.get("missing_vals", [])
+    miss_arena = partitions.get("missing_lmarena", [])
+    miss_aa = partitions.get("missing_aa", [])
+    single_source = partitions.get("single_source", [])
 
     # Main table shows tri-verified models if present; fallback to full list if none
     primary_models = tri_models if tri_models else models_list
@@ -1720,7 +1891,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     else:
         headers = [
             ("Rank", 4, "^"),
-            ("Model", 22, "<"),
+            ("Model", 20, "<"),
             ("Pool", 5, "^"),
             ("Q(Cap)", 6, ">"),
             ("P(Succ)", 7, ">"),
@@ -1729,8 +1900,9 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("FGI", 5, ">"),
             ("Live%", 6, ">"),
             ("Arena", 6, ">"),
-            ("Speed", 7, ">"),
-            ("Price", 12, ">"),
+            ("Vals%", 6, ">"),
+            ("Speed", 6, ">"),
+            ("Price", 11, ">"),
         ]
 
     top_frontier = max(primary_models, key=lambda m: m.get("fgi_score") or 0.0) if primary_models else None
@@ -1741,11 +1913,11 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     # 1. Executive Summary Banner
-    title_str = "⚡ DUAL-VERIFIED AGENTIC RADAR (Arena.ai · Artificial Analysis)"
+    title_str = "⚡ TRI-VERIFIED AGENTIC RADAR (Arena.ai · Artificial Analysis · Vals Index)"
     f_info = f"Frontier: {top_frontier['display'][:14]} (FGI {top_frontier.get('fgi_score') or 0.0:.1f})" if top_frontier and top_frontier.get("fgi_score") is not None else ""
     v_info = f"Top ROI: {top_avi['display'][:14]} (AVI {top_avi.get('avi_score') or 0.0:.1f})" if top_avi and top_avi.get("avi_score") is not None else ""
     s_info = f"Fastest: {top_speed['display'][:12]} ({top_speed.get('base_metrics', {}).get('speed_tps') or 0.0:.0f}t/s)" if top_speed and top_speed.get("base_metrics", {}).get("speed_tps") is not None else ""
-    count_label = f"Dual-Verified: {total_tri} models (Top {shown_models} shown)" if shown_models < total_tri else f"Dual-Verified: {total_tri} models"
+    count_label = f"Tri-Verified: {total_tri} models (Top {shown_models} shown)" if shown_models < total_tri else f"Tri-Verified: {total_tri} models"
     if is_slim:
         summary_str = f" {count_label} │ {f_info} │ {v_info}"
     else:
@@ -1770,7 +1942,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" DUAL-VERIFIED BENCHMARK & COST-BENEFIT RADAR (Arena · AA) — {count_label}",
+        plain_title_line=f" TRI-VERIFIED BENCHMARK & COST-BENEFIT RADAR (Arena · AA · Vals) — {count_label}",
         plain_diff_parts=diff_parts,
     ))
 
@@ -1824,6 +1996,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         fgi_badge = medal_badge(meds.get("fgi"), color=color)
         live_badge = medal_badge(meds.get("live"), color=color)
         arena_badge = medal_badge(meds.get("arena"), color=color)
+        vals_badge = medal_badge(meds.get("vals"), color=color)
         speed_badge = medal_badge(meds.get("speed"), color=color)
         price_badge = medal_badge(meds.get("price"), color=color)
 
@@ -1836,6 +2009,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lcod = bm.get("lm_coding", "-")
         elo = bm.get("lm_elo", "-")
+        vals_res = m.get("vals_overall")
         spd = bm.get("speed_tps", "-")
         pin = m.get("price_in", 0.0)
         pout = m.get("price_out", 0.0)
@@ -1848,6 +2022,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         fgi_disp = (f"{fgi:.1f}" if fgi is not None else "—") + fgi_badge
         lb_disp = (f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—") + live_badge
         elo_disp = ((_int_str(elo) if isinstance(elo, (int, float)) else f"{elo}") + arena_badge)
+        vals_disp = (f"{vals_res:.1f}%" if isinstance(vals_res, (int, float)) else "—") + vals_badge
         spd_disp = (f"{spd:.0f}t/s" if isinstance(spd, (int, float)) else f"{spd}") + speed_badge
         price_disp = price_str + price_badge
 
@@ -1866,6 +2041,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             fgi_color = score_color_fgi(fgi or 0.0)
             lb_color = C_GREEN if (isinstance(lb_res, (int, float)) and lb_res >= 78.0) else (C_CYAN if (isinstance(lb_res, (int, float)) and lb_res >= 70.0) else (C_YELLOW if (isinstance(lb_res, (int, float)) and lb_res >= 60.0) else C_GRAY))
             elo_color = C_GREEN if (isinstance(elo, (int, float)) and elo >= 1480) else (C_CYAN if (isinstance(elo, (int, float)) and elo >= 1440) else (C_YELLOW if (isinstance(elo, (int, float)) and elo >= 1400) else C_GRAY))
+            vals_color = C_GREEN if (isinstance(vals_res, (int, float)) and vals_res >= 60.0) else (C_CYAN if (isinstance(vals_res, (int, float)) and vals_res >= 50.0) else (C_YELLOW if (isinstance(vals_res, (int, float)) and vals_res >= 40.0) else C_GRAY))
             spd_color = C_GREEN if (isinstance(spd, (int, float)) and spd >= 100) else (C_CYAN if (isinstance(spd, (int, float)) and spd >= 60) else C_WHITE)
 
             row_cells = [
@@ -1882,8 +2058,9 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             if not is_slim:
                 row_cells.extend([
                     color_cell(elo_disp, elo_color, width=6, align=">", bg=bg),
-                    color_cell(spd_disp, spd_color, width=7, align=">", bg=bg),
-                    color_cell(price_disp, C_DIM, width=12, align=">", bg=bg),
+                    color_cell(vals_disp, vals_color, width=6, align=">", bg=bg),
+                    color_cell(spd_disp, spd_color, width=6, align=">", bg=bg),
+                    color_cell(price_disp, C_DIM, width=11, align=">", bg=bg),
                 ])
             out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
         else:
@@ -1901,8 +2078,9 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             if not is_slim:
                 row_items.extend([
                     pad_display(elo_disp, 6, ">"),
-                    pad_display(spd_disp, 7, ">"),
-                    pad_display(price_disp, 12, ">"),
+                    pad_display(vals_disp, 6, ">"),
+                    pad_display(spd_disp, 6, ">"),
+                    pad_display(price_disp, 11, ">"),
                 ])
             out.append(" ".join(row_items))
 
@@ -1917,16 +2095,16 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="display"))
 
     # 4. Missing Benchmark Sub-Tables
-    if miss_live:
-        sub_t = render_sub_table_cli(miss_live, "📊 SUB-TABLE 1: TOP 10 — MISSING LIVEBENCH (Arena.ai + AA Evaluated)", color=color, is_slim=is_slim, top_n=10)
+    if miss_vals:
+        sub_t = render_sub_table_cli(miss_vals, "📐 SUB-TABLE 1: TOP 10 — MISSING VALS INDEX (Arena.ai + AA Evaluated)", color=color, is_slim=is_slim, top_n=10)
         if sub_t:
             out.append(sub_t)
     if miss_arena:
-        sub_t = render_sub_table_cli(miss_arena, "⚔️ SUB-TABLE 2: TOP 10 — MISSING LMARENA (LiveBench + AA Evaluated)", color=color, is_slim=is_slim, top_n=10)
+        sub_t = render_sub_table_cli(miss_arena, "⚔️ SUB-TABLE 2: TOP 10 — MISSING LMARENA (AA + Vals Index Evaluated)", color=color, is_slim=is_slim, top_n=10)
         if sub_t:
             out.append(sub_t)
     if miss_aa:
-        sub_t = render_sub_table_cli(miss_aa, "🧪 SUB-TABLE 3: TOP 10 — MISSING ARTIFICIAL ANALYSIS (LiveBench + Arena Evaluated)", color=color, is_slim=is_slim, top_n=10)
+        sub_t = render_sub_table_cli(miss_aa, "🧪 SUB-TABLE 3: TOP 10 — MISSING ARTIFICIAL ANALYSIS (Arena.ai + Vals Index Evaluated)", color=color, is_slim=is_slim, top_n=10)
         if sub_t:
             out.append(sub_t)
     if single_source:
@@ -1934,10 +2112,7 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
         if sub_t:
             out.append(sub_t)
 
-    all_unmatched = list(unmatched_models or [])
-    for um in partitions.get("unmatched", []):
-        if um not in all_unmatched:
-            all_unmatched.append(um)
+    all_unmatched = _merge_unmatched_models(unmatched_models, partitions.get("unmatched", []))
     if all_unmatched:
         sub_t = render_unmatched_models_cli(all_unmatched, color=color)
         if sub_t:
@@ -1950,12 +2125,13 @@ def render_cli_table(models_list, color=None, slim=None, wide=False, pareto_ids=
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
             ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
-            ("Q(Cap)", "Capability (40–99.9) across Arena.ai and AA.", C_GREEN),
+            ("Q(Cap)", "Capability (40–99.9) across Arena.ai, AA, and Vals.", C_GREEN),
             ("FGI", "Frontier Gate Index (Q·P^1.5): High-stakes plan/architect gates.", C_GREEN),
             ("AVI", "Agentic Value Index (Q^2.2 / log Cost): Daily-driver loop ROI.", C_GREEN),
             ("Eff $/M", "Real Cost/Task: Price × retry multiplier (T_mult).", C_GREEN),
             ("P(Succ)", "Estimated 1-turn pass rate (<40% = high multi-file risk).", C_GREEN),
             ("Live", "LiveBench coding % · decontaminated overall.", C_GREEN),
+            ("Vals%", "Vals Index overall accuracy across enterprise/coding tasks.", C_GREEN),
         ],
         color=color,
     ))
@@ -2070,7 +2246,7 @@ def render_one_shot_cli_table(
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
     # 1. Executive Summary Banner
-    title_str = "🎯 ONE-SHOT MODEL CAPABILITIES RADAR (LiveBench · Arena · AA)"
+    title_str = "🎯 ONE-SHOT MODEL CAPABILITIES RADAR (Arena · AA · Vals)"
     c_info = f"Top Cap: {top_cap['display'][:12]} ({top_cap.get('capability_q') or 0.0:.1f})" if top_cap and top_cap.get("capability_q") is not None else ""
     r_info = f"Reason: {top_reas['display'][:12]} ({pillars_map[top_reas['display']]['reasoning']:.1f}%)" if top_reas and pillars_map.get(top_reas.get("display", ""), {}).get("reasoning") is not None else ""
     cd_info = f"Coding: {top_cod['display'][:12]} ({pillars_map[top_cod['display']]['coding']:.1f}%)" if top_cod and pillars_map.get(top_cod.get("display", ""), {}).get("coding") is not None else ""
@@ -2101,7 +2277,7 @@ def render_one_shot_cli_table(
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" ONE-SHOT CAPABILITIES RADAR (LiveBench · Arena · AA) — {count_label}",
+        plain_title_line=f" ONE-SHOT CAPABILITIES RADAR (Arena · AA · Vals) — {count_label}",
         plain_diff_parts=diff_parts,
     ))
 
@@ -2154,14 +2330,17 @@ def render_one_shot_cli_table(
         s_badge = medal_badge(meds.get("speed"), color=color)
 
         cov = pl["coverage_count"]
-        if cov >= 2:
-            conf_str = "[2/2]"
+        if cov >= 3:
+            conf_str = "[3/3]"
             conf_color = C_GREEN
+        elif cov == 2:
+            conf_str = "[2/3]"
+            conf_color = C_CYAN
         elif cov == 1:
-            conf_str = "[1/2]*"
+            conf_str = "[1/3]*"
             conf_color = C_YELLOW
         else:
-            conf_str = "[0/2]"
+            conf_str = "[0/3]"
             conf_color = C_GRAY
 
         q_val = m.get("capability_q")
@@ -2294,8 +2473,9 @@ def render_one_shot_cli_table(
         [
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added benchmark model vs previous baseline snapshot.", C_GREEN),
-            ("Conf [2/2]", "Dual-Verified across Arena.ai + Artificial Analysis.", C_GREEN),
-            ("Conf [1/2]*", "Single-Benchmark or emerging model (use with awareness).", C_YELLOW),
+            ("Conf [3/3]", "Tri-Verified across Arena.ai + Artificial Analysis + Vals Index.", C_GREEN),
+            ("Conf [2/3]", "Dual-Verified across two benchmark authorities.", C_CYAN),
+            ("Conf [1/3]*", "Single-Benchmark or emerging model (use with awareness).", C_YELLOW),
             ("Reason", "Reasoning capability % (AA Intelligence / Quality / Arena).", C_GREEN),
             ("Coding", "Coding capability % (LMSYS Coding Arena / AA Coding).", C_GREEN),
             ("Speed", "Hardware generation throughput in tokens/second.", C_CYAN),
@@ -2304,7 +2484,9 @@ def render_one_shot_cli_table(
         color=color,
     ))
 
-    role_recs = compute_role_recommendations(models_list, context="bcheck")
+    partitions = partition_models_by_benchmark_coverage(models_list)
+    rec_pool = [m for m in (partitions["tri_verified"] or models_list) if not m.get("signal_mirror_of")]
+    role_recs = compute_role_recommendations(rec_pool, context="bcheck")
     if role_recs:
         out.append("")
         out.extend(render_role_recommendations_cli(role_recs, color=color, is_slim=is_slim, width=inner_w))
@@ -2324,6 +2506,7 @@ def render_podium_table(models_list, color=None):
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai — Global Elo", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
         ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Vals Index — Economic %", lambda m: m.get("vals_overall") or 0.0, True, lambda m: m.get("vals_overall") is not None, lambda m: f"{m.get('vals_overall'):.1f}%"),
         ("Speed — Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
         ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
         ("Price — Blended $/M", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
@@ -2412,8 +2595,8 @@ def render_sub_table_md(sub_models, title, top_n=10):
     lines = [
         f"### {title}",
         "",
-        "| Rank | Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | LiveBench (%) | Arena Elo | AA Quality | Raw $/M |",
-        "| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
+        "| Rank | Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | LiveBench (%) | Arena Elo | Vals (%) | AA Quality | Raw $/M |",
+        "| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
     for i, m in enumerate(sub_models[:top_n], 1):
         bm = m.get("base_metrics", {})
@@ -2426,10 +2609,12 @@ def render_sub_table_md(sub_models, title, top_n=10):
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
         elo_str = _int_str(bm.get("lm_elo"))
+        vals_res = m.get("vals_overall")
+        vals_str = f"{vals_res:.1f}%" if isinstance(vals_res, (int, float)) else "—"
         aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
         cost = format_compact_price(m.get("price_in"), m.get("price_out"))
-        lines.append(f"| #{i} | **{mid_raw}** | {sub} | {q} | {psucc} | {eff_cost} | {lb_str} | {elo_str} | {aa_str} | {cost} |")
+        lines.append(f"| #{i} | **{mid_raw}** | {sub} | {q} | {psucc} | {eff_cost} | {lb_str} | {elo_str} | {vals_str} | {aa_str} | {cost} |")
     lines.append("")
     return "\n".join(lines)
 
@@ -2446,6 +2631,8 @@ def render_sub_table_html(sub_models, title, top_n=10):
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
         elo_str = _int_str(bm.get("lm_elo"))
+        vals_res = m.get("vals_overall")
+        vals_str = f"{vals_res:.1f}%" if isinstance(vals_res, (int, float)) else "—"
         aa_val = m.get("aa_live_quality")
         aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
         trs.append(f"""        <tr>
@@ -2458,6 +2645,7 @@ def render_sub_table_html(sub_models, title, top_n=10):
             <td>{f"${m.get('effective_cost'):.2f}" if m.get('effective_cost') is not None else '—'}</td>
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
             <td>{elo_str}</td>
+            <td style="font-weight:600; color:#10b981;">{vals_str}</td>
             <td>{aa_str}</td>
             <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
         </tr>""".strip())
@@ -2476,6 +2664,7 @@ def render_sub_table_html(sub_models, title, top_n=10):
                 <th>Eff $/M</th>
                 <th>LiveBench</th>
                 <th>Arena Elo</th>
+                <th>Vals Index</th>
                 <th>AA Quality</th>
                 <th>Price In/Out</th>
             </tr>
@@ -2500,6 +2689,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
     miss_live = partitions["missing_livebench"]
     miss_arena = partitions["missing_lmarena"]
     miss_aa = partitions["missing_aa"]
+    miss_vals = partitions.get("missing_vals", [])
     single_source = partitions["single_source"]
 
     primary_models = tri_models if tri_models else models_list
@@ -2508,15 +2698,15 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
 
     lines = [
         f"# {title}\n",
-        f"Consolidated capability & cost-efficiency benchmark across **Arena.ai**, **Artificial Analysis**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models**.",
+        f"Consolidated capability & cost-efficiency benchmark across **Arena.ai**, **Artificial Analysis**, **Vals Index**, **AGY Subscription (Gemini)**, **Claude Subscription (Anthropic)**, and **Frontier API Models**.",
         "",
-        "## 1. Dual-Verified Master Leaderboard (Arena.ai + Artificial Analysis)",
+        "## 1. Tri-Verified Master Leaderboard (Arena.ai + Artificial Analysis + Vals Index)",
     ]
     if len(display_models) < total_tri:
-        lines.append(f"_Showing top {len(display_models)} of {total_tri} dual-verified models._")
+        lines.append(f"_Showing top {len(display_models)} of {total_tri} tri-verified models._")
     lines.extend([
         "",
-        "| Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | AVI (Value) | FGI (Gate) | LiveBench (%) | Arena Elo | AA Quality | Raw $/M |",
+        "| Model | Pool / Tier | Q (Cap) | P(Succ) | Eff. $/M | AVI (Value) | FGI (Gate) | LiveBench (%) | Arena Elo | Vals (%) | Raw $/M |",
         "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ])
 
@@ -2540,12 +2730,12 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
         lb_res = lb.get("overall") if isinstance(lb, dict) else (lb if isinstance(lb, (int, float)) else None)
         lb_str = f"{lb_res:.1f}%" if isinstance(lb_res, (int, float)) else "—"
         elo_str = _int_str(bm.get("lm_elo"))
-        aa_val = m.get("aa_live_quality")
-        aa_str = f"{aa_val:.1f}" if isinstance(aa_val, (int, float)) else "—"
+        vals_val = m.get("vals_overall")
+        vals_str = f"{vals_val:.1f}%" if vals_val is not None else "—"
         cost = format_compact_price(m.get("price_in"), m.get("price_out"))
 
         lines.append(
-            f"| {mid} | {sub} | {q} | {psucc} | {eff_cost} | {avi} | {fgi} | {lb_str} | {elo_str} | {aa_str} | {cost} |"
+            f"| {mid} | {sub} | {q} | {psucc} | {eff_cost} | {avi} | {fgi} | {lb_str} | {elo_str} | {vals_str} | {cost} |"
         )
 
     # Sub-Tables Section
@@ -2554,19 +2744,16 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
         "## 2. Models with Partial / Missing Benchmark Evaluations",
         "",
     ])
-    if miss_live:
-        lines.append(render_sub_table_md(miss_live, "2.1 Top 10 — Missing LiveBench (Arena.ai + AA Evaluated)", top_n=10))
+    if miss_vals:
+        lines.append(render_sub_table_md(miss_vals, "2.1 Top 10 — Missing Vals Index (Arena.ai + AA Evaluated)", top_n=10))
     if miss_arena:
-        lines.append(render_sub_table_md(miss_arena, "2.2 Top 10 — Missing LMArena (LiveBench + AA Evaluated)", top_n=10))
+        lines.append(render_sub_table_md(miss_arena, "2.2 Top 10 — Missing LMArena (AA + Vals Index Evaluated)", top_n=10))
     if miss_aa:
-        lines.append(render_sub_table_md(miss_aa, "2.3 Top 10 — Missing Artificial Analysis (LiveBench + Arena Evaluated)", top_n=10))
+        lines.append(render_sub_table_md(miss_aa, "2.3 Top 10 — Missing Artificial Analysis (Arena.ai + Vals Index Evaluated)", top_n=10))
     if single_source:
         lines.append(render_sub_table_md(single_source, "2.4 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)", top_n=10))
 
-    all_unmatched = list(unmatched_models or [])
-    for um in partitions.get("unmatched", []):
-        if um not in all_unmatched:
-            all_unmatched.append(um)
+    all_unmatched = _merge_unmatched_models(unmatched_models, partitions.get("unmatched", []))
     if all_unmatched:
         lines.append(render_unmatched_models_md(all_unmatched))
 
@@ -2577,6 +2764,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
         ("LiveBench (%) — Decontaminated", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai Elo — Global Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
         ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Vals Index — Economic %", lambda m: m.get("vals_overall") or 0.0, True, lambda m: m.get("vals_overall") is not None, lambda m: f"{m.get('vals_overall'):.1f}%"),
         ("Speed — Generation Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
         ("Eff $/M — Real Solved Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
         ("Price — Blended Raw Cost", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
@@ -2604,7 +2792,7 @@ def render_markdown_report(models_list, title=None, pareto_ids=None, top_n: int 
                 places.append("—")
         lines.append(f"| **{col_label}** | {places[0]} | {places[1]} | {places[2]} |")
 
-    role_recs = compute_role_recommendations(primary_models, context="bcheck")
+    role_recs = compute_role_recommendations([m for m in primary_models if not m.get("signal_mirror_of")], context="bcheck")
     if role_recs:
         lines.extend([
             "",
@@ -2643,12 +2831,13 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
     miss_live = partitions["missing_livebench"]
     miss_arena = partitions["missing_lmarena"]
     miss_aa = partitions["missing_aa"]
+    miss_vals = partitions.get("missing_vals", [])
     single_source = partitions["single_source"]
 
     primary_models = tri_models if tri_models else models_list
     display_models = primary_models[:top_n] if (top_n and len(primary_models) > top_n) else primary_models
 
-    role_recs = compute_role_recommendations(primary_models, context="bcheck")
+    role_recs = compute_role_recommendations([m for m in primary_models if not m.get("signal_mirror_of")], context="bcheck")
     role_recs_html = render_role_recommendations_html(role_recs) if role_recs else ""
 
     trs = []
@@ -2687,6 +2876,8 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         avi_str = f"{avi_val:.1f}" if avi_val is not None else "—"
         fgi_val = m.get('fgi_score')
         fgi_str = f"{fgi_val:.1f}" if fgi_val is not None else "—"
+        vals_val = m.get('vals_overall')
+        vals_str = f"{vals_val:.1f}%" if vals_val is not None else "—"
 
         trs.append(f"""        <tr{row_cls}>
             <td style="font-weight:600;">{name_html}</td>
@@ -2698,6 +2889,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             <td style="font-weight:700; color:#10b981;">{avi_str}</td>
             <td style="font-weight:700; color:#8b5cf6;">{fgi_str}</td>
             <td style="font-weight:600; color:#f59e0b;">{lb_str}</td>
+            <td style="font-weight:600; color:#10b981;">{vals_str}</td>
             <td>{bm.get('lm_coding', '—')}</td>
             <td>{bm.get('speed_tps', '—')} t/s</td>
             <td>{format_compact_price(m.get('price_in'), m.get('price_out'))}</td>
@@ -2710,6 +2902,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         ("LiveBench — Decontam.", lambda m: m.get("livebench", {}).get("overall", 0) if isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)) else 0, True, lambda m: isinstance(m.get("livebench"), dict) and isinstance(m.get("livebench", {}).get("overall"), (int, float)), lambda m: f"{m.get('livebench', {}).get('overall'):.1f}%"),
         ("Arena.ai — Global Elo", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_elo"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_elo"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_elo"))),
         ("Coding Elo — LMSYS Arena", lambda m: bc._safe_float(m.get("base_metrics", {}).get("lm_coding"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("lm_coding"), (int, float)), lambda m: _int_str(m.get("base_metrics", {}).get("lm_coding"))),
+        ("Vals Index — Economic %", lambda m: m.get("vals_overall") or 0.0, True, lambda m: m.get("vals_overall") is not None, lambda m: f"{m.get('vals_overall'):.1f}%"),
         ("Speed — Throughput", lambda m: bc._safe_float(m.get("base_metrics", {}).get("speed_tps"), 0) or 0, True, lambda m: isinstance(m.get("base_metrics", {}).get("speed_tps"), (int, float)), lambda m: f"{_int_str(m.get('base_metrics', {}).get('speed_tps'))} t/s"),
         ("Eff $/M — Real Task Cost", lambda m: m.get("effective_cost") if m.get("effective_cost") is not None else 999.0, False, lambda m: m.get("effective_cost") is not None, lambda m: f"${m.get('effective_cost') or 0.0:.2f}"),
         ("Price — Blended $/M", lambda m: m.get("blended_price") if m.get("blended_price") is not None else 999.0, False, lambda m: m.get("blended_price") is not None, lambda m: f"${m.get('blended_price') or 0.0:.2f}"),
@@ -2738,19 +2931,16 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 
     # Sub-tables HTML
     sub_tables_html = []
-    if miss_live:
-        sub_tables_html.append(render_sub_table_html(miss_live, "📊 Top 10 — Missing LiveBench (Arena.ai + AA Evaluated)", top_n=10))
+    if miss_vals:
+        sub_tables_html.append(render_sub_table_html(miss_vals, "📐 Top 10 — Missing Vals Index (Arena.ai + AA Evaluated)", top_n=10))
     if miss_arena:
-        sub_tables_html.append(render_sub_table_html(miss_arena, "⚔️ Top 10 — Missing LMArena (LiveBench + AA Evaluated)", top_n=10))
+        sub_tables_html.append(render_sub_table_html(miss_arena, "⚔️ Top 10 — Missing LMArena (AA + Vals Index Evaluated)", top_n=10))
     if miss_aa:
-        sub_tables_html.append(render_sub_table_html(miss_aa, "🧪 Top 10 — Missing Artificial Analysis (LiveBench + Arena Evaluated)", top_n=10))
+        sub_tables_html.append(render_sub_table_html(miss_aa, "🧪 Top 10 — Missing Artificial Analysis (Arena.ai + Vals Index Evaluated)", top_n=10))
     if single_source:
         sub_tables_html.append(render_sub_table_html(single_source, "🚀 Top 10 — Single-Benchmark / Emerging Models (1 Evaluator Only)", top_n=10))
 
-    all_unmatched = list(unmatched_models or [])
-    for um in partitions.get("unmatched", []):
-        if um not in all_unmatched:
-            all_unmatched.append(um)
+    all_unmatched = _merge_unmatched_models(unmatched_models, partitions.get("unmatched", []))
     if all_unmatched:
         sub_tables_html.append(render_unmatched_models_html(all_unmatched))
 
@@ -2773,6 +2963,10 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
         </div>
         """
 
+    trs_html = '\n            '.join(trs)
+    sub_tables_joined = '\n'.join(sub_tables_html)
+    podium_trs_html = '\n            '.join(podium_trs)
+
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -2783,10 +2977,10 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
 <body>
 <div class="wrap">
     <h1>Consolidated LLM Benchmark & Agentic Cost-Benefit Dashboard</h1>
-    <div class="sub">Arena.ai · Artificial Analysis · Agentic Value Index (AVI)</div>
+    <div class="sub">Arena.ai · Artificial Analysis · Vals Index · Agentic Value Index (AVI)</div>
     {f'<div class="legend">⚠ {html.escape(stale_note)}</div>' if stale_note else ""}
 
-    <h2>1. Dual-Verified Master Leaderboard (Arena.ai · Artificial Analysis)</h2>
+    <h2>1. Tri-Verified Master Leaderboard (Arena.ai · Artificial Analysis · Vals Index)</h2>
     <table id="tbl">
         <thead>
             <tr>
@@ -2799,18 +2993,19 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
                 <th>AVI (ROI)</th>
                 <th>FGI (Gate)</th>
                 <th>LiveBench</th>
+                <th>Vals Index</th>
                 <th>Coding Elo</th>
                 <th>Speed</th>
                 <th>Price In/Out</th>
             </tr>
         </thead>
         <tbody>
-            {'\n            '.join(trs)}
+            {trs_html}
         </tbody>
     </table>
 
     <h2>2. Models with Partial / Missing Benchmark Evaluations</h2>
-    {'\n'.join(sub_tables_html)}
+    {sub_tables_joined}
 
     <h2>3. Column Winners & Podium Leaders (1st 🥇 · 2nd 🥈 · 3rd 🥉)</h2>
     <table>
@@ -2823,7 +3018,7 @@ def render_html_report(models_list, pareto_ids=None, added_ids=None, removed_mod
             </tr>
         </thead>
         <tbody>
-            {'\n            '.join(podium_trs)}
+            {podium_trs_html}
         </tbody>
     </table>
 
@@ -2870,7 +3065,7 @@ def main():
     )
     parser.add_argument(
         "--sort",
-        choices=["avi", "fgi", "bfi", "composite", "coding", "reasoning", "live", "speed", "price", "effective_cost"],
+        choices=["avi", "fgi", "bfi", "composite", "coding", "reasoning", "live", "vals", "speed", "price", "effective_cost"],
         default="composite",
         help="Sort criterion (default: composite)",
     )
@@ -2881,7 +3076,7 @@ def main():
     parser.add_argument("--md", type=str, nargs="?", const="stdout", help="Output Markdown report")
     parser.add_argument("--html", type=str, nargs="?", const="docs/reports/benchmarks.html", help="Generate HTML dashboard")
     parser.add_argument("--fetch", "--refresh", action="store_true",
-                        help="Refresh the 24h response cache now: fetch LiveBench/LMArena/Artificial Analysis live, save dated snapshots to docs/data/raw/, and update the benchmarks.json NEW baseline. Default runs fully offline on cache.")
+                        help="Refresh the 24h response cache now: fetch LiveBench/LMArena/Artificial Analysis/Vals Index live, save dated snapshots to docs/data/raw/, and update the benchmarks.json NEW baseline. Default runs fully offline on cache.")
     parser.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
     parser.add_argument("--slim", action="store_true", help="Force compact 95-column table layout (for split panes)")
     parser.add_argument("--wide", action="store_true", help="Force full 125-column table layout")
@@ -2902,13 +3097,16 @@ def main():
     # Load Artificial Analysis live or snapshot data
     aa_map = load_aa_data(fetch=do_fetch)
 
+    # Load Vals Index live or snapshot data
+    vals_map = load_vals_data(fetch=do_fetch)
+
     # Build universal catalog across all upstream benchmark feeds (with live signals mapped)
-    catalog = build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+    catalog = build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map, vals_map=vals_map)
     calculate_composite_scores(catalog)
 
     # Filter to models with verified benchmark evaluations; track unmatched models explicitly ("See Something, Say Something")
-    unmatched_catalog = [m for m in catalog.values() if m.get("unmatched") or (not m.get("livebench") and not m.get("aa_live_quality") and not m.get("base_metrics", {}).get("lm_elo"))]
-    models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo")]
+    unmatched_catalog = [m for m in catalog.values() if m.get("unmatched") or (not m.get("livebench") and not m.get("aa_live_quality") and not m.get("base_metrics", {}).get("lm_elo") and not m.get("vals_overall"))]
+    models = [m for m in catalog.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("vals_overall")]
 
     # Diffing + baseline run catalog-wide BEFORE --pool view filtering: a subset baseline would
     # fake-REMOVE every model excluded by the current view.
@@ -2945,6 +3143,8 @@ def main():
         models.sort(key=lambda m: (m.get("base_metrics", {}).get("speed_tps") or 0.0), reverse=True)
     elif args.sort == "live":
         models.sort(key=lambda m: (m.get("livebench", {}).get("overall") if isinstance(m.get("livebench"), dict) else (m.get("livebench") or 0.0)) or 0.0, reverse=True)
+    elif args.sort == "vals":
+        models.sort(key=lambda m: (m.get("vals_overall") or 0.0), reverse=True)
     elif args.sort == "price":
         models.sort(key=lambda m: m.get("price_in") if m.get("price_in") is not None else 999.0)
     elif args.sort == "effective_cost":

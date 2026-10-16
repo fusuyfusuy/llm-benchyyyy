@@ -84,6 +84,8 @@ pub struct Model {
     #[serde(default)]
     pub aa_live_coding: Option<f64>,
     #[serde(default)]
+    pub vals_overall: Option<f64>,
+    #[serde(default)]
     pub context_length: Option<f64>,
     #[serde(default)]
     pub capability_q: Option<f64>,
@@ -160,10 +162,11 @@ pub struct Pillars {
     pub coverage_count: u8,
     pub has_arena: bool,
     pub has_aa: bool,
+    pub has_vals: bool,
     pub best_role: String,
 }
 
-/// Normalized capability dimensions across LiveBench, LMSYS Arena, AA.
+/// Normalized capability dimensions across LiveBench, LMSYS Arena, AA, Vals.
 pub fn pillars(m: &Model) -> Pillars {
     let reasoning = m
         .aa_live_quality
@@ -193,7 +196,8 @@ pub fn pillars(m: &Model) -> Pillars {
     let has_arena = m.base_metrics.lm_elo.is_some_and(|v| v.is_finite());
     let has_aa = m.aa_live_quality.is_some_and(|v| v.is_finite())
         || m.base_metrics.aa_quality.is_some_and(|v| v.is_finite());
-    let coverage_count = [has_arena, has_aa]
+    let has_vals = m.vals_overall.is_some_and(|v| v.is_finite());
+    let coverage_count = [has_arena, has_aa, has_vals]
         .iter()
         .filter(|&&b| b)
         .count() as u8;
@@ -226,16 +230,18 @@ pub fn pillars(m: &Model) -> Pillars {
         coverage_count,
         has_arena,
         has_aa,
+        has_vals,
         best_role,
     }
 }
 
-/// `[2/2]` / `[1/2]*` / `[0/2]` coverage badge.
+/// `[3/3]` / `[2/3]` / `[1/3]*` / `[0/3]` coverage badge.
 pub fn conf_badge(coverage: u8) -> &'static str {
     match coverage {
-        2 => "[2/2]",
-        1 => "[1/2]*",
-        _ => "[0/2]",
+        3 => "[3/3]",
+        2 => "[2/3]",
+        1 => "[1/3]*",
+        _ => "[0/3]",
     }
 }
 

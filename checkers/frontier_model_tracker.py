@@ -192,6 +192,7 @@ def extract_frontier_models(bench_path: pathlib.Path = DATA / "benchmarks.json",
                     "livebench_overall": lb,
                     "aa_quality": aa,
                     "arena_elo": elo,
+                    "vals_overall": m.get("vals_overall"),
                     "composite_score": comp_score,
                 },
             })

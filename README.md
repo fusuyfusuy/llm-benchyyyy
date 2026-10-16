@@ -7,7 +7,7 @@ LLM benchmark aggregation, model catalog intelligence, free model ranking, and O
 The project provides four primary CLI tools under `checkers/`:
 
 ### 1. `bcheck` — Multi-Source Benchmark Aggregator
-Aggregates benchmark evaluations from **Artificial Analysis (Quality Index)**, **LiveBench (Reasoning/Coding/Math/Data)**, and **LMArena (Coding Arena ELO)**:
+Aggregates benchmark evaluations from **Vals Index (Economic Capability)**, **Artificial Analysis (Quality Index)**, **LMArena (Coding Arena ELO)**, and **LiveBench (Reasoning/Coding/Math/Data)**:
 ```bash
 # Run against cached snapshots
 python3 -m checkers.llm_benchmark_aggregator
@@ -98,7 +98,7 @@ Zero external runtime dependencies (pure Python 3.11+ standard library):
 
 ```bash
 # Verify checkers offline check
-python3 -m checkers.llm_benchmark_aggregator --check
+python3 -m checkers.llm_benchmark_aggregator -n 10
 
 # Run the Rust TUI
 cargo run --manifest-path checkerz/Cargo.toml

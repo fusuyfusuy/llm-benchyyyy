@@ -2,19 +2,15 @@
 
 ## Active Epics & Tasks
 
-- v1 runner built + pushed to github.com/fusuyfusuy/llm-benchyyyy (public). Open:
-  codex-cli JSON field-mapping in engine/harness/configs.py unverified live
-  (docs-derived only, codex not installed locally). raw-api untested
-  live, ANTHROPIC_API_KEY not set in this env.
 - 08:00 Benchmark Sync Daemon (bsync) extended: syncs all upstream sources
   (including OpenCode Go/Zen models & docs), refreshes downstream checkers
   (ocgo_live.json, cc_live.json, free_models.json, stealth_models.json),
   and writes live benchmark/pricing radar to Akatsuki (30-Agents/Model-Benchmarks-Live.md)
   with telemetry logging.
-- Dual-source scoring transition: LiveBench decoupled from capability Q, AVI, FGI,
-  and role allocations across bcheck, ccheck, ocheck, and checkerz. Scoring is anchored
-  strictly on Arena.ai (Coding ELO + Global ELO) and Artificial Analysis (Intelligence,
-  Coding, TerminalBench, IFBench, SRE). Confidence badges standard is [2/2].
+- Tri-source consensus scoring transition: Vals Index (vals.ai/benchmarks/vals_index)
+  integrated alongside Arena.ai and Artificial Analysis as a balanced tri-pillar consensus
+  scoring system (Arena 35%, AA 35%, Vals 30%). LiveBench remains decontaminated reference.
+  Confidence badges standard updated to [3/3].
 - Gemini / AGY subscription models update: Claude Opus 5.5 and Claude Sonnet 5.5
   integrated into the AGY pool (`pool: 'agy'`) with built-in Antigravity effort tiers
   (claude-opus-5-5-low|medium|high, claude-sonnet-5-5-low|medium|high), unlocking frontier
@@ -22,57 +18,15 @@
 
 ## Core Invariants & Architecture Rules
 
-- tasks/ and expected/ MUST stay separate dirs. Never put pass criteria/rubric
-  in tasks/. Reason: contamination control + Dataset/Solver/Scorer split, see
-  scope.md.
-- Never commit results/. .gitignore blanket-excludes it (except .gitkeep).
-  Holds real cost/token data + API-driven run transcripts.
 - Never commit API keys/credential files. Keys live in env only. .gitignore
   backstops .env, *.pem, *.key, credentials* but rule is: keys never touch a
   tracked file.
-- Task/expected markdown convention engine/markdown.py parses: fenced block
-  first line `# path/to/file` = seed file written verbatim (minus that line)
-  before run. `## Setup` bash block = setup script, runs before harness.
-  `## Check` bash block in expected/ = grader command, exit 0 = pass.
-- NO LLM JUDGES ALLOWED: All grading must be 100% deterministic (unit tests,
-  exact match, state checks). The previously planned LLM judge ensemble has
-  been decommissioned to eliminate bias. Enforced in code 2026-08-30:
-  grading/judge.py deleted, GRADERS entry + --judge-* flags removed; spec.py
-  raises on any 'judge' method. See ADR 2026-08-30.
-- Every run must repeat N>=3 trials, report pass_rate not single pass/fail
-  (non-determinism). Every result tagged model+harness+harness_version+
-  tool_access (layer attribution) — untagged score is not valid, see
-  metrics.md. Enforced 2026-08-30: --trials defaults 3, <3 rejected
-  (engine/cli.py); report.py GROUP_KEYS is the single 5-key grouping
-  contract, score.py imports it; <3-trial groups print U-flagged.
-- CLI harness containers authenticate by bind-mounting host's own CLI config
-  dirs read-only, not reimplementing auth. Container runs as non-root `ubuntu`
-  (uid 1000) — Claude Code CLI refuses --dangerously-skip-permissions as root.
-  NO host dir is rw anymore (P1 2026-08-30): pi gets a per-run throwaway
-  overlay; task setup + grading phases run --network none (harness phase
-  keeps egress — CLIs must reach providers).
+- All checkers (bcheck, ocheck, ccheck, fcheck, scheck, fntcheck) operate fully
+  offline by default against docs/data/raw/ snapshots, requiring explicit --fetch
+  or daemon sync to access network.
 
 ## Domain Vocabulary & Gotchas
 
-- Model ID is `claude-sonnet-5`, no date suffix — `claude-sonnet-5-20260115`
-  is invalid (caught live during smoke test, was in cli.py/pricing.py/judge.py
-  before fix).
-- pi-coding-agent needs Node >=20 (image uses 22.x via NodeSource, not Ubuntu
-  apt package).
-- The pi package is @earendil-works/pi-coding-agent (host runs 0.84.x), NOT
-  the original @mariozechner one — different behavior; image must match host.
-- Container pi needs ~/.pi/agent WRITABLE as a directory (settings.json.lock,
-  models-store.json, else EACCES). Since P1 the sandbox provides a throwaway
-  per-run overlay (state files copied in, host npm/ ro) — never rw-mount the
-  host dir: model-authored bash editing settings.json `packages` = host code
-  exec at next pi launch.
-- Bench pi argv includes --no-session (ephemeral runs). settings.json's
-  `packages` list makes pi auto-install extensions at startup — overlay
-  bind-mounts host npm/ READ-ONLY; auto-install now lands in the throwaway
-  copy, not the host tree.
-- pi JSONL (verified live): response text = message.content[].text (content is
-  a LIST of typed blocks); usage/cost are PER-TURN on message_end events and
-  must be SUMMED for multi-turn runs; tool calls = tool_execution_start.
 - Antigravity CLI install URL: antigravity.google/cli/install.sh (an earlier
   guessed URL 404'd).
 - artificialanalysis.ai leaderboard has no static __NEXT_DATA__ blob anymore
@@ -118,11 +72,18 @@
   updated credit allowances (e.g. DeepSeek V4.1 Flash $40 -> $60). Credit cell
   parsers must use regex extraction (`_eff_price` / `nums[-1]`) to extract the
   active price, and never conflate `credits is None` with the Free tier.
+- vals.ai/benchmarks/vals_index uses Astro v4 with devalue serialization embedded inside
+  `<astro-island component-url="/_astro/ValsIndexBarGraph..." props="...">`. `unwrap_astro_devalue`
+  in `checkers/benchmark_common.py` recursively unpickles Astro devalue objects (`[0, {...}]`) and arrays
+  (`[1, [...]]`) into native Python structures. Sub-task scores (vibe_code_bench, terminal_bench_4,
+  finance_agent, legal, tax, code_migration) are present in ValsIndexBarGraph props, while ScatterGraph
+  only carries overall scores. Model slugs use `provider/model-slug` format.
+- parse_lmarena in checkers/benchmark_common.py extracts Next.js RSC "entries":[{...}]
+  keyed by lowercase modelDisplayName and only runs the legacy <tr> HTML table parser
+  when RSC entries are absent (if not out:), preventing dual-parser duplicate slugs.
 
 ---
 
 ## KNOWN DEBT
 
 - checkers/free_model_ranker.py:521: naming convention only <- Zen /v1/models entries carry no pricing field (0/64 in snapshots) -> reinstate real price check if upstream ships pricing
-- docker/harness-base.Dockerfile:4: 5 CLI harness install layers verified <- container build passes -> live run verification of JSON schemas for all 5 CLIs inside container
-- docker/harness-base.Dockerfile:29: unpinned CLI versions <- docker build w/ --version capture -> first container rebuild

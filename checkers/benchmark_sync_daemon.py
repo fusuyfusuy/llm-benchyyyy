@@ -62,6 +62,7 @@ CLINE_MODELS_URL = "https://api.cline.bot/v1/models"
 OCGO_DOCS = "https://opencode.ai/docs/go/"
 OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
+VALS_INDEX_URL = "https://www.vals.ai/benchmarks/vals_index"
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
 
@@ -111,6 +112,7 @@ MIN_SNAPSHOT_BYTES = {
     "opencode_go_docs": 30_000,
     "opencode_go_models": 1000,
     "opencode_zen_models": 2000,
+    "vals_index": 100_000,
 }
 
 
@@ -720,6 +722,7 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
     results["opencode_go_docs"] = _fetch_and_save("OpenCode Go Docs HTML", OCGO_DOCS, RAW / f"opencode_go_docs_{today}.html", MIN_SNAPSHOT_BYTES["opencode_go_docs"], force, verbose)
     results["opencode_go_models"] = _fetch_and_save("OpenCode Go Models JSON", OCGO_API, RAW / f"opencode_go_models_{today}.json", MIN_SNAPSHOT_BYTES["opencode_go_models"], force, verbose)
     results["opencode_zen_models"] = _fetch_and_save("OpenCode Zen Models JSON", OPENCODE_ZEN_API, RAW / f"opencode_zen_models_{today}.json", MIN_SNAPSHOT_BYTES["opencode_zen_models"], force, verbose)
+    results["vals_index"] = _fetch_and_save("Vals Index HTML", VALS_INDEX_URL, RAW / f"vals_index_{today}.html", MIN_SNAPSHOT_BYTES["vals_index"], force, verbose)
     missing = sorted(k for k, v in results.items() if v is None)
     if missing:
         log(f"  WARN {len(missing)} feed(s) missing with no usable cache: {', '.join(missing)}")
@@ -734,9 +737,10 @@ def sync_all_sources(verbose: bool = True, force: bool = False) -> dict[str, pat
         live_map = lba.load_livebench_data(fetch=False)
         lm_map = lba.load_lmarena_data(fetch=False)
         aa_map = lba.load_aa_data(fetch=False)
-        cat = lba.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map)
+        vals_map = lba.load_vals_data(fetch=False) if hasattr(lba, "load_vals_data") else {}
+        cat = lba.build_universal_catalog(live_map=live_map, lm_map=lm_map, aa_map=aa_map, vals_map=vals_map)
         lba.calculate_composite_scores(cat)
-        models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo")]
+        models = [m for m in cat.values() if m.get("livebench") or m.get("aa_live_quality") or m.get("base_metrics", {}).get("lm_elo") or m.get("vals_metrics")]
         prev_snap = lba.load_previous_snapshot(DATA / "benchmarks.json")
         if not models:
             log("  REFUSE baseline rewrite: 0 evaluated models — keeping benchmarks.json")
@@ -817,6 +821,7 @@ def get_cache_status() -> dict:
         ("LiveBench Categories", f"livebench_categories_{today}.json", "livebench_categories_*.json"),
         ("LMArena HTML", f"lmarena_{today}.html", "lmarena_*.html"),
         ("Artificial Analysis HTML", f"artificial_analysis_{today}.html", "artificial_analysis_*.html"),
+        ("Vals Index HTML", f"vals_index_{today}.html", "vals_index_*.html"),
         ("OpenRouter Models", f"openrouter_models_{today}.json", "openrouter_models_*.json"),
         ("CommandCode GOAT Docs", f"cc_goat_docs_{today}.html", "cc_goat_docs_*.html"),
         ("Cline Models", f"cline_models_{today}.json", "cline_models_*.json"),

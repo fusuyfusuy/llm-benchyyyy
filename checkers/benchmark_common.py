@@ -649,7 +649,7 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
                 name = e.get("modelDisplayName") or e.get("modelKey")
                 if not name:
                     continue
-                slug = norm_model_slug(name)
+                slug = name.strip().lower()
                 rank = _safe_int(e.get("rank"))
                 elo = _safe_float(e.get("rating"))
                 elo = round(elo, 0) if elo is not None else None
@@ -673,48 +673,49 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
         pos = end_idx + 2
 
     # Legacy HTML table fallback
-    trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
-    if verbose:
-        print(f"  LMArena: found {len(trs)} tr rows")
-    for tr in trs[1:]:
-        cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
-        if len(cells) < 7:
-            continue
-        rank_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
-        m_title = re.search(r'title="([^"]+)"', cells[2]) or re.search(r'title="([^"]+)"', tr)
-        if m_title:
-            slug = m_title.group(1).strip().lower()
-        else:
-            href_m = re.search(r'href="[^"]*?/([^"/\?]+)', cells[2])
-            slug = href_m.group(1).lower() if href_m else ""
-            if not slug or ("." not in slug and "-" not in slug):
-                text = re.sub(r"<[^>]+>", " ", cells[2]).strip()
-                tokens = re.findall(r"[a-z0-9][a-z0-9\.\-]*", text.lower())
-                with_digit = [t for t in tokens if any(ch.isdigit() for ch in t) and ("-" in t or "." in t)]
-                if with_digit:
-                    slug = with_digit[-1]
-                elif tokens:
-                    slug = tokens[-1]
-        if not slug:
-            continue
-        slug = slug.strip().lower()
-        score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
-        elo = re.split(r"[±+]", score_raw)[0].strip()
-        elo_f = _safe_float(elo)
-        rank_i = _safe_int(rank_raw)
-        votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")
-        votes_i = _safe_int(votes_raw)
-        price_raw = re.sub(r"<[^>]+>", " ", cells[5]).strip()
-        ctx_raw = re.sub(r"<[^>]+>", "", cells[6]).strip()
+    if not out:
+        trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
+        if verbose:
+            print(f"  LMArena: found {len(trs)} tr rows")
+        for tr in trs[1:]:
+            cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
+            if len(cells) < 7:
+                continue
+            rank_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
+            m_title = re.search(r'title="([^"]+)"', cells[2]) or re.search(r'title="([^"]+)"', tr)
+            if m_title:
+                slug = m_title.group(1).strip().lower()
+            else:
+                href_m = re.search(r'href="[^"]*?/([^"/\?]+)', cells[2])
+                slug = href_m.group(1).lower() if href_m else ""
+                if not slug or ("." not in slug and "-" not in slug):
+                    text = re.sub(r"<[^>]+>", " ", cells[2]).strip()
+                    tokens = re.findall(r"[a-z0-9][a-z0-9\.\-]*", text.lower())
+                    with_digit = [t for t in tokens if any(ch.isdigit() for ch in t) and ("-" in t or "." in t)]
+                    if with_digit:
+                        slug = with_digit[-1]
+                    elif tokens:
+                        slug = tokens[-1]
+            if not slug:
+                continue
+            slug = slug.strip().lower()
+            score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
+            elo = re.split(r"[±+]", score_raw)[0].strip()
+            elo_f = _safe_float(elo)
+            rank_i = _safe_int(rank_raw)
+            votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")
+            votes_i = _safe_int(votes_raw)
+            price_raw = re.sub(r"<[^>]+>", " ", cells[5]).strip()
+            ctx_raw = re.sub(r"<[^>]+>", "", cells[6]).strip()
 
-        out[slug] = {
-            "rank": rank_i,
-            "elo": elo_f,
-            "votes": votes_i,
-            "price_raw": price_raw,
-            "context_raw": ctx_raw,
-            "score_raw": score_raw,
-        }
+            out[slug] = {
+                "rank": rank_i,
+                "elo": elo_f,
+                "votes": votes_i,
+                "price_raw": price_raw,
+                "context_raw": ctx_raw,
+                "score_raw": score_raw,
+            }
     if verbose:
         print(f"  LMArena: parsed {len(out)} entries")
     return out
@@ -854,15 +855,149 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
     return out
 
 
+def unwrap_astro_devalue(x):
+    """Recursively decode Astro island serialized devalue structures ([tag, payload])."""
+    if isinstance(x, list) and len(x) == 2 and isinstance(x[0], int) and 0 <= x[0] <= 11:
+        tag, val = x
+        if tag == 0:  # Object / Dict
+            return {k: unwrap_astro_devalue(v) for k, v in val.items()} if isinstance(val, dict) else val
+        elif tag == 1:  # Array / List
+            return [unwrap_astro_devalue(item) for item in val] if isinstance(val, list) else val
+        return val
+    elif isinstance(x, dict):
+        return {k: unwrap_astro_devalue(v) for k, v in x.items()}
+    elif isinstance(x, list):
+        return [unwrap_astro_devalue(item) for item in x]
+    return x
+
+
+def parse_vals_index(html_text: str, verbose: bool = False) -> dict:
+    """
+    Parse Vals Index (https://www.vals.ai/benchmarks/vals_index) from its Astro island
+    SSR props (ValsIndexBarGraph or ScatterGraph).
+    Returns: dict[model_slug -> {
+        model_slug, bare_slug, norm_slug,
+        vals_overall, vals_coding, vals_terminal, vals_coding_blend,
+        vals_cost_per_test, vals_latency,
+        vals_finance, vals_emb, vals_legal, vals_hlab, vals_tax, vals_migration
+    }]
+    """
+    if not html_text:
+        return {}
+    m = re.search(r'<astro-island[^>]+component-url="[^"]*ValsIndexBarGraph[^"]*"[^>]*props="([^"]+)"', html_text)
+    if not m:
+        m = re.search(r'<astro-island[^>]+component-url="[^"]*ScatterGraph[^"]*"[^>]*props="([^"]+)"', html_text)
+    if not m:
+        if verbose:
+            print("  WARN Vals Index: no Astro island props found", file=sys.stderr)
+        return {}
+
+    try:
+        raw_props = html_lib.unescape(m.group(1))
+        data = unwrap_astro_devalue(json.loads(raw_props))
+    except Exception as e:
+        if verbose:
+            print(f"  WARN Vals Index JSON/devalue decode error: {e}", file=sys.stderr)
+        return {}
+
+    bv = data.get("benchmarkView") or {}
+    tasks = bv.get("tasks") or {}
+    overall = tasks.get("overall") or {}
+    if not overall:
+        if verbose:
+            print("  WARN Vals Index: no overall task results found", file=sys.stderr)
+        return {}
+
+    out = {}
+    for model_slug, stats in overall.items():
+        if not isinstance(stats, dict):
+            continue
+        raw_acc = stats.get("accuracy")
+        cost = stats.get("cost_per_test")
+        lat = stats.get("latency")
+
+        coding_acc = tasks.get("vibe_code_bench", {}).get(model_slug, {}).get("accuracy")
+        terminal_acc = tasks.get("terminal_bench_4", {}).get(model_slug, {}).get("accuracy")
+        emb_acc = tasks.get("emb", {}).get(model_slug, {}).get("accuracy")
+        fin_acc = tasks.get("finance_agent", {}).get(model_slug, {}).get("accuracy")
+        legal_res_acc = tasks.get("legal_research", {}).get(model_slug, {}).get("accuracy")
+        hlab_acc = tasks.get("legal_agent_benchmark", {}).get(model_slug, {}).get("accuracy")
+        tax_acc = tasks.get("tax_agent_bench", {}).get(model_slug, {}).get("accuracy")
+        migration_acc = tasks.get("code_migration", {}).get(model_slug, {}).get("accuracy")
+
+        code_terms = [v for v in [coding_acc, terminal_acc] if isinstance(v, (int, float))]
+        coding_blend = (sum(code_terms) / len(code_terms)) if code_terms else None
+
+        bare_slug = model_slug.split("/", 1)[-1] if "/" in model_slug else model_slug
+        norm_bare = norm_model_slug(bare_slug)
+
+        rec = {
+            "model_slug": model_slug,
+            "bare_slug": bare_slug,
+            "norm_slug": norm_bare,
+            "vals_overall": _safe_float(raw_acc),
+            "vals_coding": _safe_float(coding_acc),
+            "vals_terminal": _safe_float(terminal_acc),
+            "vals_coding_blend": _safe_float(coding_blend),
+            "vals_cost_per_test": _safe_float(cost),
+            "vals_latency": _safe_float(lat),
+            "vals_finance": _safe_float(fin_acc),
+            "vals_emb": _safe_float(emb_acc),
+            "vals_legal": _safe_float(legal_res_acc),
+            "vals_hlab": _safe_float(hlab_acc),
+            "vals_tax": _safe_float(tax_acc),
+            "vals_migration": _safe_float(migration_acc),
+        }
+        out[model_slug] = rec
+        if norm_bare and norm_bare not in out:
+            out[norm_bare] = rec
+
+    if verbose:
+        print(f"  Vals Index: parsed {len(overall)} models across {len(tasks)} tasks")
+    return out
+
+
 # Canonical API / Scrape Endpoints
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
+VALS_INDEX_URL = "https://www.vals.ai/benchmarks/vals_index"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
 OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
 CLINE_RECOMMENDED_MODELS_API = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
 CLINE_FREEMODEL_API = CLINE_RECOMMENDED_MODELS_API
 OCGO_DOCS = "https://opencode.ai/docs/go/"
+
+
+def find_vals_for_model(model_entry: dict | str, vals_map: dict) -> dict | None:
+    """Find matching Vals Index record for a model catalog entry or identifier.
+    Checks exact slugs, tier-stripped slugs, and all alias legs.
+    """
+    if not vals_map or not model_entry:
+        return None
+
+    names = []
+    if isinstance(model_entry, dict):
+        for k in ("model_id", "display", "or_slug", "aa_slug", "lm_slug"):
+            v = model_entry.get(k)
+            if v:
+                names.append(v)
+        for a in model_entry.get("live_aliases", []) + model_entry.get("lm_aliases", []) + model_entry.get("aa_aliases", []):
+            if a:
+                names.append(a)
+    else:
+        names.append(str(model_entry))
+
+    for name in names:
+        for cand in (name, name.replace(" ", "-"), name.replace("_", "-")):
+            sn = norm_model_slug(cand)
+            if sn in vals_map:
+                return vals_map[sn]
+            st = strip_tier_tokens(sn)
+            if st in vals_map:
+                return vals_map[st]
+
+    return None
 
 
 def find_aa_for_model(model_id: str, aa_map: dict) -> dict | None:
@@ -1465,7 +1600,8 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
         eff_cost = 0.0001
         
     coding = _safe_float(
-        m.get("base_metrics", {}).get("lm_coding")
+        m.get("vals_coding")
+        or m.get("base_metrics", {}).get("lm_coding")
         or m.get("benchmarks", {}).get("aa_coding")
         or m.get("base_metrics", {}).get("aa_coding")
         or m.get("benchmarks", {}).get("terminalbenchHard"),
@@ -1473,7 +1609,8 @@ def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
     )
     
     reasoning = _safe_float(
-        m.get("benchmarks", {}).get("aa_intelligence")
+        m.get("vals_overall")
+        or m.get("benchmarks", {}).get("aa_intelligence")
         or m.get("base_metrics", {}).get("aa_quality")
         or m.get("base_metrics", {}).get("aa_reasoning")
         or m.get("base_metrics", {}).get("lm_elo"),
@@ -2039,7 +2176,8 @@ def extract_capability_pillars(m: dict) -> dict:
     has_live = False
     has_arena = bm.get("lm_elo") is not None
     has_aa = (m.get("aa_live_quality") is not None) or (bm.get("aa_quality") is not None)
-    coverage_count = (1 if has_arena else 0) + (1 if has_aa else 0)
+    has_vals = (m.get("vals_overall") is not None) or (m.get("vals_metrics") is not None)
+    coverage_count = (1 if has_arena else 0) + (1 if has_aa else 0) + (1 if has_vals else 0)
 
     # Determine recommended role archetype
     q_val = _safe_float(m.get("capability_q") or m.get("composite_score"))
@@ -2074,6 +2212,9 @@ def extract_capability_pillars(m: dict) -> dict:
         "has_live": has_live,
         "has_arena": has_arena,
         "has_aa": has_aa,
+        "has_vals": has_vals,
+        "vals_overall": _safe_float(m.get("vals_overall")),
+        "vals_coding": _safe_float(m.get("vals_coding")),
         "best_role": best_role,
     }
 
