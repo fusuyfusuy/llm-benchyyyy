@@ -23,7 +23,7 @@ bcheck --fetch
 Runs scheduled background syncs against upstream benchmark and documentation feeds, prunes historical raw cache, and refreshes all downstream catalogs:
 ```bash
 # Run one-shot sync against all upstream sources
-bsync --now
+bsync --sync-now
 
 # Start daemon scheduled at 08:00 daily
 bsync

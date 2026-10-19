@@ -30,13 +30,16 @@
 - Antigravity CLI install URL: antigravity.google/cli/install.sh (an earlier
   guessed URL 404'd).
 - artificialanalysis.ai leaderboard has no static __NEXT_DATA__ blob anymore
-  (App Router, RSC-streamed). Data ships as an escaped `"models":[...]` array
-  inside a `self.__next_f.push(...)` chunk. checkers/benchmark_common.py
-  parse_aa() was silently broken against this (0/249 records had real scores)
-  until fixed 2026-08-27 — extract via bracket-depth scan on the unescaped
-  HTML, not JSON.loads on a script tag. Same site also dropped its unified
-  reasoningIndex/mathReasoningIndex field in favor of raw sub-benchmarks
-  (gpqa/hle/critpt/...) — no direct live replacement for aa_reasoning.
+  (App Router, RSC-streamed). Data ships as an escaped JSON array inside a
+  `self.__next_f.push(...)` chunk. checkers/benchmark_common.py parse_aa()
+  must find that array via bracket-depth scan on the unescaped HTML, NOT
+  JSON.loads on a script tag. The array KEY is NOT stable: it was `"models"`
+  through 2026-10, then renamed to `"initialModels"` (2026-10-19), which
+  silently zeroed parse_aa() to 0/273 records until re-fixed — always scan
+  BOTH keys and take the largest array that carries `intelligenceIndex`.
+  Same site also dropped its unified reasoningIndex/mathReasoningIndex field
+  in favor of raw sub-benchmarks (gpqa/hle/critpt/...) — no direct live
+  replacement for aa_reasoning.
 - arcprize.org/leaderboard (ARC-AGI-2 source) is client-rendered, data NOT in
   HTML/RSC — but the runtime fetch IS plain static JSON (found via browser
   network inspection 2026-08-28): /media/data/models.json + /media/data/
@@ -83,6 +86,34 @@
   when RSC entries are absent (if not out:), preventing dual-parser duplicate slugs.
 
 ---
+- 2026-10-19 upstream scraper-drift batch (all verified against live pages):
+  (1) LiveBench moved its data files under a `/v1/` path prefix — old
+  `livebench.ai/table_*.csv` and `categories_*.json` root URLs now 404; both
+  benchmark_sync_daemon.py and llm_benchmark_aggregator.py must use
+  `livebench.ai/v1/table_2026_06_25.csv` + `/v1/categories_2026_06_25.json`.
+  (2) Cline's `api.cline.bot/v1/models` is dead; the working catalog endpoint
+  is `api.cline.bot/api/v1/ai/cline/recommended-models` (returns
+  {recommended, free, clinePass, clineCloud}). (3) opencode.ai moved the Go
+  docs to `/v2/docs/console/go/` (old /docs/go/ 301-redirects but canonical
+  is v2). (4) OpenCode Go promo rows (`<del>$15</del> <strong>$60</strong>`
+  + a trailing `<small>4x · Limited time</small>`) must be parsed off the RAW
+  cell — stripping tags first fuses "$60" with the "4x" suffix into a bogus
+  "604" and also fuses the model name ("Step 5 Preview4x"); read the
+  `<strong>` active price/count, and strip the promo suffix with an
+  OPTIONAL-space regex `\s*\d+x\s*$` after splitting on "·". (5) OpenCode Go
+  is now per-model monthly caps ($15/$30/$60 tiers), NOT the old pooled
+  "$12/5h · $30/wk · $60/mo"; 5h window = 20% and weekly = 50% of the
+  monthly cap.
+- arena.ai (LMArena / leaderboard/code/webdev) returns Cloudflare-403 to
+  every non-browser path (all arena.ai URLs, verified 2026-10-19) — this is
+  bot-protection, not a wrong URL, so there is no scraper fix; bcheck simply
+  loses LMArena ELO coverage for any date with no cached lmarena_*.html
+  snapshot. When the rolling retention window prunes the last good snapshot
+  (was lmarena_20261013) the evaluated-model baseline drops (522 -> 289 on
+  2026-10-19, ~233 ELO-only models). A browser-context fetch or an operator
+  manual snapshot is required to restore LMArena rows.
+
+
 
 ## KNOWN DEBT
 

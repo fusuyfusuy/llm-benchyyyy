@@ -732,8 +732,8 @@ MODELS_CATALOG = {
 # ==============================================================================
 
 LIVEBENCH_URL = "https://livebench.ai"
-LIVEBENCH_CSV_URL = "https://livebench.ai/table_2026_06_25.csv"
-LIVEBENCH_CAT_URL = "https://livebench.ai/categories_2026_06_25.json"
+LIVEBENCH_CSV_URL = "https://livebench.ai/v1/table_2026_06_25.csv"
+LIVEBENCH_CAT_URL = "https://livebench.ai/v1/categories_2026_06_25.json"
 LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 CACHE_TTL_H = bc.CACHE_TTL_H  # canonical 24h freshness window lives in benchmark_common (rule 7)

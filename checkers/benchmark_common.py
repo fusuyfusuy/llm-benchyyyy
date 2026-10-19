@@ -725,30 +725,35 @@ def parse_aa(html_text: str, verbose: bool = False) -> dict:
     """
     Parse Artificial Analysis leaderboard from its Next.js App Router RSC-streamed
     page payload (no static __NEXT_DATA__ blob; data ships escaped inside a
-    `self.__next_f.push(...)` chunk as a `"models":[...]` array).
+    `self.__next_f.push(...)` chunk as a `"models":[...]` array; since the
+    2026-10 redesign the score-bearing array ships under `"initialModels":[...]`
+    while a slim slug-only `"models":[...]` nav copy remains — both keys are
+    scanned and the largest array carrying intelligenceIndex wins).
     Returns: dict[model_slug -> {slug, name, intelligenceIndex, codingIndex, agenticIndex, medianTps, price_in, price_out}]
     """
     unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
-    idxs = []
-    pos = 0
-    while True:
-        idx = unescaped.find('"models":[', pos)
-        if idx == -1:
-            break
-        idxs.append(idx)
-        pos = idx + 1
+    idxs = []  # (offset, key_name)
+    for key_name in ("models", "initialModels"):
+        key = f'"{key_name}":['
+        pos = 0
+        while True:
+            idx = unescaped.find(key, pos)
+            if idx == -1:
+                break
+            idxs.append((idx, key_name))
+            pos = idx + 1
     if not idxs:
         if verbose:
             print("  Artificial Analysis: no models array found", file=sys.stderr)
         return {}
 
-    # Pick the largest "models":[...] array that actually carries score data
-    # (the payload repeats a slimmer nav/marketing copy of the array elsewhere).
-    best_idx, best_end, best_len = -1, -1, -1
-    for idx in idxs:
+    # Pick the largest array that actually carries score data (the payload
+    # repeats a slimmer slug-only nav/marketing copy of "models" elsewhere).
+    best_idx, best_end, best_len, best_key = -1, -1, -1, None
+    for idx, key_name in idxs:
         if "intelligenceIndex" not in unescaped[idx: idx + 3000]:
             continue
-        start = idx + len('"models":[')
+        start = idx + len(f'"{key_name}":[')
         depth, p, in_str, esc = 1, start, False, False
         while p < len(unescaped) and depth > 0:
             c = unescaped[p]
@@ -769,6 +774,7 @@ def parse_aa(html_text: str, verbose: bool = False) -> dict:
             p += 1
         if (p - idx) > best_len:
             best_len, best_idx, best_end = (p - idx), idx, p
+            best_key = key_name
     if best_idx == -1:
         if verbose:
             print("  Artificial Analysis: no intelligenceIndex array found", file=sys.stderr)
@@ -777,7 +783,7 @@ def parse_aa(html_text: str, verbose: bool = False) -> dict:
     out = {}
     try:
         seg = unescaped[best_idx:best_end]
-        models = json.loads("{" + seg + "}")["models"]
+        models = json.loads("{" + seg + "}")[best_key]
         for m in models:
             slug = m.get("slug")
             if not slug:

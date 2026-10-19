@@ -4,7 +4,8 @@ ocgo_check.py — OpenCode Go catalog checker
 
 Checks the OpenCode Go catalog (docs + API) against benchmarks from
 Artificial Analysis / LMArena / OpenRouter, and produces a cost/benefit
-analysis against the Go usage limits ($12/5h, $30/wk, $60/mo pooled).
+analysis against the Go usage limits (per-model monthly cap; 5h = 20% and
+weekly = 50% of that monthly limit).
 
 Offline by default (rule 7): reads dated snapshots from docs/data/raw/;
 --fetch is the only network path. No API keys, stdlib only.
@@ -93,7 +94,7 @@ def offline_data_note():
     return line, label
 
 
-OCGO_DOCS = "https://opencode.ai/docs/go/"
+OCGO_DOCS = "https://opencode.ai/v2/docs/console/go/"
 OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OCGO_USAGE_API = "https://opencode.ai/zen/go/v1/usage"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
@@ -103,9 +104,9 @@ ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
-# ---------- fallback catalog (from live docs 2026-09-08: https://opencode.ai/docs/go/#usage-limits) ----------
+# ---------- fallback catalog (from live docs 2026-10-19: https://opencode.ai/v2/docs/console/go/#usage-limits) ----------
 # pricing per 1M tokens, usage = monthly_usage_limit_usd
-# pooled caps: $12/5h · $30/wk · $60/mo; per-model window cap = pool × (usage/60)
+# Limits are per-model: monthly Usage = the monthly cap; 5h = 20% and weekly = 50% of it.
 FALLBACK_PRICING = {
     "grok-4.6": {"input": 2.00, "output": 6.00, "cached_read": 0.50, "cached_write": None, "usage": 15},
     "gpt-5.6-luna": {"input": 0.20, "output": 1.20, "cached_read": 0.02, "cached_write": 0.25, "usage": 15},
@@ -204,9 +205,6 @@ FALLBACK_TOKENS = {
     "hy3-preview": (830, 71500, 295),
 }
 
-ACC_5H, ACC_WK, ACC_MO = 12.0, 30.0, 60.0
-
-
 def log(msg, verbose=False):
     if verbose or True:
         print(msg)
@@ -224,6 +222,52 @@ def fetch(url, timeout=20, verbose=False):
     except Exception as e:
         print(f"  WARN fetch {url}: {e}", file=sys.stderr)
         return None
+
+
+def _eff_price(cell: str):
+    """Active value in a docs pricing cell.
+
+    Promo cells ship a struck-through old price next to the active one
+    (<del>$15</del> <strong>$60</strong> 4x · Limited time). The <strong>
+    tag marks the active price; a bare $-amount is used otherwise.
+    """
+    strong = re.search(r"<strong>.*?\$([\d.]+)", cell or "", flags=re.S)
+    if strong:
+        try:
+            return float(strong.group(1))
+        except ValueError:
+            pass
+    nums = re.findall(r"\$([\d.]+)", re.sub(r"<[^>]+>", " ", cell or ""))
+    if nums:
+        try:
+            return float(nums[-1])
+        except ValueError:
+            return None
+    return parse_price(cell)
+
+
+def _eff_count(cell: str):
+    """Active request-count in a docs cell (int or None).
+
+    Promo cells fuse the active count with a multiplier suffix after tag
+    stripping ("1,7206,880", "Step 5 Preview4x"), so prefer the <strong>
+    value; else take the LAST comma-group of the plain text (the active
+    figure sits after the struck-through old one).
+    """
+    strong = re.search(r"<strong>\s*([\d,]+)", cell or "", flags=re.S)
+    if strong:
+        try:
+            return int(strong.group(1).replace(",", ""))
+        except ValueError:
+            pass
+    nums = re.findall(r"[\d][\d,]*", re.sub(r"<[^>]+>", " ", cell or ""))
+    if nums:
+        try:
+            return int(nums[-1].replace(",", ""))
+        except ValueError:
+            return None
+    return None
+
 
 
 def parse_ocgo_docs(html, verbose=False, plan="go"):
@@ -292,14 +336,13 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 6:
                 continue
-            # Clean cells
-            clean = [re.sub(r"<[^>]+>", "", c).strip() for c in cells]
-            model_raw = clean[0]
-            inp_raw = clean[1]
-            out_raw = clean[2]
-            cr_raw = clean[3]
-            cw_raw = clean[4]
-            usage_raw = clean[5]
+            # Keep RAW cells: promo rows mark the active price with <strong>
+            # (<del>$15</del> <strong>$60</strong>), which _eff_price reads.
+            # Stripping tags first would fuse "$60" with the "4x" suffix.
+            model_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
+            inp_raw, out_raw = cells[1], cells[2]
+            cr_raw, cw_raw = cells[3], cells[4]
+            usage_raw = cells[5]
 
             # Model name to id: normalize like "GLM-5.3" -> "glm-5.3"
             # Handle variants like "GPT 5.6 Luna (≤ 272K tokens)" -> "gpt-5.6-luna"
@@ -312,13 +355,15 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
             # For models with two tiers, keep the cheaper (first) entry
             if mid in pricing:
                 continue
-            usage = parse_price(usage_raw)
+            # Promo cells (<del>$15</del> <strong>$60</strong>) need the active
+            # (last) $-amount, not a whole-string float parse.
+            usage = _eff_price(usage_raw)
             # For pricing, take first occurrence (cheapest tier)
             pricing[mid] = {
-                "input": parse_price(inp_raw),
-                "output": parse_price(out_raw),
-                "cached_read": parse_price(cr_raw),
-                "cached_write": parse_price(cw_raw),
+                "input": _eff_price(inp_raw),
+                "output": _eff_price(out_raw),
+                "cached_read": _eff_price(cr_raw),
+                "cached_write": _eff_price(cw_raw),
                 "usage": usage,
             }
             if verbose and mid in ("grok-4.6", "glm-5.3", "hy3"):
@@ -331,18 +376,18 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
             cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
             if len(cells) < 4:
                 continue
-            clean = [re.sub(r"<[^>]+>", "", c).replace(",", "").strip() for c in cells]
-            model_raw = clean[0]
+            # Model name may carry a fused promo suffix after tag-stripping
+            # ("Step 5 Preview4x · Limited time"); model_to_id drops it.
+            model_raw = re.sub(r"<[^>]+>", "", cells[0])
             mid = model_to_id(model_raw)
             if not mid:
                 continue
-            try:
-                r5 = int(clean[1]) if clean[1] not in ("-", "—", "") else None
-                rw = int(clean[2]) if clean[2] not in ("-", "—", "") else None
-                rm = int(clean[3]) if clean[3] not in ("-", "—", "") else None
-            except Exception:
-                continue
-            requests[mid] = {"per_5h": r5, "per_week": rw, "per_month": rm}
+            # Pass raw cells so _eff_count can still see <strong> active values.
+            requests[mid] = {
+                "per_5h": _eff_count(cells[1]),
+                "per_week": _eff_count(cells[2]),
+                "per_month": _eff_count(cells[3]),
+            }
 
     # --- token estimates (ul after tables) ---
     ul_match = re.search(r"(?:following\s+)?token counts per request.*?<ul>(.*?)</ul>", html, flags=re.S)
@@ -353,8 +398,8 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
         lis = re.findall(r"<li[^>]*>(.*?)</li>", seg, flags=re.S)
         for li in lis:
             txt = re.sub(r"<[^>]+>", "", li).strip()
-            # e.g. "Grok 4.6 — 390 input, 32,500 cached, 120 output tokens per request"
-            # or "GLM-5.3/5.2/5.1 — 700 input, 52,000 cached, 150 output..."
+            # e.g. "Grok 4.7 — 390 input, 32,500 cached, 120 output tokens per request"
+            # or "GLM-5.3/5.2 — 700 input, 52,000 cached, 150 output..."
             m = re.search(r"([\d,]+)\s+input.*?([\d,]+)\s+cached.*?([\d,]+)\s+output", txt)
             if not m:
                 continue
@@ -364,22 +409,23 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
                 out = int(m.group(3).replace(",", ""))
             except Exception:
                 continue
-            # Model part is before "—" or "-"
-            model_part = re.split(r"[—-]", txt)[0].strip()
-            # Handle slash-separated like "GLM-5.3/5.2/5.1"
-            for part in re.split(r"\s*/\s*", model_part):
-                part = part.strip()
-                if "/" in part:
-                    continue
-                # part like "GLM-5.3" or "Kimi K2.7" or "DeepSeek V4 Pro"
-                mid = model_to_id(part)
+            # Model part is before the spaced dash separator. Require surrounding
+            # whitespace so hyphens INSIDE model names ("MiMo-V2.6-Flash") survive.
+            model_part = re.split(r"\s+[—–-]\s+", txt)[0].strip()
+            # Handle slash-separated families like "GLM-5.3/5.2"
+            parts = [p.strip() for p in re.split(r"\s*/\s*", model_part) if p.strip()]
+            base_mid = model_to_id(parts[0]) if parts else None
+            for part in parts:
+                if re.fullmatch(r"[\d.]+", part) and base_mid:
+                    # Bare version fragment "5.2" from "GLM-5.3/5.2" — inherit family.
+                    mid = model_to_id(f"{base_mid.split('-')[0]} {part}")
+                else:
+                    mid = model_to_id(part)
                 if not mid:
-                    # Try to map verbose names
                     # "Kimi K2.7" without "Code" covers k2.7-code/k2.6
                     if "kimi k2.7" in part.lower() or "kimi k2.6" in part.lower():
                         for k in ("kimi-k2.7-code", "kimi-k2.6"):
                             tokens[k] = (inp, cac, out)
-                        continue
                     continue
                 tokens[mid] = (inp, cac, out)
 
@@ -394,7 +440,9 @@ def parse_ocgo_docs(html, verbose=False, plan="go"):
 def model_to_id(raw):
     """Map docs display name to canonical model_id."""
     raw = raw.strip()
-    # Remove parentheticals like "(≤ 272K tokens)" or "(Off-Peak)" or "(≤ 256K tokens)"
+    # Strip promo suffixes: "Step 5 Preview  4x · Limited time" -> "Step 5 Preview"
+    raw = re.split(r"·", raw)[0].strip()
+    raw = re.sub(r"\s*\d+(?:\.\d+)?x\s*$", "", raw).strip()
     raw = re.sub(r"\([^)]*\)", "", raw).strip()
     # Normalize spaces and dashes
     # Examples:
@@ -771,16 +819,16 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
     # Total inner width between outer box borders
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
 
-    title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/docs/go/#usage-limits)"
+    title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/v2/docs/console/go/#usage-limits)"
     v_info = f"Top Val: {top_val['model_id'][:14]} (Val {top_val['value'].get('qvi_score', 0):.1f})" if top_val else ""
     f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
     top_req_cnt = top_req["requests"].get("per_month_docs") or top_req["requests"].get("per_month_computed") or 0 if top_req else 0
     s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/mo)" if top_req else ""
     usage_part = f" │ Usage: {usage_note}" if usage_note else ""
     if is_slim:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {v_info} │ {f_info}" + usage_part
+        summary_str = f" Caps: per-model $15/$30/$60/mo tiers │ {v_info} │ {f_info}" + usage_part
     else:
-        summary_str = f" Caps: $12/5h · $30/wk · $60/mo │ {v_info} │ {f_info} │ {s_info}" + usage_part
+        summary_str = f" Caps: per-model $15/$30/$60/mo tiers │ {v_info} │ {f_info} │ {s_info}" + usage_part
 
     diff_notices = []
     diff_parts = []
@@ -798,7 +846,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Account Caps: $12/5h · $30/wk · $60/mo" + (f" │ usage: {usage_note}" if usage_note else ""),
+        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Per-model caps ($15/$30/$60/mo tiers)" + (f" │ usage: {usage_note}" if usage_note else ""),
         plain_diff_parts=diff_parts,
     ))
 
@@ -967,7 +1015,7 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
             ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
             ("Green (+)", "Newly added model vs previous baseline snapshot.", C_GREEN),
             ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
-            ("Quota Model", "Pooled $12/5h · $30/wk · $60/mo. Window cap = $12 × (Usage / 60).", C_WHITE),
+            ("Quota Model", "Per-model monthly cap. 5h = 20% of monthly; weekly = 50% of monthly.", C_WHITE),
             ("$15/mo Tier", "GLM-5.3 (~1.1k req/mo), Kimi K3 (~550) — spec lock, no loops.", C_YELLOW),
             ("$30/mo Tier", "DeepSeek V4 Flash (~38k req/mo) — daily driver iterative coder.", C_CYAN),
             ("$60/mo Tier", "MiMo-V2.5 (~150k), Muse Spark (~227k), LongCat (~80k) — bulk fills.", C_GREEN),
@@ -2036,10 +2084,10 @@ def main():
                 "openrouter_api": OPENROUTER_API,
                 "artificial_analysis": AA_URL,
                 "lmarena": LMARENA_URL,
-                "usage_limits": "https://opencode.ai/docs/go/#usage-limits",
-                "account_caps": {"cap_5h": ACC_5H, "cap_week": ACC_WK, "cap_month": ACC_MO},
+                "usage_limits": "https://opencode.ai/v2/docs/console/go/#usage-limits",
+                "limit_model": "per-model monthly cap; 5h window = 20% of monthly, weekly = 50% of monthly",
                 "usage_source": usage_note or "unavailable",
-                "note": "per-model caps = account_cap * usage/60; per-model Usage from docs pricing table"
+                "note": "per-model monthly Usage from docs pricing table; window caps derived (5h=0.2x, wk=0.5x)"
             },
             "catalog_diff": {
                 "added": sorted(list(added_ids)),
@@ -2218,7 +2266,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 """
     body = f"""
 <h1>{html_lib.escape(title)}</h1>
-<p class="sub">{html_lib.escape(data_note)} — OpenCode Go subscription <code>$5 first month, then $10/mo</code> ·Limits: <b>$12/5h · $30/wk · $60/mo</b> pooled, scaled by per-model Usage/60 · usage source: <b>{html_lib.escape(usage_note or 'unavailable')}</b> · <a href="https://opencode.ai/docs/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
+<p class="sub">{html_lib.escape(data_note)} — OpenCode Go <code>$10/mo</code> (Go Plus <code>$40/mo</code>) · Per-model monthly cap; <b>5h = 20%</b>, <b>weekly = 50%</b> of monthly · usage source: <b>{html_lib.escape(usage_note or 'unavailable')}</b> · <a href="https://opencode.ai/v2/docs/console/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
 
 <div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>Value</b> = Quota utility · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
 
@@ -2241,7 +2289,7 @@ def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, 
 <div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
 
 <p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
-<div class="footer"><span class="path">path: outputs/ocgo_cost_benefit.html</span><span class="work">{html_lib.escape(work_sentence)}</span></div>
+<div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from their monthly cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
 """
     return f"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{html_lib.escape(title)}</title><style>{bc.HTML_CSS_COMMON}</style></head><body><div class=\"wrap\">{body}</div>{bc.HTML_SORT_SCRIPT}</body></html>\n"
 

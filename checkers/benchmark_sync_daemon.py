@@ -52,13 +52,13 @@ LOCK_PATH = DATA / "sync_daemon.lock"
 import benchmark_common as bc
 
 # Upstream Source Endpoints
-LIVEBENCH_CSV = "https://livebench.ai/table_2026_06_25.csv"
-LIVEBENCH_CAT = "https://livebench.ai/categories_2026_06_25.json"
+LIVEBENCH_CSV = "https://livebench.ai/v1/table_2026_06_25.csv"
+LIVEBENCH_CAT = "https://livebench.ai/v1/categories_2026_06_25.json"
 LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 CC_GOAT_DOCS = "https://commandcode.ai/docs/plans/goat"
-CLINE_MODELS_URL = "https://api.cline.bot/v1/models"
+CLINE_MODELS_URL = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
 OCGO_DOCS = "https://opencode.ai/docs/go/"
 OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
