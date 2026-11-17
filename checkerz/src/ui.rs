@@ -1,10 +1,7 @@
 //! Ratatui rendering: elastic columns, zebra rows, pareto gold, modals.
-//!
-//! Column breakpoints mirror the Python TUI (`render_tui`) so narrow
-//! terminals degrade to the same compact column sets.
 
 use crate::app::App;
-use crate::model::{conf_badge, fmt_price_pair, format_ctx, pillars, Model};
+use crate::model::{conf_badge, fmt_price_pair, fmt_task_cost, format_ctx, pillars, Model};
 use crate::scoring::cohort_summary;
 use ratatui::{
     layout::Rect,
@@ -33,28 +30,28 @@ pub fn disp_width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
 
-/// Pad/truncate to exactly `w` display columns.
+/// Pad/truncate to exactly `w` display columns using full-string display width
+/// so multi-scalar emoji sequences (e.g. `🏗️`) never misalign borders.
 pub fn pad(s: &str, w: usize, align: Align) -> String {
     let mut out = String::new();
-    let mut width = 0;
     for ch in s.chars() {
-        let cw = UnicodeWidthStr::width(ch.to_string().as_str());
-        if width + cw > w {
+        out.push(ch);
+        if disp_width(&out) > w {
+            out.pop();
             break;
         }
-        out.push(ch);
-        width += cw;
     }
+    let width = disp_width(&out);
     if width >= w {
         return out;
     }
-    let fill = " ".repeat(w - width);
+    let rem = w - width;
     match align {
-        Align::Left => format!("{out}{fill}"),
-        Align::Right => format!("{fill}{out}"),
+        Align::Left => format!("{out}{}", " ".repeat(rem)),
+        Align::Right => format!("{}{out}", " ".repeat(rem)),
         Align::Center => {
-            let left = (w - width) / 2;
-            let right = w - width - left;
+            let left = rem / 2;
+            let right = rem - left;
             format!("{}{out}{}", " ".repeat(left), " ".repeat(right))
         }
     }
@@ -65,63 +62,64 @@ pub fn fixed_columns(max_table_w: usize) -> (Vec<Column>, Vec<Column>) {
     let c = |name: &'static str, width: usize, align: Align| Column { name, width, align };
     if max_table_w < 78 {
         (
-            vec![c("Rank", 4, Align::Center)],
+            vec![c("Rank", 6, Align::Center)],
             vec![
-                c("Conf", 5, Align::Center),
+                c("Conf", 6, Align::Center),
                 c("Q(Cap)", 6, Align::Right),
-                c("Speed", 6, Align::Right),
+                c("$/Task", 6, Align::Right),
             ],
         )
-    } else if max_table_w < 89 {
+    } else if max_table_w < 92 {
         (
-            vec![c("Rank", 5, Align::Center)],
+            vec![c("Rank", 6, Align::Center)],
             vec![
                 c("Pool", 5, Align::Center),
-                c("Conf", 5, Align::Center),
+                c("Conf", 6, Align::Center),
                 c("Q(Cap)", 6, Align::Right),
-                c("Reason", 6, Align::Right),
-                c("Coding", 6, Align::Right),
-                c("Speed", 6, Align::Right),
+                c("Arch", 6, Align::Right),
+                c("Dev", 6, Align::Right),
+                c("$/Task", 6, Align::Right),
             ],
         )
-    } else if max_table_w < 109 {
+    } else if max_table_w < 112 {
         (
-            vec![c("Rank", 5, Align::Center)],
+            vec![c("Rank", 6, Align::Center)],
             vec![
                 c("Pool", 5, Align::Center),
-                c("Conf", 5, Align::Center),
+                c("Conf", 6, Align::Center),
                 c("Q(Cap)", 6, Align::Right),
-                c("Reason", 6, Align::Right),
-                c("Coding", 6, Align::Right),
-                c("Speed", 6, Align::Right),
-                c("Ctx", 6, Align::Right),
+                c("Arch", 6, Align::Right),
+                c("Dev", 6, Align::Right),
+                c("Rsch", 6, Align::Right),
+                c("$/Task", 6, Align::Right),
             ],
         )
-    } else if max_table_w < 129 {
+    } else if max_table_w < 132 {
         (
-            vec![c("Rank", 5, Align::Center)],
+            vec![c("Rank", 6, Align::Center)],
             vec![
                 c("Pool", 5, Align::Center),
-                c("Conf", 5, Align::Center),
+                c("Conf", 6, Align::Center),
                 c("Q(Cap)", 6, Align::Right),
-                c("Reason", 6, Align::Right),
-                c("Coding", 6, Align::Right),
-                c("Speed", 6, Align::Right),
-                c("Ctx", 6, Align::Right),
+                c("Arch", 6, Align::Right),
+                c("Dev", 6, Align::Right),
+                c("Rsch", 6, Align::Right),
+                c("$/Task", 6, Align::Right),
                 c("Price", 11, Align::Right),
             ],
         )
     } else {
         (
-            vec![c("Rank", 5, Align::Center)],
+            vec![c("Rank", 6, Align::Center)],
             vec![
                 c("Pool", 5, Align::Center),
-                c("Conf", 5, Align::Center),
+                c("Conf", 6, Align::Center),
                 c("Q(Cap)", 6, Align::Right),
-                c("Reason", 6, Align::Right),
-                c("Coding", 6, Align::Right),
-                c("Speed", 6, Align::Right),
-                c("Ctx", 6, Align::Right),
+                c("Arch", 6, Align::Right),
+                c("Dev", 6, Align::Right),
+                c("Dsgn", 6, Align::Right),
+                c("Rsch", 6, Align::Right),
+                c("$/Task", 6, Align::Right),
                 c("Price", 11, Align::Right),
                 c("Best Role", 14, Align::Left),
             ],
@@ -131,18 +129,22 @@ pub fn fixed_columns(max_table_w: usize) -> (Vec<Column>, Vec<Column>) {
 
 /// Full column list including the elastic Model column for `term_w`.
 pub fn columns_for(term_w: usize) -> Vec<Column> {
-    let margin = if term_w >= 90 { 1 } else { 0 };
+    let margin = usize::from(term_w >= 90);
     let max_table_w = term_w.saturating_sub(margin * 2 + 1);
     let (before, after) = fixed_columns(max_table_w);
     let n_cols = before.len() + 1 + after.len();
     let sep_w = 3 * n_cols + 1;
     let fixed_w: usize = before.iter().chain(after.iter()).map(|c| c.width).sum();
     let mut model_w = max_table_w.saturating_sub(sep_w + fixed_w).max(14);
-    if term_w >= 150 {
+    if term_w >= 155 {
         model_w = model_w.min(46);
     }
     let mut cols = before;
-    cols.push(Column { name: "Model", width: model_w, align: Align::Left });
+    cols.push(Column {
+        name: "Model",
+        width: model_w,
+        align: Align::Left,
+    });
     cols.extend(after);
     cols
 }
@@ -171,6 +173,12 @@ fn pool4(pool: &str) -> String {
     p.to_uppercase().chars().take(4).collect()
 }
 
+fn f1(v: Option<f64>) -> String {
+    v.filter(|x| x.is_finite())
+        .map(|x| format!("{x:.1}"))
+        .unwrap_or_else(|| "—".into())
+}
+
 pub fn cell_value(col: &str, m: &Model, rank: &str) -> String {
     let p = pillars(m);
     match col {
@@ -185,10 +193,16 @@ pub fn cell_value(col: &str, m: &Model, rank: &str) -> String {
         }
         "Pool" => pool4(&m.pool),
         "Conf" => conf_badge(p.coverage_count).to_string(),
-        "Q(Cap)" => m.quality().map(|q| format!("{q:.1}")).unwrap_or("—".into()),
-        "Reason" => p.reasoning.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-        "Coding" => p.coding.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-        "Speed" => p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or("—".into()),
+        "Q(Cap)" => f1(m.quality()),
+        "Arch" => f1(m.roles.architecture.or(p.reasoning)),
+        "Dev" => f1(m.roles.software_dev.or(p.coding)),
+        "Dsgn" => f1(m.roles.design.or(p.design)),
+        "Rsch" => f1(m.roles.research.or(p.research)),
+        "$/Task" => fmt_task_cost(m.task_cost()),
+        "Speed" => p
+            .speed
+            .map(|v| format!("{v:.0}t/s"))
+            .unwrap_or_else(|| "—".into()),
         "Ctx" => format_ctx(p.context_length.map(|v| v as f64)),
         "Price" => fmt_price_pair(m.price_in, m.price_out),
         "Best Role" => p.best_role,
@@ -199,7 +213,10 @@ pub fn cell_value(col: &str, m: &Model, rank: &str) -> String {
 fn row_style(selected: bool, pareto: bool, odd: bool) -> Style {
     if selected {
         if pareto {
-            Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().add_modifier(Modifier::REVERSED | Modifier::BOLD)
         }
@@ -214,9 +231,13 @@ fn row_style(selected: bool, pareto: bool, odd: bool) -> Style {
 
 fn header_text(app: &App) -> (String, String) {
     let total = app.filtered.len();
-    let start = if total == 0 { 0 } else { app.page * app.page_size + 1 };
+    let start = if total == 0 {
+        0
+    } else {
+        app.page * app.page_size + 1
+    };
     let end = ((app.page + 1) * app.page_size).min(total);
-    let title = "⚡ CHECKERZ · ONE-SHOT CAPABILITIES".to_string();
+    let title = "⚡ CHECKERZ · 5-AXIS & 4-ROLE RADAR".to_string();
     let right = format!(
         "[Page {}/{} · {start}–{end} of {total}] {} [{}] [{} {}]",
         app.page + 1,
@@ -230,9 +251,15 @@ fn header_text(app: &App) -> (String, String) {
 }
 
 fn info_text(app: &App) -> String {
-    let q = if app.query.is_empty() { "None ([/] filter)".to_string() } else { format!("\"{}\"", app.query) };
+    let q = if app.query.is_empty() {
+        "None ([/] filter)".to_string()
+    } else {
+        format!("\"{}\"", app.query)
+    };
     let pareto = if app.pareto_only { " [⭐ PARETO ONLY]" } else { "" };
-    let mut s = format!(" Filter: {q}{pareto} │ Upstream: LiveBench · LMSYS Arena · Artificial Analysis");
+    let mut s = format!(
+        " Filter: {q}{pareto} │ 7 Authorities: AA · Vals · Arena · LiveBench · FrontierCode · FrontierSWE · CursorBench"
+    );
     if app.unmatched_count > 0 {
         s.push_str(&format!(" · Unmatched: {}", app.unmatched_count));
     }
@@ -253,7 +280,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         return;
     }
     app.page_size = (h.saturating_sub(8)).max(5);
-    // Re-clamp page after a resize changed page_size.
     if !app.filtered.is_empty() {
         app.page = (app.cursor / app.page_size).min(app.total_pages() - 1);
     }
@@ -269,13 +295,20 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
     lines.push(Line::from(Span::styled(
         pad(&hdr, w.saturating_sub(1), Align::Left),
-        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Black)
+            .bg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
     )));
 
     if app.searching {
         lines.push(Line::from(Span::styled(
             pad(
-                &format!(" 🔍 Search: {}█  ({} matches)  — [Enter] commit, [Esc] cancel", app.query, app.filtered.len()),
+                &format!(
+                    " 🔍 Search: {}█  ({} matches)  — [Enter] commit, [Esc] cancel",
+                    app.query,
+                    app.filtered.len()
+                ),
                 w.saturating_sub(1),
                 Align::Left,
             ),
@@ -293,24 +326,34 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let start_x = (w.saturating_sub(tw)) / 2;
     let indent = " ".repeat(start_x);
     let inner = tw.saturating_sub(2);
-    lines.push(Line::from(Span::styled(format!("{indent}┌{}┐", "─".repeat(inner)), Style::default().add_modifier(Modifier::DIM))));
+    lines.push(Line::from(Span::styled(
+        format!("{indent}┌{}┐", "─".repeat(inner)),
+        Style::default().add_modifier(Modifier::DIM),
+    )));
     let hdr_cells: Vec<String> = cols.iter().map(|c| pad(c.name, c.width, c.align)).collect();
     lines.push(Line::from(Span::styled(
         format!("{indent}│ {} │", hdr_cells.join(" │ ")),
         Style::default().add_modifier(Modifier::BOLD),
     )));
-    lines.push(Line::from(Span::styled(format!("{indent}├{}┤", "─".repeat(inner)), Style::default().add_modifier(Modifier::DIM))));
+    lines.push(Line::from(Span::styled(
+        format!("{indent}├{}┤", "─".repeat(inner)),
+        Style::default().add_modifier(Modifier::DIM),
+    )));
 
     let page_start = app.page * app.page_size;
     for r in 0..app.page_size {
-        let y_full = lines.len();
-        let _ = y_full;
         if page_start + r >= app.filtered.len() {
             if r == 0 && app.filtered.is_empty() {
-                let msg = pad(" No models match current filter/pool. Press [Esc] to reset.", inner, Align::Left);
+                let msg = pad(
+                    " No models match current filter/pool. Press [Esc] to reset.",
+                    inner,
+                    Align::Left,
+                );
                 lines.push(Line::from(Span::styled(
                     format!("{indent}│{msg}│"),
-                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
                 )));
             } else {
                 lines.push(Line::from(Span::styled(
@@ -325,25 +368,32 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         let m = &app.all[mi];
         let pareto = app.is_pareto_idx(g);
         let rank = rank_str(g, pareto);
-        let cells: Vec<String> = cols.iter().map(|c| pad(&cell_value(c.name, m, &rank), c.width, c.align)).collect();
+        let cells: Vec<String> = cols
+            .iter()
+            .map(|c| pad(&cell_value(c.name, m, &rank), c.width, c.align))
+            .collect();
         let mark = if g == app.cursor { "▶" } else { "│" };
         lines.push(Line::from(Span::styled(
             format!("{indent}{mark} {} │", cells.join(" │ ")),
             row_style(g == app.cursor, pareto, r % 2 == 1),
         )));
     }
-    lines.push(Line::from(Span::styled(format!("{indent}└{}┘", "─".repeat(inner)), Style::default().add_modifier(Modifier::DIM))));
+    lines.push(Line::from(Span::styled(
+        format!("{indent}└{}┘", "─".repeat(inner)),
+        Style::default().add_modifier(Modifier::DIM),
+    )));
 
-    // Footer: status or keybindings.
     if !app.status.is_empty() {
         lines.push(Line::from(Span::styled(
             pad(&format!(" 🔔 {}", app.status), w.saturating_sub(1), Align::Left),
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )));
     } else {
         lines.push(Line::from(Span::styled(
             format!(
-                " [j/k] Move  [n/p] Page {}/{}  [Enter] Drawer  [R]oles  [d]iff  [b]ase  [P]areto  [e] 2/2  [c/r/s/$] Sort  [?] Help  [q]uit",
+                " [j/k] Move  [n/p] Page {}/{}  [Enter] Drawer  [R]oles  [d]iff  [P]areto  [e] 3+/7  [a/c/u/r/$] Sort  [?] Help  [q]uit",
                 app.page + 1,
                 app.total_pages()
             ),
@@ -351,28 +401,31 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         )));
     }
 
-    // Clip to screen height so Paragraph never scrolls the frame.
     lines.truncate(h);
     f.render_widget(Paragraph::new(lines), area);
 
     if app.inspecting {
         if let Some(m) = app.current() {
-            let rect = modal_rect(area, 92, 32);
+            let rect = modal_rect(area, 94, 34);
             let inner_w = rect.width.saturating_sub(4) as usize;
-            draw_modal(f, area, rect, drawer_lines(app, m, inner_w));
+            draw_modal(f, rect, drawer_lines(app, m, inner_w));
         }
     } else if app.showing_roles {
-        draw_modal(f, area, modal_rect(area, 86, 23), roles_lines(app));
+        draw_modal(f, modal_rect(area, 88, 23), roles_lines(app));
     } else if app.showing_diff {
-        draw_modal(f, area, modal_rect(area, 84, 22), diff_lines(app));
+        draw_modal(f, modal_rect(area, 86, 23), diff_lines(app));
     } else if app.showing_help {
-        draw_modal(f, area, modal_rect(area, 84, 23), help_lines());
+        draw_modal(f, modal_rect(area, 86, 24), help_lines());
     }
 }
 
 fn modal_rect(area: Rect, max_w: u16, max_h: u16) -> Rect {
-    let w = max_w.min(area.width.saturating_sub(4)).max(56);
-    let h = max_h.min(area.height.saturating_sub(2)).max(16);
+    let w = max_w
+        .min(area.width.saturating_sub(4))
+        .max(area.width.min(56));
+    let h = max_h
+        .min(area.height.saturating_sub(2))
+        .max(area.height.min(8));
     Rect {
         x: area.x + area.width.saturating_sub(w) / 2,
         y: area.y + area.height.saturating_sub(h) / 2,
@@ -381,24 +434,26 @@ fn modal_rect(area: Rect, max_w: u16, max_h: u16) -> Rect {
     }
 }
 
-fn draw_modal(f: &mut Frame, _area: Rect, rect: Rect, lines: Vec<Line<'static>>) {
+fn draw_modal(f: &mut Frame, rect: Rect, lines: Vec<Line<'static>>) {
     f.render_widget(Clear, rect);
     let block = Block::default().borders(Borders::ALL);
     let inner = block.inner(rect);
     f.render_widget(block, rect);
-    // Clip modal body to the inner rect.
     let max_rows = inner.height as usize;
     let mut clipped = lines;
     clipped.truncate(max_rows);
     f.render_widget(Paragraph::new(clipped), inner);
 }
 
-/// Wrap `" │ "`-joined cells to `inner_w` display columns.
 fn wrap_cells(cells: &[String], inner_w: usize) -> Vec<String> {
     let mut rows = Vec::new();
     let mut cur = String::new();
     for c in cells {
-        let piece = if cur.is_empty() { c.clone() } else { format!(" │ {c}") };
+        let piece = if cur.is_empty() {
+            c.clone()
+        } else {
+            format!(" │ {c}")
+        };
         if !cur.is_empty() && disp_width(&cur) + disp_width(&piece) > inner_w {
             rows.push(cur);
             cur = c.clone();
@@ -416,28 +471,48 @@ fn wrap_cells(cells: &[String], inner_w: usize) -> Vec<String> {
 
 fn short_id(s: &str, n: usize) -> String {
     let t: String = s.chars().take(n).collect();
-    if s.chars().count() > n { format!("{t}…") } else { t }
+    if s.chars().count() > n {
+        format!("{t}…")
+    } else {
+        t
+    }
 }
 
+#[allow(clippy::too_many_lines)]
 fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
     let p = pillars(m);
+    let bm = &m.base_metrics;
     let wide = inner_w >= 76;
-    let f1 = |v: Option<f64>, suffix: &str| {
+    let fmt_s = |v: Option<f64>, suffix: &str| {
         v.filter(|x| x.is_finite())
             .map(|x| format!("{x:.1}{suffix}"))
-            .unwrap_or("—".into())
+            .unwrap_or_else(|| "—".into())
     };
-    let disp = if m.display.is_empty() { "Unknown".to_string() } else { m.display.clone() };
+    let disp = if m.display.is_empty() {
+        "Unknown".to_string()
+    } else {
+        m.display.clone()
+    };
     let mut title = format!(" 🔍 {disp} [{}/{}]", app.cursor + 1, app.filtered.len());
+    if let Some(eff) = m.effort.as_deref().filter(|s| !s.is_empty()) {
+        title.push_str(&format!(" · Thinking: {}", eff.to_uppercase()));
+    }
     if m.is_new {
         title.push_str(" +NEW");
     }
     title.push_str(&format!(" {}", conf_badge(p.coverage_count)));
-    let mut out = vec![Line::from(Span::styled(title, Style::default().add_modifier(Modifier::BOLD)))];
+    let mut out = vec![Line::from(Span::styled(
+        title,
+        Style::default().add_modifier(Modifier::BOLD),
+    ))];
 
     out.push(Line::from(format!(
         "Provider: {} │ Pool: [{}] │ Tier: {}",
-        if m.provider.is_empty() { "Unknown" } else { &m.provider },
+        if m.provider.is_empty() {
+            "Unknown"
+        } else {
+            &m.provider
+        },
         pool4(&m.pool),
         if m.tier.is_empty() { "—" } else { &m.tier },
     )));
@@ -446,28 +521,112 @@ fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
     }
     if wide {
         out.push(Line::from(format!(
-            "Ctx: {} │ Speed: {} │ In/Out: {} │ Blended: {} │ Eff: {} │ TMult: {}",
+            "Ctx: {} │ Speed: {} │ In/Out: {} │ Blended: {} │ $/Task: {}",
             format_ctx(p.context_length.map(|v| v as f64)),
-            p.speed.map(|v| format!("{v:.0} t/s")).unwrap_or("—".into()),
+            p.speed
+                .map(|v| format!("{v:.0} t/s"))
+                .unwrap_or_else(|| "—".into()),
             fmt_price_pair(m.price_in, m.price_out),
-            m.blended_price.map(|v| format!("${v:.2}")).unwrap_or("—".into()),
-            m.effective_cost.map(|v| format!("${v:.2}")).unwrap_or("—".into()),
-            m.token_multiplier.map(|v| format!("×{v:.2}")).unwrap_or("—".into()),
+            m.blended_price
+                .map(|v| format!("${v:.2}"))
+                .unwrap_or_else(|| "—".into()),
+            fmt_task_cost(m.task_cost()),
         )));
     } else {
         out.push(Line::from(format!(
-            "Ctx: {} │ Spd: {} │ $/M: {}",
+            "Ctx: {} │ Spd: {} │ $/Task: {} │ $/M: {}",
             format_ctx(p.context_length.map(|v| v as f64)),
-            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or("—".into()),
-            fmt_price_pair(m.price_in, m.price_out)
+            p.speed
+                .map(|v| format!("{v:.0}t/s"))
+                .unwrap_or_else(|| "—".into()),
+            fmt_task_cost(m.task_cost()),
+            fmt_price_pair(m.price_in, m.price_out),
         )));
     }
 
-    out.push(Line::from(Span::styled("📊 BENCHMARK EVALUATIONS", Style::default().add_modifier(Modifier::BOLD))));
+    let active_auths: Vec<&str> = [
+        (p.has_aa, "AA"),
+        (p.has_vals, "Vals"),
+        (p.has_arena, "Arena"),
+        (p.has_live, "LiveBench"),
+        (p.has_fc2, "FrontierCode"),
+        (p.has_fswe, "FrontierSWE"),
+        (p.has_cursor, "CursorBench"),
+    ]
+    .into_iter()
+    .filter_map(|(ok, label)| ok.then_some(label))
+    .collect();
+    out.push(Line::from(Span::styled(
+        format!(
+            "📊 7-AUTHORITY EVALUATIONS ({})",
+            if active_auths.is_empty() {
+                "none".to_string()
+            } else {
+                active_auths.join(" · ")
+            }
+        ),
+        Style::default().add_modifier(Modifier::BOLD),
+    )));
+    out.push(Line::from(format!(
+        "• CursorBench 4.0: {} (Cost: {}, Steps: {}) │ FrontierCode 2.0: {} (Cost: {})",
+        fmt_s(bm.cursor_score, "%"),
+        fmt_task_cost(bm.cursor_cost),
+        fmt_s(bm.cursor_steps, ""),
+        fmt_s(bm.fc2_score, "%"),
+        fmt_task_cost(bm.fc2_cost),
+    )));
+    out.push(Line::from(format!(
+        "• FrontierSWE: {} (Impl: {}, Perf: {}, Rsch: {})",
+        fmt_s(bm.fswe_overall, "%"),
+        fmt_s(bm.fswe_impl, "%"),
+        fmt_s(bm.fswe_perf, "%"),
+        fmt_s(bm.fswe_research, "%"),
+    )));
+
+    let aa_q = m
+        .aa_live_quality
+        .filter(|v| v.is_finite())
+        .map(|v| format!("{v:.1} (live)"))
+        .or_else(|| {
+            bm.aa_quality
+                .filter(|v| v.is_finite())
+                .map(|v| format!("{v:.1} (static)"))
+        })
+        .unwrap_or_else(|| "—".into());
+    out.push(Line::from(format!(
+        "• AA v5: {aa_q} │ HLE: {} │ CritPt: {} │ TB-4: {} │ Non-Halluc: {} │ LCR: {}",
+        fmt_s(bm.aa_hle, "%"),
+        fmt_s(bm.aa_critpt, "%"),
+        fmt_s(bm.aa_tb4, "%"),
+        fmt_s(bm.aa_non_halluc, "%"),
+        fmt_s(bm.aa_lcr, "%"),
+    )));
+    out.push(Line::from(format!(
+        "• Vals Index: {} (Code: {}, Term: {}) │ Arena Elo: {} (Code: {}, WebDev: {})",
+        fmt_s(m.vals_overall, "%"),
+        fmt_s(m.vals_coding, "%"),
+        fmt_s(m.vals_terminal, "%"),
+        bm.lm_elo
+            .map(|v| format!("{v:.0}"))
+            .unwrap_or_else(|| "—".into()),
+        p.coding_elo
+            .map(|v| format!("{v}"))
+            .unwrap_or_else(|| "—".into()),
+        bm.lm_webdev_elo
+            .map(|v| format!("{v:.0}"))
+            .unwrap_or_else(|| "—".into()),
+    )));
+
     let lb = m.livebench.as_ref();
-    let ov = lb.and_then(|l| l.overall).map(|v| format!("{v:.1}%")).unwrap_or("—".into());
-    let lb_id = lb.and_then(|l| l.model.clone()).unwrap_or("—".into());
-    out.push(Line::from(format!("• LiveBench Overall: {ov} │ id: {}", short_id(&lb_id, 40))));
+    let ov = lb
+        .and_then(|l| l.overall)
+        .map(|v| format!("{v:.1}%"))
+        .unwrap_or_else(|| "—".into());
+    let lb_id = lb.and_then(|l| l.model.clone()).unwrap_or_else(|| "—".into());
+    out.push(Line::from(format!(
+        "• LiveBench Overall: {ov} │ id: {}",
+        short_id(&lb_id, 40)
+    )));
     if let Some(l) = lb {
         if !l.categories.is_empty() {
             let mut cats: Vec<(&String, &f64)> = l.categories.iter().collect();
@@ -477,66 +636,29 @@ fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
                 out.push(Line::from(format!("  {row}")));
             }
         }
-        // Top-level pillar legs not present in `categories`.
-        let mut extra = Vec::new();
-        if !l.categories.contains_key("Coding") {
-            if let Some(v) = l.coding.filter(|v| v.is_finite()) {
-                extra.push(format!("Coding: {v:.1}%"));
-            }
-        }
-        if !l.categories.contains_key("Reasoning") {
-            if let Some(v) = l.reasoning.filter(|v| v.is_finite()) {
-                extra.push(format!("Reasoning: {v:.1}%"));
-            }
-        }
-        for row in wrap_cells(&extra, inner_w.saturating_sub(2)) {
-            out.push(Line::from(format!("  {row}")));
-        }
-    }
-    let elo = m.base_metrics.lm_elo.map(|v| format!("{v:.0}")).unwrap_or("—".into());
-    let elo_c = p.coding_elo.map(|v| format!("{v}")).unwrap_or("—".into());
-    out.push(Line::from(format!("• LMSYS Arena Elo: {elo} (Coding: {elo_c})")));
-    let aa_q = m.aa_live_quality.filter(|v| v.is_finite()).map(|v| (v, "live"))
-        .or_else(|| m.base_metrics.aa_quality.filter(|v| v.is_finite()).map(|v| (v, "static")));
-    let aa_c = m.aa_live_coding.filter(|v| v.is_finite()).map(|v| (v, "live"))
-        .or_else(|| m.base_metrics.aa_coding.filter(|v| v.is_finite()).map(|v| (v, "static")));
-    let aa_r = m.base_metrics.aa_reasoning.filter(|v| v.is_finite()).map(|v| (v, "static"));
-    let aa_fmt = |(v, src): (f64, &str)| format!("{v:.1} ({src})");
-    if wide {
-        out.push(Line::from(format!(
-            "• AA Quality: {} │ Coding: {} │ Reasoning: {}",
-            aa_q.map(aa_fmt).unwrap_or("—".into()),
-            aa_c.map(aa_fmt).unwrap_or("—".into()),
-            aa_r.map(aa_fmt).unwrap_or("—".into()),
-        )));
-    } else {
-        out.push(Line::from(format!(
-            "• AA Q: {} │ Code: {}",
-            aa_q.map(aa_fmt).unwrap_or("—".into()),
-            aa_c.map(aa_fmt).unwrap_or("—".into()),
-        )));
     }
 
-    out.push(Line::from(Span::styled("📐 AGENTIC ECONOMETRICS & VALUE", Style::default().add_modifier(Modifier::BOLD))));
-    if wide {
-        out.push(Line::from(format!(
-            "• Q: {} │ Pass: {} │ FGI: {} │ AVI: {} │ BFI: {}",
-            f1(m.quality(), ""),
-            f1(m.p_success, "%"),
-            f1(m.fgi_score, ""),
-            f1(m.avi_score, ""),
-            f1(m.bfi_score, ""),
-        )));
-    } else {
-        out.push(Line::from(format!(
-            "• Q: {} │ Pass: {} │ AVI: {}",
-            f1(m.quality(), ""),
-            f1(m.p_success, "%"),
-            f1(m.avi_score, ""),
-        )));
-        out.push(Line::from(format!("• FGI: {} │ BFI: {}", f1(m.fgi_score, ""), f1(m.bfi_score, ""))));
-    }
-    out.push(Line::from(format!("• Role: {}", p.best_role)));
+    out.push(Line::from(Span::styled(
+        "🧭 5 SHRUNK AXES & 4 TASK ROLES",
+        Style::default().add_modifier(Modifier::BOLD),
+    )));
+    out.push(Line::from(format!(
+        "• Q: {} │ Axes -> Reason: {} │ Coding: {} │ Design: {} │ Research: {} │ Econ: {}",
+        fmt_s(m.quality(), ""),
+        fmt_s(p.reasoning, ""),
+        fmt_s(p.coding, ""),
+        fmt_s(p.design, ""),
+        fmt_s(p.research, ""),
+        fmt_s(p.economics, ""),
+    )));
+    out.push(Line::from(format!(
+        "• Roles -> 🏗️ Arch: {} │ 💻 Dev: {} │ 🎨 Dsgn: {} │ 🔬 Rsch: {} │ Best: {}",
+        fmt_s(m.roles.architecture, ""),
+        fmt_s(m.roles.software_dev, ""),
+        fmt_s(m.roles.design, ""),
+        fmt_s(m.roles.research, ""),
+        p.best_role,
+    )));
 
     let mut legs = Vec::new();
     if let Some(id) = m.model_id.as_deref().filter(|s| !s.is_empty()) {
@@ -552,7 +674,10 @@ fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
         legs.push(format!("aa: {}", short_id(a, 26)));
     }
     if !legs.is_empty() {
-        out.push(Line::from(Span::styled("🔗 MATCHED UPSTREAM IDS", Style::default().add_modifier(Modifier::BOLD))));
+        out.push(Line::from(Span::styled(
+            "🔗 MATCHED UPSTREAM IDS",
+            Style::default().add_modifier(Modifier::BOLD),
+        )));
         for row in wrap_cells(&legs, inner_w.saturating_sub(2)) {
             out.push(Line::from(format!("  {row}")));
         }
@@ -562,10 +687,16 @@ fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
     out.push(Line::from(Span::styled(
         format!(
             "• Frontier Status: {}",
-            if pareto { "⭐ UNDEFEATED (On Pareto Frontier)" } else { "Standard Efficiency Curve" }
+            if pareto {
+                "⭐ UNDEFEATED (On Priced $/Task Pareto Frontier)"
+            } else {
+                "Standard Efficiency Curve"
+            }
         ),
         if pareto {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().add_modifier(Modifier::DIM)
         },
@@ -579,26 +710,37 @@ fn drawer_lines(app: &App, m: &Model, inner_w: usize) -> Vec<Line<'static>> {
 
 fn roles_lines(app: &App) -> Vec<Line<'static>> {
     let mut out = vec![Line::from(Span::styled(
-        format!(" 🏆 TOP {} ROLE DISTRIBUTION & ARCHETYPES", app.filtered.len()),
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        format!(" 🏆 TOP {} TASK-ROLE RECOMMENDATIONS", app.filtered.len()),
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
     ))];
     if let Some(r) = &app.roles {
-        for role in [&r.architecture, &r.pair_programming, &r.daily_driver, &r.boilerplate] {
+        for role in [&r.architecture, &r.software_dev, &r.design, &r.research] {
             out.push(Line::from(Span::styled(
                 format!("{} {}", role.icon, role.title),
                 Style::default().add_modifier(Modifier::BOLD),
             )));
             out.push(Line::from(format!(
                 "  🥇 Top: {} {} ({:.1}, Q{:.0}) │ 🥈 Run: {} ({:.1})",
-                role.winner.name, role.winner.pool, role.winner.score, role.winner.q,
-                role.runner_up.name, role.runner_up.score
+                role.winner.name,
+                role.winner.pool,
+                role.winner.score,
+                role.winner.q,
+                role.runner_up.name,
+                role.runner_up.score
             )));
-            out.push(Line::from(Span::styled(role.desc, Style::default().add_modifier(Modifier::DIM))));
+            out.push(Line::from(Span::styled(
+                role.desc,
+                Style::default().add_modifier(Modifier::DIM),
+            )));
         }
     } else {
-        out.push(Line::from("Not enough scored models for role recommendations."));
+        out.push(Line::from(
+            "Not enough scored models for role recommendations.",
+        ));
     }
-    let cohort: Vec<Model> = app.filtered.iter().map(|&i| app.all[i].clone()).collect();
+    let cohort: Vec<&Model> = app.filtered.iter().map(|&i| &app.all[i]).collect();
     let (avg_q, med, par) = cohort_summary(&cohort, &app.pareto);
     out.push(Line::from(Span::styled(
         format!("📊 TOP {} COHORT SUMMARY", app.filtered.len()),
@@ -606,7 +748,11 @@ fn roles_lines(app: &App) -> Vec<Line<'static>> {
     )));
     out.push(Line::from(format!(
         "• Avg Q: {avg_q:.1} │ Median TPS: {med:.0} │ Pareto: {par} models │ Filter: {}",
-        if app.tri_only { "Dual-Verified (2/2)" } else { "All Models" }
+        if app.multi_only {
+            "Multi-Source (3+/7)"
+        } else {
+            "All Models"
+        }
     )));
     out.push(Line::from(Span::styled(
         "Press [Esc], [q], or [R] to close",
@@ -617,7 +763,7 @@ fn roles_lines(app: &App) -> Vec<Line<'static>> {
 
 fn diff_lines(app: &App) -> Vec<Line<'static>> {
     let mut out = vec![Line::from(Span::styled(
-        " ⚔️ SIDE-BY-SIDE CAPABILITY DIFF",
+        " ⚔️ SIDE-BY-SIDE CAPABILITY & ROLE DIFF",
         Style::default().add_modifier(Modifier::BOLD),
     ))];
     let (Some(cur), Some(base)) = (app.current(), app.baseline_model()) else {
@@ -637,18 +783,50 @@ fn diff_lines(app: &App) -> Vec<Line<'static>> {
     let pb = pillars(base);
     let rows: Vec<(&str, Option<f64>, Option<f64>, bool)> = vec![
         ("Capability Q", cur.quality(), base.quality(), false),
-        ("1-Turn Pass Rate", cur.p_success, base.p_success, false),
-        ("Reasoning %", pc.reasoning, pb.reasoning, false),
-        ("Coding %", pc.coding, pb.coding, false),
-        ("Speed Throughput", pc.speed, pb.speed, false),
-        ("Context Window", pc.context_length.map(|v| v as f64), pb.context_length.map(|v| v as f64), false),
+        (
+            "Role: Architecture",
+            cur.roles.architecture.or(pc.reasoning),
+            base.roles.architecture.or(pb.reasoning),
+            false,
+        ),
+        (
+            "Role: Software Dev",
+            cur.roles.software_dev.or(pc.coding),
+            base.roles.software_dev.or(pb.coding),
+            false,
+        ),
+        (
+            "Role: Design",
+            cur.roles.design.or(pc.design),
+            base.roles.design.or(pb.design),
+            false,
+        ),
+        (
+            "Role: Research",
+            cur.roles.research.or(pc.research),
+            base.roles.research.or(pb.research),
+            false,
+        ),
+        (
+            "CursorBench 4.0 %",
+            cur.base_metrics.cursor_score,
+            base.base_metrics.cursor_score,
+            false,
+        ),
+        (
+            "FrontierCode 2.0 %",
+            cur.base_metrics.fc2_score,
+            base.base_metrics.fc2_score,
+            false,
+        ),
+        ("Speed TPS", pc.speed, pb.speed, false),
+        ("Empirical $/Task", cur.task_cost(), base.task_cost(), true),
         ("Prompt Price $/M", cur.price_in, base.price_in, true),
-        ("Effective Task Cost", cur.effective_cost, base.effective_cost, true),
     ];
     for (label, vc, vb, lower_better) in rows {
         let (sc, sb) = (
-            vc.map(|v| format!("{v:.1}")).unwrap_or("—".into()),
-            vb.map(|v| format!("{v:.1}")).unwrap_or("—".into()),
+            vc.map(|v| format!("{v:.2}")).unwrap_or_else(|| "—".into()),
+            vb.map(|v| format!("{v:.2}")).unwrap_or_else(|| "—".into()),
         );
         let (adv, style) = match (vc, vb) {
             (Some(c), Some(b)) if c.is_finite() && b.is_finite() => {
@@ -657,12 +835,14 @@ fn diff_lines(app: &App) -> Vec<Line<'static>> {
                     ("Tied".to_string(), Style::default().add_modifier(Modifier::DIM))
                 } else if (d > 0.0) != lower_better {
                     (
-                        format!("+{:.1} (Sel)", d.abs()),
-                        Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+                        format!("+{:.2} (Sel)", d.abs()),
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
                     )
                 } else {
                     (
-                        format!("+{:.1} (Base)", d.abs()),
+                        format!("+{:.2} (Base)", d.abs()),
                         Style::default().fg(Color::Cyan),
                     )
                 }
@@ -683,30 +863,32 @@ fn diff_lines(app: &App) -> Vec<Line<'static>> {
 
 fn help_lines() -> Vec<Line<'static>> {
     let mut out = vec![Line::from(Span::styled(
-        " 🧭 CHECKERZ · SHORTCUTS & CAPABILITY GUIDE",
+        " 🧭 CHECKERZ · SHORTCUTS & 7-AUTHORITY GUIDE",
         Style::default().add_modifier(Modifier::BOLD),
     ))];
     for (keys, desc) in [
         ("j / k, ↓ / ↑", "Move cursor through models"),
         ("n / p, ] / [", "Next / Previous page (or PgDn / PgUp)"),
         ("g / G, Home/End", "Jump to top / bottom"),
-        ("Enter / Space", "Open Capability Breakdown Drawer"),
-        ("R", "Top-50 Role Distribution & Archetypes"),
-        ("d", "Side-by-side Capability Diff vs Baseline"),
-        ("b", "Pin highlighted model as Baseline [B]"),
-        ("e", "Toggle Dual-Verified (2/2) vs All Evaluated"),
-        ("P", "Toggle Pareto Frontier filter (⭐ only)"),
-        ("/", "Live Search by name/provider/alias (Esc cancels)"),
-        ("Tab / 1-6", "Filter by pool (ALL, AGY, CLD, OCG, FRT, API)"),
+        ("Enter / Space", "Open 7-Authority & 5-Axis Drawer"),
+        ("R", "Task-Role Recommendations (Arch, Dev, Design, Research)"),
+        ("d / b", "Side-by-side Diff vs Baseline / Pin Baseline [B]"),
+        ("e", "Toggle Multi-Source (3+/7) vs All Evaluated"),
+        ("P", "Toggle Priced $/Task Pareto Frontier filter (⭐ only)"),
+        ("/", "Live Search by name/effort/provider/alias (Esc cancels)"),
+        ("Tab / 1-8", "Filter by pool (ALL, AGY, CLD, OCG, FRT, API, HTZ, NVD)"),
         ("Esc", "Clear search or reset filters + sort"),
-        ("c / r / s", "Sort by Coding / Reasoning / Speed"),
-        ("x / $ / v", "Sort by Context / Price $/M / AVI"),
-        ("S", "Cycle through all sort criteria"),
+        ("a / c / u / r", "Sort by Arch / Soft Dev / Design / Research"),
+        ("$ / s / x / v", "Sort by $/Task / Speed / Context / AVI"),
+        ("S / o", "Cycle through all sort criteria (incl. Cursor & FC2)"),
         ("m / h", "Export Markdown / HTML to docs/reports/"),
         ("q", "Quit back to terminal"),
     ] {
         out.push(Line::from(vec![
-            Span::styled(format!("{keys:<16}"), Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{keys:<16}"),
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("• {desc}")),
         ]));
     }
@@ -717,17 +899,31 @@ fn help_lines() -> Vec<Line<'static>> {
     out
 }
 
-/// Plain-text fallback table for non-TTY stdout (parity with the Python
-/// `run_tui` non-tty path, which printed the one-shot CLI table).
+/// Plain-text fallback table for non-TTY stdout.
 pub fn render_text(app: &App) -> String {
     let mut out = vec![format!(
-        "CHECKERZ · ONE-SHOT CAPABILITIES — {} models{}",
+        "CHECKERZ · 5-AXIS & 4-ROLE RADAR — {} models{}",
         app.filtered.len(),
-        if app.stale_note.is_empty() { String::new() } else { format!(" · ⚠ {}", app.stale_note) }
+        if app.stale_note.is_empty() {
+            String::new()
+        } else {
+            format!(" · ⚠ {}", app.stale_note)
+        }
     )];
     out.push(format!(
-        "{:<5} {:<32} {:<5} {:<6} {:>6} {:>7} {:>7} {:>8} {:>6} {:>11} {}",
-        "Rank", "Model", "Pool", "Conf", "Q", "Reason", "Coding", "Speed", "Ctx", "Price", "Best Role"
+        "{:<6} {:<30} {:<5} {:<6} {:>6} {:>6} {:>6} {:>6} {:>6} {:>8} {:>11} {}",
+        "Rank",
+        "Model",
+        "Pool",
+        "Conf",
+        "Q",
+        "Arch",
+        "Dev",
+        "Dsgn",
+        "Rsch",
+        "$/Task",
+        "Price",
+        "Best Role"
     ));
     for (g, &mi) in app.filtered.iter().enumerate() {
         let m = &app.all[mi];
@@ -737,22 +933,30 @@ pub fn render_text(app: &App) -> String {
             rank = format!("⭐{rank}");
         }
         out.push(format!(
-            "{:<5} {:<32} {:<5} {:<6} {:>6} {:>7} {:>7} {:>8} {:>6} {:>11} {}",
-            rank,
-            format!("{}{}", if m.is_new { "+" } else { "" }, m.display.chars().take(31).collect::<String>()),
+            "{} {:<30} {:<5} {:<6} {:>6} {:>6} {:>6} {:>6} {:>6} {:>8} {:>11} {}",
+            pad(&rank, 6, Align::Left),
+            format!(
+                "{}{}",
+                if m.is_new { "+" } else { "" },
+                m.display.chars().take(29).collect::<String>()
+            ),
             pool4(&m.pool),
             conf_badge(p.coverage_count),
-            m.quality().map(|q| format!("{q:.1}")).unwrap_or("—".into()),
-            p.reasoning.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.coding.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or("—".into()),
-            format_ctx(p.context_length.map(|v| v as f64)),
+            f1(m.quality()),
+            f1(m.roles.architecture.or(p.reasoning)),
+            f1(m.roles.software_dev.or(p.coding)),
+            f1(m.roles.design.or(p.design)),
+            f1(m.roles.research.or(p.research)),
+            fmt_task_cost(m.task_cost()),
             fmt_price_pair(m.price_in, m.price_out),
             p.best_role,
         ));
     }
     if app.unmatched_count > 0 {
-        out.push(format!("Unmatched (no benchmark signals): {}", app.unmatched_count));
+        out.push(format!(
+            "Unmatched (no benchmark signals): {}",
+            app.unmatched_count
+        ));
     }
     out.join("\n")
 }
@@ -762,13 +966,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn breakpoints_match_python_sets() {
-        // Compact / standard / enhanced / pricing / full.
+    fn breakpoints_match_responsive_sets() {
         assert_eq!(fixed_columns(70).1.len(), 3);
         assert_eq!(fixed_columns(80).1.len(), 6);
         assert_eq!(fixed_columns(100).1.len(), 7);
         assert_eq!(fixed_columns(120).1.len(), 8);
-        assert_eq!(fixed_columns(140).1.len(), 9);
+        assert_eq!(fixed_columns(140).1.len(), 10);
     }
 
     #[test]
@@ -783,6 +986,16 @@ mod tests {
     fn pad_is_width_exact_with_emoji() {
         assert_eq!(disp_width(&pad("🥇#1", 6, Align::Center)), 6);
         assert_eq!(disp_width(&pad("⭐🥇#1 long name here", 6, Align::Left)), 6);
+        assert_eq!(disp_width(&pad("🏗️ Architect", 14, Align::Left)), 14);
+        assert_eq!(pad("⭐🥇#1", 6, Align::Center), "⭐🥇#1");
+    }
+
+    #[test]
+    fn modal_rect_fits_minimum_terminal() {
+        let small = Rect::new(0, 0, 60, 12);
+        let r = modal_rect(small, 92, 32);
+        assert!(r.height <= small.height);
+        assert!(r.width <= small.width);
     }
 
     #[test]
@@ -816,7 +1029,13 @@ mod tests {
         let backend = TestBackend::new(140, 40);
         let mut terminal = Terminal::new(backend).unwrap();
         terminal.draw(|f| draw(f, &mut app)).unwrap();
-        let text: String = terminal.backend().buffer().content().iter().map(|c| c.symbol()).collect();
+        let text: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
         assert!(text.contains("CHECKERZ"), "header missing");
         assert!(text.contains("Alpha"), "row missing");
         assert!(text.contains("Beta"), "row missing");
@@ -824,77 +1043,91 @@ mod tests {
     }
 
     #[test]
-    fn drawer_shows_all_benchmark_data() {
+    fn drawer_shows_seven_authorities_and_roles() {
         use crate::app::{partition_matched, App};
-        use crate::model::{BaseMetrics, Livebench, Model};
+        use crate::model::{Axes, BaseMetrics, Livebench, Model, Roles};
         let m = Model {
-            display: "Rich Model".into(),
-            model_id: Some("rich-model".into()),
-            provider: "Test".into(),
-            pool: "api".into(),
+            display: "Gemini 4 Carbon (High)".into(),
+            effort: Some("high".into()),
+            model_id: Some("gemini-4-carbon-high".into()),
+            provider: "Google".into(),
+            pool: "agy".into(),
             tier: "Flagship".into(),
-            sub_cost: Some("Pro Plan".into()),
-            price_in: Some(1.0),
-            price_out: Some(2.0),
-            blended_price: Some(1.2),
-            effective_cost: Some(1.4),
-            token_multiplier: Some(1.14),
-            capability_q: Some(90.0),
-            p_success: Some(80.0),
-            avi_score: Some(300.0),
-            bfi_score: Some(9.9),
-            fgi_score: Some(70.0),
+            sub_cost: Some("AGY Plan".into()),
+            price_in: Some(4.0),
+            price_out: Some(20.0),
+            blended_price: Some(7.2),
+            empirical_cost: Some(7.2),
+            effective_cost: Some(7.2),
+            capability_q: Some(88.9),
+            axes: Axes {
+                reasoning: Some(94.8),
+                coding: Some(89.7),
+                design: Some(91.4),
+                research: Some(87.0),
+                economics: Some(71.2),
+            },
+            roles: Roles {
+                architecture: Some(90.1),
+                software_dev: Some(85.4),
+                design: Some(87.1),
+                research: Some(88.7),
+            },
+            best_role: Some("🏗️ Architect".into()),
             is_new: true,
-            aa_live_quality: Some(46.0),
-            aa_live_coding: Some(61.0),
-            context_length: Some(200000.0),
+            aa_live_quality: Some(60.0),
+            context_length: Some(1_000_000.0),
             live_aliases: vec!["rich-live-id".into()],
             lm_aliases: vec!["rich-arena-id".into()],
             aa_aliases: vec!["rich-aa-id".into()],
             livebench: Some(Livebench {
                 model: Some("upstream-rich-id".into()),
                 overall: Some(80.0),
-                categories: [
-                    ("Reasoning".into(), 90.0),
-                    ("Coding".into(), 80.0),
-                    ("Data Analysis".into(), 75.0),
-                    ("Language".into(), 88.0),
-                ]
-                .into_iter()
-                .collect(),
+                categories: [("Reasoning".into(), 90.0), ("Data Analysis".into(), 75.0)]
+                    .into_iter()
+                    .collect(),
                 ..Default::default()
             }),
             base_metrics: BaseMetrics {
-                speed_tps: Some(100.0),
-                lm_elo: Some(1500.0),
-                lm_coding: Some(1480.0),
-                aa_quality: Some(45.0),
-                aa_coding: Some(60.0),
+                speed_tps: Some(66.0),
+                lm_elo: Some(1768.0),
+                lm_coding: Some(1792.0),
+                cursor_score: Some(60.4),
+                cursor_cost: Some(9.22),
+                fc2_score: Some(42.6),
+                fc2_cost: Some(5.06),
+                fswe_overall: Some(61.2),
+                aa_hle: Some(69.1),
                 ..Default::default()
             },
             ..Default::default()
         };
         let (matched, unmatched) = partition_matched(vec![m, rich_peer()]);
         let app = App::new(matched, unmatched, true, 50, String::new());
-        let text: String = drawer_lines(&app, &app.all[app.filtered[0]], 88)
+        let text: String = drawer_lines(&app, &app.all[app.filtered[0]], 90)
             .iter()
-            .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect::<Vec<_>>().join(""))
+            .map(|l| {
+                l.spans
+                    .iter()
+                    .map(|s| s.content.as_ref())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
             .collect::<Vec<_>>()
             .join("\n");
         for want in [
+            "Thinking: HIGH",
+            "CursorBench 4.0: 60.4%",
+            "FrontierCode 2.0: 42.6%",
+            "FrontierSWE: 61.2%",
+            "HLE: 69.1%",
             "Data Analysis: 75.0%",
-            "Language: 88.0%",
-            "BFI: 9.9",
-            "Blended: $1.20",
-            "TMult: ×1.14",
-            "Pro Plan",
+            "Arch: 90.1",
+            "Dev: 85.4",
+            "AGY Plan",
             "upstream-rich-id",
             "rich-live-id",
-            "rich-arena-id",
-            "rich-aa-id",
-            "(live)",
             "+NEW",
-            "1480",
         ] {
             assert!(text.contains(want), "drawer missing {want}:\n{text}");
         }

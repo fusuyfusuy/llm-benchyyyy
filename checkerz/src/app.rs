@@ -1,27 +1,25 @@
 //! App state: filters, sorting, pagination, modal flags.
-//!
-//! Ports `TUIState` (`checkers/benchmark_tui.py`) with three deliberate fixes:
-//! - Pareto membership via [`crate::scoring::is_pareto`] (all stable-id legs),
-//!   never display-only (audit §1.9).
-//! - Price sort keys on `effective_cost` (else `price_in`), unknown → `999.0`
-//!   like the bcheck CLI — not `price_in`-only `9999.0` (seams S6).
-//! - Search also matches alias legs; Esc during search restores the
-//!   pre-search query (audit §4.2a); main-loop Esc also resets sort and says so.
 
 use crate::model::{pillars, Model};
-use crate::scoring::{compute_priced_pareto_frontier, compute_role_recommendations, is_pareto, RoleRecs};
+use crate::scoring::{
+    compute_priced_pareto_frontier, compute_role_recommendations, is_pareto, RoleRecs,
+};
 use std::collections::HashSet;
 
-pub const POOLS: [&str; 6] = ["all", "agy", "claude", "ocgo", "frontier", "api"];
+pub const POOLS: [&str; 8] = [
+    "all", "agy", "claude", "ocgo", "frontier", "api", "hetzner", "nvidia",
+];
 
 pub fn pool_label(pool: &str) -> String {
     match pool {
         "all" => "ALL".to_string(),
-        "agy" => "AGY (Gemini)".to_string(),
+        "agy" => "AGY (Gemini/Claude)".to_string(),
         "claude" => "CLAUDE".to_string(),
         "ocgo" => "OPENCODE".to_string(),
         "frontier" => "FRONTIER".to_string(),
         "api" => "API".to_string(),
+        "hetzner" => "HETZNER".to_string(),
+        "nvidia" => "NVIDIA".to_string(),
         other => other.to_uppercase(),
     }
 }
@@ -29,8 +27,12 @@ pub fn pool_label(pool: &str) -> String {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortKey {
     Composite,
+    Architecture,
     Coding,
-    Reasoning,
+    Design,
+    Research,
+    Cursor,
+    FrontierCode,
     Speed,
     Ctx,
     Price,
@@ -40,43 +42,71 @@ pub enum SortKey {
 impl SortKey {
     pub fn label(self) -> &'static str {
         match self {
-            SortKey::Composite => "COMPOSITE",
-            SortKey::Coding => "CODING",
-            SortKey::Reasoning => "REASONING",
+            SortKey::Composite => "Q(CAP)",
+            SortKey::Architecture => "ARCH",
+            SortKey::Coding => "SOFT DEV",
+            SortKey::Design => "DESIGN",
+            SortKey::Research => "RESEARCH",
+            SortKey::Cursor => "CURSOR",
+            SortKey::FrontierCode => "FC2",
             SortKey::Speed => "SPEED",
             SortKey::Ctx => "CTX",
-            SortKey::Price => "PRICE",
+            SortKey::Price => "$/TASK",
             SortKey::Avi => "AVI",
         }
     }
 
     pub fn cycle_next(self) -> SortKey {
         match self {
-            SortKey::Composite => SortKey::Coding,
-            SortKey::Coding => SortKey::Reasoning,
-            SortKey::Reasoning => SortKey::Speed,
+            SortKey::Composite => SortKey::Architecture,
+            SortKey::Architecture => SortKey::Coding,
+            SortKey::Coding => SortKey::Design,
+            SortKey::Design => SortKey::Research,
+            SortKey::Research => SortKey::Cursor,
+            SortKey::Cursor => SortKey::FrontierCode,
+            SortKey::FrontierCode => SortKey::Price,
+            SortKey::Price => SortKey::Speed,
             SortKey::Speed => SortKey::Ctx,
-            SortKey::Ctx => SortKey::Price,
-            SortKey::Price => SortKey::Avi,
+            SortKey::Ctx => SortKey::Avi,
             SortKey::Avi => SortKey::Composite,
+        }
+    }
+
+    pub fn from_cli(s: &str) -> Option<SortKey> {
+        match s.trim().to_lowercase().as_str() {
+            "composite" | "q" => Some(SortKey::Composite),
+            "arch" | "architecture" => Some(SortKey::Architecture),
+            "dev" | "coding" | "software_dev" => Some(SortKey::Coding),
+            "design" => Some(SortKey::Design),
+            "research" | "rsch" => Some(SortKey::Research),
+            "cursor" => Some(SortKey::Cursor),
+            "fc2" | "frontiercode" => Some(SortKey::FrontierCode),
+            "speed" | "tps" => Some(SortKey::Speed),
+            "ctx" | "context" => Some(SortKey::Ctx),
+            "price" | "cost" | "empirical_cost" => Some(SortKey::Price),
+            "avi" => Some(SortKey::Avi),
+            _ => None,
         }
     }
 }
 
-/// Sort value for one row. Price uses the effective-cost basis (else blended,
+/// Sort value for one row. Price uses empirical/effective $/task (else blended,
 /// else prompt rate), unknown sinks to 999.0; every other key sinks missing to 0.0.
 pub fn sort_value(m: &Model, key: SortKey) -> f64 {
     let p = pillars(m);
     let finite_or = |v: Option<f64>, dflt: f64| v.filter(|x| x.is_finite()).unwrap_or(dflt);
     match key {
         SortKey::Composite => finite_or(m.quality(), 0.0),
-        SortKey::Coding => finite_or(p.coding, 0.0),
-        SortKey::Reasoning => finite_or(p.reasoning, 0.0),
+        SortKey::Architecture => finite_or(m.roles.architecture.or(p.reasoning), 0.0),
+        SortKey::Coding => finite_or(m.roles.software_dev.or(p.coding), 0.0),
+        SortKey::Design => finite_or(m.roles.design.or(p.design), 0.0),
+        SortKey::Research => finite_or(m.roles.research.or(p.research), 0.0),
+        SortKey::Cursor => finite_or(m.base_metrics.cursor_score, 0.0),
+        SortKey::FrontierCode => finite_or(m.base_metrics.fc2_score, 0.0),
         SortKey::Speed => finite_or(p.speed, 0.0),
         SortKey::Ctx => p.context_length.map(|v| v as f64).unwrap_or(0.0),
         SortKey::Price => m
-            .effective_cost
-            .filter(|v| v.is_finite())
+            .task_cost()
             .or_else(|| m.blended_price.filter(|v| v.is_finite()))
             .or_else(|| m.price_in.filter(|v| v.is_finite()))
             .unwrap_or(999.0),
@@ -92,10 +122,14 @@ fn matches_search(m: &Model, q: &str) -> bool {
     if hit(&m.display) || hit(&m.provider) {
         return true;
     }
-    if m.model_id.as_deref().is_some_and(&hit) {
+    if m.effort.as_deref().is_some_and(hit) || m.model_id.as_deref().is_some_and(hit) {
         return true;
     }
-    m.aa_aliases.iter().chain(&m.lm_aliases).chain(&m.live_aliases).any(|a| hit(a))
+    m.aa_aliases
+        .iter()
+        .chain(&m.lm_aliases)
+        .chain(&m.live_aliases)
+        .any(|a| hit(a))
 }
 
 pub struct App {
@@ -111,7 +145,7 @@ pub struct App {
     /// `true` = descending (ascending for Price — same inversion as Python).
     pub sort_desc: bool,
     pub pool: String,
-    pub tri_only: bool,
+    pub multi_only: bool,
     pub top_limit: usize, // 0 = unlimited
     pub pareto_only: bool,
     pub query: String,
@@ -130,7 +164,7 @@ impl App {
     pub fn new(
         all: Vec<Model>,
         unmatched_count: usize,
-        tri_only: bool,
+        multi_only: bool,
         top_limit: usize,
         stale_note: String,
     ) -> Self {
@@ -146,7 +180,7 @@ impl App {
             sort_key: SortKey::Composite,
             sort_desc: true,
             pool: "all".to_string(),
-            tri_only,
+            multi_only,
             top_limit,
             pareto_only: false,
             query: String::new(),
@@ -186,8 +220,8 @@ impl App {
     pub fn apply_filters(&mut self) {
         let mut rows: Vec<usize> = (0..self.all.len()).collect();
 
-        if self.tri_only {
-            rows.retain(|&i| pillars(&self.all[i]).coverage_count >= 2);
+        if self.multi_only {
+            rows.retain(|&i| pillars(&self.all[i]).coverage_count >= 3);
         }
         if self.pool != "all" {
             rows.retain(|&i| self.all[i].pool.to_lowercase() == self.pool);
@@ -212,7 +246,7 @@ impl App {
         });
 
         if self.pareto_only {
-            let tmp: Vec<Model> = rows.iter().map(|&i| self.all[i].clone()).collect();
+            let tmp: Vec<&Model> = rows.iter().map(|&i| &self.all[i]).collect();
             let set = compute_priced_pareto_frontier(&tmp);
             rows.retain(|&i| is_pareto(&self.all[i], &set));
         }
@@ -222,13 +256,9 @@ impl App {
         }
         self.filtered = rows;
 
-        let cohort: Vec<Model> = self.filtered.iter().map(|&i| self.all[i].clone()).collect();
+        let cohort: Vec<&Model> = self.filtered.iter().map(|&i| &self.all[i]).collect();
         self.pareto = compute_priced_pareto_frontier(&cohort);
-        self.roles = if cohort.len() >= 2 {
-            compute_role_recommendations(&cohort)
-        } else {
-            None
-        };
+        self.roles = compute_role_recommendations(&cohort);
 
         if self.baseline >= self.filtered.len() {
             self.baseline = 0;
@@ -246,8 +276,8 @@ impl App {
         if self.filtered.is_empty() {
             return;
         }
-        let next = (self.cursor as isize + delta)
-            .clamp(0, self.filtered.len() as isize - 1) as usize;
+        let next =
+            (self.cursor as isize + delta).clamp(0, self.filtered.len() as isize - 1) as usize;
         self.cursor = next;
         self.page = self.cursor / self.page_size;
     }
@@ -277,15 +307,15 @@ impl App {
         self.status = format!("Filtered pool: {}", pool_label(&self.pool));
     }
 
-    pub fn toggle_tri(&mut self) {
-        self.tri_only = !self.tri_only;
+    pub fn toggle_multi(&mut self) {
+        self.multi_only = !self.multi_only;
         self.page = 0;
         self.cursor = 0;
         self.apply_filters();
-        self.status = if self.tri_only {
-            "Coverage Filter: Dual-Verified (2/2 Only)".to_string()
+        self.status = if self.multi_only {
+            "Coverage Filter: Multi-Source (3+/7 Only)".to_string()
         } else {
-            "Coverage Filter: All Evaluated Models (2/2 · 1/2*)".to_string()
+            "Coverage Filter: All Evaluated Models (7/7 .. 1/7*)".to_string()
         };
     }
 
@@ -323,7 +353,7 @@ impl App {
     pub fn pin_baseline(&mut self) {
         if let Some(&mi) = self.filtered.get(self.cursor) {
             self.baseline = self.cursor;
-            let disp: String = self.all[mi].display.chars().take(22).collect();
+            let disp: String = self.all[mi].display.chars().take(26).collect();
             self.status = format!("Pinned diff baseline: #{} {disp}", self.cursor + 1);
         }
     }
@@ -339,8 +369,6 @@ impl App {
         self.apply_filters();
     }
 
-    /// Esc during search: discard the in-progress query, restore the
-    /// pre-search filter (Python kept the half-typed filter — §4.2a).
     pub fn cancel_search(&mut self) {
         self.query = std::mem::take(&mut self.search_backup);
         self.searching = false;
@@ -358,7 +386,6 @@ impl App {
         self.apply_filters();
     }
 
-    /// Main-loop Esc: reset query + pool + pareto + sort, and say exactly that.
     pub fn reset_filters(&mut self) {
         self.query.clear();
         self.pool = "all".to_string();
@@ -378,7 +405,11 @@ impl App {
     }
 
     pub fn coverage_label(&self) -> &'static str {
-        if self.tri_only { "[2/2 Only]" } else { "[All Models]" }
+        if self.multi_only {
+            "[3+/7 Only]"
+        } else {
+            "[All Models]"
+        }
     }
 
     pub fn is_pareto_idx(&self, filtered_pos: usize) -> bool {
@@ -388,8 +419,7 @@ impl App {
     }
 }
 
-/// Split loaded rows into matched (any benchmark signal) + unmatched count.
-/// Honors a precomputed `unmatched` flag, else mirrors bcheck `main()`.
+/// Split loaded rows into matched (any of the 7 benchmark signals) + unmatched count.
 pub fn partition_matched(models: Vec<Model>) -> (Vec<Model>, usize) {
     let mut matched = Vec::with_capacity(models.len());
     let mut unmatched = 0;
@@ -398,8 +428,7 @@ pub fn partition_matched(models: Vec<Model>) -> (Vec<Model>, usize) {
             unmatched += 1;
             continue;
         }
-        let p = pillars(&m);
-        if p.has_arena || p.has_aa || p.has_vals {
+        if pillars(&m).coverage_count > 0 {
             matched.push(m);
         } else {
             unmatched += 1;
@@ -461,28 +490,45 @@ mod tests {
     }
 
     #[test]
-    fn tri_default_excludes_partial() {
+    fn multi_default_excludes_partial() {
         let a = app();
         assert_eq!(a.filtered.len(), 3);
-        assert_eq!(a.unmatched_count, 0); // single-signal row is matched (count==1), just not dual
-        assert!(a.filtered.iter().all(|&i| pillars(&a.all[i]).coverage_count == 2));
+        assert_eq!(a.unmatched_count, 0);
+        assert!(
+            a.filtered
+                .iter()
+                .all(|&i| pillars(&a.all[i]).coverage_count >= 3)
+        );
     }
 
     #[test]
-    fn partition_counts_signal_less_rows() {
+    fn partition_counts_signal_less_rows_and_keeps_cursor_only_rows() {
+        let cursor_only = Model {
+            display: "Cursor Specialist".into(),
+            capability_q: Some(85.0),
+            base_metrics: BaseMetrics {
+                cursor_score: Some(58.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
         let models = vec![
             tri("Alpha", 95.0, 9.0, "claude"),
-            Model { display: "Ghost".into(), ..Default::default() },
+            cursor_only,
+            Model {
+                display: "Ghost".into(),
+                ..Default::default()
+            },
         ];
         let (matched, unmatched) = partition_matched(models);
-        assert_eq!(matched.len(), 1);
+        assert_eq!(matched.len(), 2);
         assert_eq!(unmatched, 1);
     }
 
     #[test]
-    fn toggle_tri_includes_partial() {
+    fn toggle_multi_includes_partial() {
         let mut a = app();
-        a.toggle_tri();
+        a.toggle_multi();
         assert_eq!(a.filtered.len(), 4);
     }
 
@@ -500,7 +546,10 @@ mod tests {
 
     #[test]
     fn search_matches_alias_and_cancel_restores() {
-        let mut models = vec![tri("Alpha", 95.0, 9.0, "claude"), tri("Beta", 85.0, 1.0, "agy")];
+        let mut models = vec![
+            tri("Alpha", 95.0, 9.0, "claude"),
+            tri("Beta", 85.0, 1.0, "agy"),
+        ];
         models[0].aa_aliases = vec!["secret-alias-xyz".into()];
         let (matched, _) = partition_matched(models);
         let mut a = App::new(matched, 0, true, 50, String::new());
@@ -530,13 +579,16 @@ mod tests {
 
     #[test]
     fn price_sort_unknown_sinks() {
-        let mut models = vec![tri("Cheap", 80.0, 0.5, "api"), tri("Mystery", 90.0, 1.0, "api")];
+        let mut models = vec![
+            tri("Cheap", 80.0, 0.5, "api"),
+            tri("Mystery", 90.0, 1.0, "api"),
+        ];
         models[1].effective_cost = None;
         models[1].price_in = None;
         models[1].price_out = None;
         let (matched, _) = partition_matched(models);
         let mut a = App::new(matched, 0, true, 50, String::new());
-        a.set_sort(SortKey::Price); // desc=true => ascending for price
+        a.set_sort(SortKey::Price);
         let first = a.filtered[0];
         assert_eq!(a.all[first].display, "Cheap");
     }

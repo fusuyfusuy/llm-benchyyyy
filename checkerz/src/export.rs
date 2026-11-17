@@ -1,7 +1,7 @@
 //! Markdown/HTML export of the active cohort (the `m` / `h` keys).
 
 use crate::app::App;
-use crate::model::{conf_badge, fmt_price_pair, format_ctx, pillars};
+use crate::model::{conf_badge, fmt_price_pair, fmt_task_cost, format_ctx, pillars};
 use std::path::Path;
 
 fn esc_html(s: &str) -> String {
@@ -18,41 +18,65 @@ fn esc_html(s: &str) -> String {
     out
 }
 
+fn esc_md(s: &str) -> String {
+    s.replace('|', "\\|").replace(['\r', '\n'], " ")
+}
+
+fn f1(v: Option<f64>) -> String {
+    v.filter(|x| x.is_finite())
+        .map(|x| format!("{x:.1}"))
+        .unwrap_or_else(|| "—".into())
+}
+
 pub fn render_markdown(app: &App) -> String {
     let mut lines = vec![
-        "# Checkerz Capability Report".to_string(),
+        "# Checkerz 7-Authority Capability Report".to_string(),
         String::new(),
         format!(
             "{} models ({}){}.",
             app.filtered.len(),
-            if app.tri_only { "dual-verified 2/2" } else { "all evaluated" },
-            if app.stale_note.is_empty() { String::new() } else { format!(" · ⚠ {}", app.stale_note) }
+            if app.multi_only {
+                "multi-source 3+/7"
+            } else {
+                "all evaluated"
+            },
+            if app.stale_note.is_empty() {
+                String::new()
+            } else {
+                format!(" · ⚠ {}", esc_md(&app.stale_note))
+            }
         ),
         String::new(),
-        "| Model | Pool | Conf | Q | Reason | Coding | Speed | Ctx | Price | Role |".to_string(),
-        "| :--- | :---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: | :--- |".to_string(),
+        "| Model | Pool | Conf | Q | Arch | Dev | Dsgn | Rsch | $/Task | Speed | Ctx | Price | Role |".to_string(),
+        "| :--- | :---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :--- |".to_string(),
     ];
     for (g, &mi) in app.filtered.iter().enumerate() {
         let m = &app.all[mi];
         let p = pillars(m);
         let star = if app.is_pareto_idx(g) { "⭐ " } else { "" };
-        let disp = m.display.replace('|', "\\|");
         lines.push(format!(
-            "| {star}{disp} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
-            m.pool.to_uppercase(),
+            "| {star}{} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            esc_md(&m.display),
+            esc_md(&m.pool.to_uppercase()),
             conf_badge(p.coverage_count),
-            m.quality().map(|q| format!("{q:.1}")).unwrap_or("—".into()),
-            p.reasoning.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.coding.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or("—".into()),
+            f1(m.quality()),
+            f1(m.roles.architecture.or(p.reasoning)),
+            f1(m.roles.software_dev.or(p.coding)),
+            f1(m.roles.design.or(p.design)),
+            f1(m.roles.research.or(p.research)),
+            fmt_task_cost(m.task_cost()),
+            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or_else(|| "—".into()),
             format_ctx(p.context_length.map(|v| v as f64)),
             fmt_price_pair(m.price_in, m.price_out),
-            p.best_role,
+            esc_md(&p.best_role),
         ));
     }
     if app.unmatched_count > 0 {
         lines.push(String::new());
-        lines.push(format!("Unmatched (no benchmark signals): {}.", app.unmatched_count));
+        lines.push(format!(
+            "Unmatched (no benchmark signals): {}.",
+            app.unmatched_count
+        ));
     }
     lines.join("\n") + "\n"
 }
@@ -62,18 +86,25 @@ pub fn render_html(app: &App) -> String {
     for (g, &mi) in app.filtered.iter().enumerate() {
         let m = &app.all[mi];
         let p = pillars(m);
-        let cls = if app.is_pareto_idx(g) { " class=\"pareto\"" } else { "" };
+        let cls = if app.is_pareto_idx(g) {
+            " class=\"pareto\""
+        } else {
+            ""
+        };
         let star = if app.is_pareto_idx(g) { "⭐ " } else { "" };
         rows.push_str(&format!(
-            "<tr{cls}><td>{}</td><td>{star}{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
+            "<tr{cls}><td>{}</td><td>{star}{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
             g + 1,
             esc_html(&m.display),
             esc_html(&m.pool.to_uppercase()),
             conf_badge(p.coverage_count),
-            m.quality().map(|q| format!("{q:.1}")).unwrap_or("—".into()),
-            p.reasoning.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.coding.map(|v| format!("{v:.1}%")).unwrap_or("—".into()),
-            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or("—".into()),
+            f1(m.quality()),
+            f1(m.roles.architecture.or(p.reasoning)),
+            f1(m.roles.software_dev.or(p.coding)),
+            f1(m.roles.design.or(p.design)),
+            f1(m.roles.research.or(p.research)),
+            fmt_task_cost(m.task_cost()),
+            p.speed.map(|v| format!("{v:.0}t/s")).unwrap_or_else(|| "—".into()),
             format_ctx(p.context_length.map(|v| v as f64)),
             fmt_price_pair(m.price_in, m.price_out),
             esc_html(&p.best_role),
@@ -82,11 +113,15 @@ pub fn render_html(app: &App) -> String {
     format!(
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Checkerz Capability Report</title>\n\
         <style>body{{font-family:system-ui,sans-serif;margin:2rem}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccc;padding:4px 8px}}.pareto td{{background:#fff8e1;font-weight:600}}.legend{{color:#555}}</style>\n\
-        </head>\n<body>\n<h1>Checkerz Capability Report</h1>\n\
+        </head>\n<body>\n<h1>Checkerz 7-Authority Capability Report</h1>\n\
         <p class=\"legend\">{} models ({}){}</p>\n\
-        <table>\n<thead><tr><th>#</th><th>Model</th><th>Pool</th><th>Conf</th><th>Q</th><th>Reason</th><th>Coding</th><th>Speed</th><th>Ctx</th><th>Price</th><th>Role</th></tr></thead>\n<tbody>\n{rows}</tbody>\n</table>\n</body>\n</html>\n",
+        <table>\n<thead><tr><th>#</th><th>Model</th><th>Pool</th><th>Conf</th><th>Q</th><th>Arch</th><th>Dev</th><th>Dsgn</th><th>Rsch</th><th>$/Task</th><th>Speed</th><th>Ctx</th><th>Price</th><th>Role</th></tr></thead>\n<tbody>\n{rows}</tbody>\n</table>\n</body>\n</html>\n",
         app.filtered.len(),
-        if app.tri_only { "dual-verified 2/2" } else { "all evaluated" },
+        if app.multi_only {
+            "multi-source 3+/7"
+        } else {
+            "all evaluated"
+        },
         if app.stale_note.is_empty() {
             String::new()
         } else {
@@ -97,7 +132,7 @@ pub fn render_html(app: &App) -> String {
 
 /// Atomic write: temp file + rename, so a crash never leaves a half report.
 pub fn atomic_write(path: &Path, content: &str) -> anyhow::Result<()> {
-    if let Some(parent) = path.parent() {
+    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         std::fs::create_dir_all(parent)?;
     }
     let tmp = path.with_extension(format!(

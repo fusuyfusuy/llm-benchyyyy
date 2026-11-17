@@ -1,9 +1,7 @@
-//! Cache staleness: filename-date ages and newest-snapshot ranking.
+//! Cache staleness: filename-date ages and newest-snapshot ranking across all 7 feeds.
 //!
-//! Ports `snapshot_date_str`, `snapshot_age_hours`, `newest_snapshot_age_h`,
-//! `cache_staleness_note` (`checkers/benchmark_common.py`,
-//! `checkers/llm_benchmark_aggregator.py`). Std-only civil-date math —
-//! the filename date is authoritative (mtime lies after a fresh clone).
+//! Mirrors `cache_staleness_note` (`checkers/llm_benchmark_aggregator.py`) with
+//! std-only civil-date math from embedded `_YYYYMMDD` filenames.
 
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -96,14 +94,13 @@ pub fn snapshot_age_hours(path: &Path, now_days: i64) -> Option<f64> {
     Some((now_days - mtime_days).max(0) as f64 * 24.0)
 }
 
-/// Newest snapshot whose filename contains `part` (+`20` year marker),
-/// ranked by embedded date first, mtime second.
-pub fn newest_matching(raw_dir: &Path, part: &str) -> Option<PathBuf> {
+/// Newest snapshot whose filename contains `part`, a `20` year marker, and ends with `ext`.
+pub fn newest_matching(raw_dir: &Path, part: &str, ext: &str) -> Option<PathBuf> {
     let entries = std::fs::read_dir(raw_dir).ok()?;
     let mut best: Option<(Option<String>, u64, PathBuf)> = None;
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        if !name.contains(part) || !name.contains("20") {
+        if !name.contains(part) || !name.contains("20") || !name.ends_with(ext) {
             continue;
         }
         let date = snapshot_date_str(&name);
@@ -120,21 +117,33 @@ pub fn newest_matching(raw_dir: &Path, part: &str) -> Option<PathBuf> {
     best.map(|(_, _, p)| p)
 }
 
-/// Offline-run staleness warning; empty when every source is fresh.
+/// Offline-run staleness warning across all 7 feeds; empty when every source is fresh.
 pub fn cache_staleness_note(raw_dir: &Path) -> String {
     let now = unix_days_now();
     let mut parts = Vec::new();
-    for (name, part) in [
-        ("LiveBench", "livebench"),
-        ("LMArena", "lmarena"),
-        ("Artificial Analysis", "artificial_analysis"),
+    for (name, part, ext) in [
+        ("Artificial Analysis", "artificial_analysis", ".html"),
+        ("Vals Index", "vals_index", ".html"),
+        ("FrontierCode", "frontiercode", ".json"),
+        ("FrontierSWE", "frontierswe", ".html"),
+        ("CursorBench", "cursor_evals", ".json"),
+        ("LiveBench", "livebench", ".csv"),
     ] {
-        match newest_matching(raw_dir, part).and_then(|p| snapshot_age_hours(&p, now)) {
+        match newest_matching(raw_dir, part, ext).and_then(|p| snapshot_age_hours(&p, now)) {
             None => parts.push(format!("{name} missing")),
             Some(age) if age > CACHE_TTL_H => parts.push(format!("{name} {age:.0}h old")),
             Some(_) => {}
         }
     }
+    let lm_age = newest_matching(raw_dir, "lmarena_hf", ".json")
+        .or_else(|| newest_matching(raw_dir, "lmarena", ".html"))
+        .and_then(|p| snapshot_age_hours(&p, now));
+    match lm_age {
+        None => parts.push("LMArena missing".to_string()),
+        Some(age) if age > CACHE_TTL_H => parts.push(format!("LMArena {age:.0}h old")),
+        Some(_) => {}
+    }
+
     if parts.is_empty() {
         String::new()
     } else {
@@ -155,9 +164,12 @@ mod tests {
         assert_eq!(snapshot_date_str("livebench_2026.csv"), None);
         assert_eq!(snapshot_date_str("livebench_20261301.csv"), None);
         assert_eq!(snapshot_date_str("livebench_20260230.csv"), None);
-        assert_eq!(snapshot_date_str("livebench_20240229.csv"), Some("20240229".to_string()));
+        assert_eq!(
+            snapshot_date_str("livebench_20240229.csv"),
+            Some("20240229".to_string())
+        );
         assert_eq!(snapshot_date_str("no_date.csv"), None);
-        assert_eq!(snapshot_date_str("livebench_20260909.tar.gz"), None); // dotted ext
+        assert_eq!(snapshot_date_str("livebench_20260909.tar.gz"), None);
     }
 
     #[test]
@@ -173,15 +185,31 @@ mod tests {
     }
 
     #[test]
-    fn note_reports_missing_and_old() {
+    fn note_reports_missing_and_old_across_seven_feeds() {
         let dir = std::env::temp_dir().join(format!("checkerz_stale_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("livebench_20200101.csv"), "a").unwrap();
+        std::fs::write(dir.join("lmarena_hf_20200101.json"), "{}").unwrap();
         let note = cache_staleness_note(&dir);
         assert!(note.contains("LiveBench"), "{note}");
-        assert!(note.contains("LMArena missing"), "{note}");
+        assert!(note.contains("LMArena"), "{note}");
         assert!(note.contains("Artificial Analysis missing"), "{note}");
+        assert!(note.contains("Vals Index missing"), "{note}");
+        assert!(note.contains("FrontierCode missing"), "{note}");
+        assert!(note.contains("FrontierSWE missing"), "{note}");
+        assert!(note.contains("CursorBench missing"), "{note}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn categories_json_does_not_mask_missing_livebench_csv() {
+        let dir = std::env::temp_dir().join(format!("checkerz_lb_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("livebench_categories_20261112.json"), "{}").unwrap();
+        let note = cache_staleness_note(&dir);
+        assert!(note.contains("LiveBench missing"), "{note}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
