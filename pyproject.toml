@@ -16,5 +16,14 @@ fntcheck = "checkers.frontier_model_tracker:main"
 ocgo = "checkers.ocgo:main"
 ccgo = "checkers.ccgo:main"
 
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["F", "I", "C901", "PLR0912", "PLR0915", "SIM", "RET", "UP"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 
