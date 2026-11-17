@@ -5,6 +5,7 @@ and coherent visual styling for bcheck, ocheck, fcheck, and scheck.
 
 Zero external dependencies (pure Python 3 standard library).
 """
+import contextlib
 import csv
 import datetime as dt
 import glob
@@ -15,13 +16,13 @@ import math
 import os
 import pathlib
 import re
-import shutil
 import statistics
 import sys
 import time
-import urllib.error
-import urllib.request
 import unicodedata
+import urllib.error
+import urllib.parse
+import urllib.request
 
 # ==============================================================================
 # 1. ANSI COLOR CODES & THEME CONSTANTS
@@ -29,7 +30,6 @@ import unicodedata
 C_RESET = "\033[0m"
 C_BOLD = "\033[1m"
 C_DIM = "\033[2m"
-C_UNDER = "\033[4m"
 
 # Zebra row backgrounds
 BG_EVEN = "\033[48;5;233m"  # Deep subtle charcoal
@@ -80,21 +80,54 @@ def norm_id(s: str) -> str:
         return ""
     s = s.lower().strip()
     s = re.sub(r"\s+", "-", s)
-    s = re.sub(r"[^a-z0-9\.\-_]", "", s)
-    return s
+    return re.sub(r"[^a-z0-9\.\-_]", "", s)
 
 
 def norm_model_slug(s: str) -> str:
-    """Normalize model identifier for strict version-safe comparison."""
+    """Normalize model identifier for strict version-safe comparison.
+
+    Strips provider namespace (`vendor/model` or `vendor-model`) and folds
+    whitespace into dashes before punctuation stripping so cross-source slugs
+    (`anthropic/claude-opus-4.6` vs `Claude Opus 4.6`) align cleanly.
+    """
     if not s:
         return ""
     s = s.lower().strip()
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"^(?:[a-z0-9_.-]+/)+", "", s)
     s = re.sub(r"^(claude|anthropic|openai|google|meta|zhipu|z-ai|xiaomi|minimax|xai|moonshot|tencent)-", "", s)
     s = re.sub(r"^qwen-(\d)", r"qwen\1", s)
     s = s.replace(".", "-")
     s = re.sub(r"[^a-z0-9\-]", "", s)
-    s = re.sub(r"-+", "-", s).strip("-")
-    return s
+    return re.sub(r"-+", "-", s).strip("-")
+
+
+def arena_base_key(s: str) -> str:
+    """Loose Arena key: parenthetical qualifiers dropped, then tier tokens stripped.
+
+    Arena names the same model by its sampling config (`Claude Opus 4.6 (High)`,
+    `GPT-5.6 Sol (xHigh, Codex Harness)`) while the catalog names it by role
+    (`Claude Opus 4.6 (Thinking)`), so the parenthetical carries no shared
+    vocabulary. Used only as the last matching rung — digit tokens still
+    separate versions (`qwen3-8-max` vs `qwen3-8-max-0902`).
+    """
+    if not s:
+        return ""
+    return strip_tier_tokens(re.sub(r"\([^)]*\)", " ", s))
+
+
+def arena_token_key(s: str) -> str:
+    """Order-insensitive Arena key: same tokens, any order.
+
+    Arena reorders date/size qualifiers (`Claude Opus 4.5 (High, 32K, 20251101)`)
+    where the catalog keeps them glued (`Claude Opus-4-5-20251101-high-32k`), so
+    ordered comparison misses the row and spawns a duplicate. Sorted token
+    multiset still separates versions and sizes (digits stay).
+    """
+    if not s:
+        return ""
+    s_norm = norm_model_slug(s)
+    return "-".join(sorted(t for t in s_norm.split("-") if t and t not in TIER_TOKENS))
 
 
 TIER_TOKENS = frozenset({
@@ -166,48 +199,47 @@ def atomic_write_text(path, text: str) -> None:
         os.replace(tmp, p)
     finally:
         if tmp.exists():
-            try:
+            with contextlib.suppress(OSError):
                 tmp.unlink()
-            except OSError:
-                pass
 
 
-def _safe_float(val, default=None):
-    """Safely convert value to float or return default (NaN/Inf-safe)."""
-    if val is None:
+_NA_STRINGS = frozenset({"", "nan", "none", "null", "undefined", "—", "-", "n/a"})
+
+
+def _safe_float(val, default=None, strip_currency: bool = True):
+    """Safely convert value to float or return default (bool/NaN/Inf-safe)."""
+    if val is None or isinstance(val, bool):
         return default
     if isinstance(val, (int, float)):
-        try:
-            f = float(val)
-        except (ValueError, TypeError):
-            return default
-        if math.isnan(f) or math.isinf(f):
-            return default
-        return f
+        f = float(val)
+        return f if math.isfinite(f) else default
+    s = str(val).strip().replace(",", "").replace("%", "")
+    if strip_currency:
+        s = s.replace("$", "")
+    elif "$" in s:
+        return default
+    if s.lower() in _NA_STRINGS:
+        return default
     try:
-        s = str(val).strip().replace(",", "").replace("$", "").replace("%", "")
-        if not s or s.lower() in ("nan", "none", "null", "undefined", "—", "-", "n/a"):
-            return default
         f = float(s)
-        return default if (math.isnan(f) or math.isinf(f)) else f
     except (ValueError, TypeError):
         return default
+    return f if math.isfinite(f) else default
 
 
-def _safe_int(val, default=None):
-    """Safely convert value to int or return default."""
-    f = _safe_float(val, default=None)
-    if f is None:
-        return default
-    return int(round(f))
+def _safe_int(val, default=None, strip_currency: bool = True):
+    """Safely convert value to rounded int or return default."""
+    f = _safe_float(val, default=None, strip_currency=strip_currency)
+    return int(round(f)) if f is not None else default
 
 
-def _safe_int_round(val, default=None):
-    """Safely round and convert float value to int."""
-    f = _safe_float(val, default=None)
-    if f is None:
-        return default
-    return int(round(f))
+def _first_num(*vals):
+    """Return the first value convertible to a finite float (preserving 0.0)."""
+    for v in vals:
+        f = _safe_float(v)
+        if f is not None:
+            return f
+    return None
 
 
 def compute_cost(input_per_1m, output_per_1m, cached_per_1m, est_input, est_cached, est_output, cached_write_per_1m=0.0, est_cached_write=0):
@@ -256,10 +288,10 @@ def snapshot_age_hours(path, now: dt.datetime | None = None) -> float:
     """Age of a raw snapshot in hours from its filename date when present,
     falling back to mtime for date-less files (S2-M2)."""
     p = pathlib.Path(path)
-    now = now or dt.datetime.now(dt.timezone.utc)
+    now = now or dt.datetime.now(dt.UTC)
     ds = snapshot_date_str(p)
     if ds:
-        d = dt.datetime.strptime(ds, "%Y%m%d").replace(tzinfo=dt.timezone.utc)
+        d = dt.datetime.strptime(ds, "%Y%m%d").replace(tzinfo=dt.UTC)
         return max(0.0, (now - d).total_seconds() / 3600.0)
     return max(0.0, (now.timestamp() - p.stat().st_mtime) / 3600.0)
 
@@ -275,7 +307,7 @@ def staleness_tag(path) -> str:
 
 def pick_latest_raw(raw_dir: pathlib.Path, name_part: str) -> pathlib.Path | None:
     """Newest snapshot in raw_dir whose filename matches name_part — ordered by
-    the filename-embedded date when present, else mtime (S2-M2)."""
+    the filename-embedded UTC date when present, else mtime (S2-M2)."""
     matches = glob.glob(str(raw_dir / f"*{name_part}*"))
     if not matches:
         return None
@@ -283,7 +315,7 @@ def pick_latest_raw(raw_dir: pathlib.Path, name_part: str) -> pathlib.Path | Non
     def _rank(p):
         ds = snapshot_date_str(p)
         if ds:
-            return dt.datetime.strptime(ds, "%Y%m%d").timestamp()
+            return dt.datetime.strptime(ds, "%Y%m%d").replace(tzinfo=dt.UTC).timestamp()
         return pathlib.Path(p).stat().st_mtime
 
     return pathlib.Path(max(matches, key=_rank))
@@ -486,52 +518,49 @@ def compute_priced_pareto_frontier(models_list, q_tolerance=3.2, cost_tolerance=
     return compute_pareto_frontier(priced, q_tolerance=q_tolerance, cost_tolerance=cost_tolerance)
 
 
+def _cohort_stats(vals: list[float]) -> tuple[float | None, float | None]:
+    """Return (mean, pstdev) for a non-empty numeric cohort, else (None, None)."""
+    if not vals:
+        return None, None
+    return statistics.fmean(vals), (statistics.pstdev(vals) if len(vals) > 1 else 0.0)
+
+
+def _z_val(val: float | None, mean: float | None, std: float | None) -> float | None:
+    """Single scalar z-score relative to cohort (None if missing, 0.0 if flat)."""
+    if not _is_num(val) or mean is None or std is None:
+        return None
+    return (val - mean) / std if std > 0 else 0.0
+
+
 def compute_meanfill_composite(rows):
     """
     Composite capability_q from the MEAN of whichever z-scored sources
     (AA intelligence, LMArena elo) are available per row, skipping missing
-    sources rather than zero-filling them (unlike get_z_scores, which
-    zero-fills). Used by fcheck/scheck, whose catalogs have much sparser
-    per-source coverage than bcheck/ocheck's curated model lists.
-    Mutates each row in place: sets row["composite"] and
-    row["benchmarks"]["capability_q"]. Returns (aa_vals, lm_vals, aa_mean,
-    aa_std, lm_mean, lm_std) so callers can report coverage/diagnostics
-    without rescanning rows.
+    sources rather than zero-filling them. Mutates row["composite"] and
+    row["benchmarks"]["capability_q"] in place.
     """
     aa_vals = [r["benchmarks"]["aa_intelligence"] for r in rows if r["benchmarks"]["aa_intelligence"] is not None]
     lm_vals = [r["benchmarks"]["lmarena_elo"] for r in rows if r["benchmarks"]["lmarena_elo"] is not None]
-    aa_mean = statistics.fmean(aa_vals) if aa_vals else None
-    aa_std = statistics.pstdev(aa_vals) if len(aa_vals) > 1 else (0.0 if aa_vals else None)
-    lm_mean = statistics.fmean(lm_vals) if lm_vals else None
-    lm_std = statistics.pstdev(lm_vals) if len(lm_vals) > 1 else (0.0 if lm_vals else None)
+    aa_mean, aa_std = _cohort_stats(aa_vals)
+    lm_mean, lm_std = _cohort_stats(lm_vals)
 
     for r in rows:
         b = r["benchmarks"]
-        zs = []
-        a = b["aa_intelligence"]
-        if a is not None and aa_std is not None and aa_std > 0:
-            zs.append((a - aa_mean) / aa_std)
-        elif a is not None and aa_std == 0.0:
-            zs.append(0.0)
-        e = b["lmarena_elo"]
-        if e is not None and lm_std is not None and lm_std > 0:
-            zs.append((e - lm_mean) / lm_std)
-        elif e is not None and lm_std == 0.0:
-            zs.append(0.0)
+        zs = [z for z in (_z_val(b["aa_intelligence"], aa_mean, aa_std), _z_val(b["lmarena_elo"], lm_mean, lm_std)) if z is not None]
         comp_val = round(statistics.fmean(zs), 3) if zs else None
         r["composite"] = comp_val
-        b["capability_q"] = compute_capability_q(comp_val) if isinstance(comp_val, (int, float)) else None
+        b["capability_q"] = compute_capability_q(comp_val) if _is_num(comp_val) else None
     return aa_vals, lm_vals, aa_mean, aa_std, lm_mean, lm_std
 
 
 def comp_key(r):
     """Sort key: composite desc, then AA, then LMArena, then id. None composites last."""
     c = r.get("composite")
-    k_c = -(c) if isinstance(c, (int, float)) else 1e9
+    k_c = -c if _is_num(c) else 1e9
     a = r["benchmarks"]["aa_intelligence"]
-    k_a = -(a) if isinstance(a, (int, float)) else 1e9
+    k_a = -a if _is_num(a) else 1e9
     e = r["benchmarks"]["lmarena_elo"]
-    k_e = -(e) if isinstance(e, (int, float)) else 1e9
+    k_e = -e if _is_num(e) else 1e9
     return (k_c, k_a, k_e, r["model_id"])
 
 
@@ -546,9 +575,7 @@ def base_id(oid: str) -> str:
     s = oid
     if s.startswith("cline-free/"):
         s = s[len("cline-free/"):]
-    if s.endswith(":free"):
-        s = s[:-5]
-    elif s.endswith("-free"):
+    if s.endswith((":free", "-free")):
         s = s[:-5]
     return s
 
@@ -556,60 +583,151 @@ def base_id(oid: str) -> str:
 # ==============================================================================
 # 4. LEADERBOARD PARSERS
 # ==============================================================================
+def _parse_livebench_cats(categories_json: str | dict | None) -> dict:
+    """Decode LiveBench categories JSON/dict mapping safely."""
+    if isinstance(categories_json, dict):
+        return categories_json
+    if isinstance(categories_json, str):
+        with contextlib.suppress(Exception):
+            parsed = json.loads(categories_json)
+            if isinstance(parsed, dict):
+                return parsed
+    return {}
+
+
+def _parse_livebench_row(row: dict, cats: dict) -> tuple[str, dict] | None:
+    """Extract normalized LiveBench record from a single CSV row."""
+    model = row.get("model")
+    if not model:
+        return None
+    all_scores = [
+        fv for col, val in row.items()
+        if col != "model" and not col.startswith(("nq_", "out_"))
+        if (fv := _safe_float(val)) is not None
+    ]
+    overall = sum(all_scores) / len(all_scores) if all_scores else None
+    cat_scores = {}
+    for cat_name, tasks in cats.items():
+        t_scores = [s for s in (_safe_float(row.get(t)) for t in tasks) if s is not None]
+        if t_scores:
+            cat_scores[cat_name] = round(sum(t_scores) / len(t_scores), 2)
+    return norm_id(model), {
+        "model": model,
+        "overall": round(overall, 2) if overall is not None else None,
+        "coding": _first_num(cat_scores.get("Coding"), cat_scores.get("coding"), row.get("coding")),
+        "agentic_coding": _first_num(cat_scores.get("Agentic Coding"), cat_scores.get("agentic_coding")),
+        "reasoning": _first_num(cat_scores.get("Reasoning"), cat_scores.get("reasoning"), row.get("reasoning")),
+        "math": _first_num(cat_scores.get("Mathematics"), cat_scores.get("math"), row.get("math")),
+        "data_analysis": _first_num(cat_scores.get("Data Analysis"), cat_scores.get("data_analysis")),
+        "language": _first_num(cat_scores.get("Language"), cat_scores.get("language")),
+        "instruction_following": _first_num(cat_scores.get("IF"), cat_scores.get("instruction_following")),
+        "categories": cat_scores,
+    }
+
+
 def parse_livebench(csv_text: str, categories_json: str | dict | None = None, verbose: bool = False) -> dict:
     """
     Parse LiveBench leaderboard CSV (https://livebench.ai).
     Extracts decontaminated scores across Reasoning, Coding, Agentic Coding, Math, Data Analysis, and IF.
     """
-    cats = {}
-    if categories_json:
-        if isinstance(categories_json, str):
-            try:
-                cats = json.loads(categories_json)
-            except Exception:
-                pass
-        elif isinstance(categories_json, dict):
-            cats = categories_json
-
-    reader = csv.DictReader(io.StringIO(csv_text))
+    cats = _parse_livebench_cats(categories_json)
     out = {}
-    for row in reader:
-        model = row.get("model")
-        if not model:
-            continue
-
-        cat_scores = {}
-        all_task_scores = []
-        for col, val in row.items():
-            if col == "model" or col.startswith("nq_") or col.startswith("out_"):
-                continue
-            fv = _safe_float(val)
-            if fv is not None:
-                all_task_scores.append(fv)
-
-        overall = sum(all_task_scores) / len(all_task_scores) if all_task_scores else None
-
-        if cats:
-            for cat_name, tasks in cats.items():
-                t_scores = [s for s in (_safe_float(row.get(t)) for t in tasks) if s is not None]
-                if t_scores:
-                    cat_scores[cat_name] = round(sum(t_scores) / len(t_scores), 2)
-
-        slug = norm_id(model)
-        out[slug] = {
-            "model": model,
-            "overall": round(overall, 2) if overall is not None else None,
-            "coding": cat_scores.get("Coding") or cat_scores.get("coding") or _safe_float(row.get("coding")),
-            "agentic_coding": cat_scores.get("Agentic Coding") or cat_scores.get("agentic_coding"),
-            "reasoning": cat_scores.get("Reasoning") or cat_scores.get("reasoning") or _safe_float(row.get("reasoning")),
-            "math": cat_scores.get("Mathematics") or cat_scores.get("math") or _safe_float(row.get("math")),
-            "data_analysis": cat_scores.get("Data Analysis") or cat_scores.get("data_analysis"),
-            "language": cat_scores.get("Language") or cat_scores.get("language"),
-            "instruction_following": cat_scores.get("IF") or cat_scores.get("instruction_following"),
-            "categories": cat_scores,
-        }
+    for row in csv.DictReader(io.StringIO(csv_text)):
+        parsed = _parse_livebench_row(row, cats)
+        if parsed:
+            slug, rec = parsed
+            out[slug] = rec
     if verbose:
         print(f"  LiveBench: parsed {len(out)} entries")
+    return out
+
+
+def _lmarena_rsc_entry(e: dict) -> tuple[str, dict] | None:
+    """Convert one LMArena Next.js RSC entry dict to (slug, record)."""
+    if not isinstance(e, dict):
+        return None
+    name = e.get("modelDisplayName") or e.get("modelKey")
+    if not name:
+        return None
+    elo = _safe_float(e.get("rating"))
+    elo = round(elo, 0) if elo is not None else None
+    p_in = e.get("inputPricePerMillion")
+    p_out = e.get("outputPricePerMillion")
+    ctx = _safe_int(e.get("contextLength"))
+    return name.strip().lower(), {
+        "rank": _safe_int(e.get("rank")),
+        "elo": elo,
+        "votes": _safe_int(e.get("votes")),
+        "price_raw": f"${p_in} / ${p_out}" if p_in is not None else "",
+        "context_raw": f"{ctx // 1000}k" if ctx else "",
+        "score_raw": str(int(elo)) if elo else "",
+    }
+
+
+def _parse_lmarena_rsc(html_text: str) -> dict:
+    """Extract LMArena entries from Next.js App Router streamed JSON payloads."""
+    out = {}
+    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
+    decoder = json.JSONDecoder()
+    pos = 0
+    while (idx := unescaped.find('"entries":[{', pos)) != -1:
+        arr_start = idx + len('"entries":')
+        try:
+            entries, offset = decoder.raw_decode(unescaped[arr_start:])
+        except Exception:
+            pos = arr_start + 1
+            continue
+        pos = arr_start + offset
+        if not isinstance(entries, list):
+            continue
+        for e in entries:
+            parsed = _lmarena_rsc_entry(e)
+            if parsed and parsed[0] not in out:
+                out[parsed[0]] = parsed[1]
+    return out
+
+
+def _has_ver_token(tok: str) -> bool:
+    """True when slug token carries a version dash/dot and digit."""
+    return ("-" in tok or "." in tok) and any(c.isdigit() for c in tok)
+
+
+def _extract_tr_slug(cell_html: str, tr_html: str) -> str:
+    """Extract lowercase slug from a legacy LMArena HTML table row cell."""
+    if m := (re.search(r'title="([^"]+)"', cell_html) or re.search(r'title="([^"]+)"', tr_html)):
+        return m.group(1).strip().lower()
+    if href_m := re.search(r'href="[^"]*?/([^"/\?]+)', cell_html):
+        slug = href_m.group(1).lower().strip()
+        if "." in slug or "-" in slug:
+            return slug
+    tokens = re.findall(r"[a-z0-9][a-z0-9\.\-]*", re.sub(r"<[^>]+>", " ", cell_html).lower())
+    return next((t for t in reversed(tokens) if _has_ver_token(t)), tokens[-1] if tokens else "")
+
+
+def _parse_lmarena_legacy_tr(html_text: str, verbose: bool = False) -> dict:
+    """Fallback HTML <tr> parser for pre-RSC LMArena snapshots."""
+    trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
+    if verbose:
+        print(f"  LMArena: found {len(trs)} tr rows")
+    out = {}
+    for tr in trs[1:]:
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
+        if len(cells) < 7:
+            continue
+        slug = _extract_tr_slug(cells[2], tr)
+        if not slug:
+            continue
+        score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
+        elo = re.split(r"[±+]", score_raw)[0].strip()
+        votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")
+        out[slug] = {
+            "rank": _safe_int(re.sub(r"<[^>]+>", "", cells[0]).strip()),
+            "elo": _safe_float(elo),
+            "votes": _safe_int(votes_raw),
+            "price_raw": re.sub(r"<[^>]+>", " ", cells[5]).strip(),
+            "context_raw": re.sub(r"<[^>]+>", "", cells[6]).strip(),
+            "score_raw": score_raw,
+        }
     return out
 
 
@@ -618,208 +736,332 @@ def parse_lmarena(html_text: str, verbose: bool = False) -> dict:
     Parse Arena.ai / LMSYS Arena HTML leaderboard.
     Supports Next.js App Router RSC streamed JSON arrays ('"entries":[{...}]')
     with automatic fallback to static HTML table parsing.
-    Returns: dict[model_slug -> {rank, elo, votes, price_raw, context_raw, score_raw}]
     """
     if not html_text or not isinstance(html_text, str):
         return {}
-    out = {}
-    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
-    pos = 0
-    while True:
-        idx = unescaped.find('"entries":[{', pos)
-        if idx == -1:
-            break
-        end_idx = unescaped.find("}]", idx)
-        if end_idx == -1:
-            break
-        json_str = '{"entries":' + unescaped[idx + 10 : end_idx + 2] + "}"
-        try:
-            data = json.loads(json_str)
-        except Exception:
-            pos = end_idx + 2
-            continue
-        entries = data.get("entries", [])
-        if not isinstance(entries, list):
-            pos = end_idx + 2
-            continue
-        for e in entries:
-            try:
-                if not isinstance(e, dict):
-                    continue
-                name = e.get("modelDisplayName") or e.get("modelKey")
-                if not name:
-                    continue
-                slug = name.strip().lower()
-                rank = _safe_int(e.get("rank"))
-                elo = _safe_float(e.get("rating"))
-                elo = round(elo, 0) if elo is not None else None
-                votes = _safe_int(e.get("votes"))
-                p_in = e.get("inputPricePerMillion")
-                p_out = e.get("outputPricePerMillion")
-                p_str = f"${p_in} / ${p_out}" if p_in is not None else ""
-                ctx = _safe_int(e.get("contextLength"))
-                ctx_str = f"{ctx//1000}k" if ctx else ""
-                if slug not in out:
-                    out[slug] = {
-                        "rank": rank,
-                        "elo": elo,
-                        "votes": votes,
-                        "price_raw": p_str,
-                        "context_raw": ctx_str,
-                        "score_raw": str(int(elo)) if elo else "",
-                    }
-            except Exception:
-                continue
-        pos = end_idx + 2
-
-    # Legacy HTML table fallback
-    if not out:
-        trs = re.findall(r"<tr[^>]*>(.*?)</tr>", html_text, flags=re.S)
-        if verbose:
-            print(f"  LMArena: found {len(trs)} tr rows")
-        for tr in trs[1:]:
-            cells = re.findall(r"<td[^>]*>(.*?)</td>", tr, flags=re.S)
-            if len(cells) < 7:
-                continue
-            rank_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
-            m_title = re.search(r'title="([^"]+)"', cells[2]) or re.search(r'title="([^"]+)"', tr)
-            if m_title:
-                slug = m_title.group(1).strip().lower()
-            else:
-                href_m = re.search(r'href="[^"]*?/([^"/\?]+)', cells[2])
-                slug = href_m.group(1).lower() if href_m else ""
-                if not slug or ("." not in slug and "-" not in slug):
-                    text = re.sub(r"<[^>]+>", " ", cells[2]).strip()
-                    tokens = re.findall(r"[a-z0-9][a-z0-9\.\-]*", text.lower())
-                    with_digit = [t for t in tokens if any(ch.isdigit() for ch in t) and ("-" in t or "." in t)]
-                    if with_digit:
-                        slug = with_digit[-1]
-                    elif tokens:
-                        slug = tokens[-1]
-            if not slug:
-                continue
-            slug = slug.strip().lower()
-            score_raw = re.sub(r"<[^>]+>", "", cells[3]).strip()
-            elo = re.split(r"[±+]", score_raw)[0].strip()
-            elo_f = _safe_float(elo)
-            rank_i = _safe_int(rank_raw)
-            votes_raw = re.sub(r"<[^>]+>", "", cells[4]).strip().replace(",", "")
-            votes_i = _safe_int(votes_raw)
-            price_raw = re.sub(r"<[^>]+>", " ", cells[5]).strip()
-            ctx_raw = re.sub(r"<[^>]+>", "", cells[6]).strip()
-
-            out[slug] = {
-                "rank": rank_i,
-                "elo": elo_f,
-                "votes": votes_i,
-                "price_raw": price_raw,
-                "context_raw": ctx_raw,
-                "score_raw": score_raw,
-            }
+    out = _parse_lmarena_rsc(html_text) or _parse_lmarena_legacy_tr(html_text, verbose=verbose)
     if verbose:
         print(f"  LMArena: parsed {len(out)} entries")
     return out
 
 
-def parse_aa(html_text: str, verbose: bool = False) -> dict:
-    """
-    Parse Artificial Analysis leaderboard from its Next.js App Router RSC-streamed
-    page payload (no static __NEXT_DATA__ blob; data ships escaped inside a
-    `self.__next_f.push(...)` chunk as a `"models":[...]` array; since the
-    2026-10 redesign the score-bearing array ships under `"initialModels":[...]`
-    while a slim slug-only `"models":[...]` nav copy remains — both keys are
-    scanned and the largest array carrying intelligenceIndex wins).
-    Returns: dict[model_slug -> {slug, name, intelligenceIndex, codingIndex, agenticIndex, medianTps, price_in, price_out}]
-    """
-    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
-    idxs = []  # (offset, key_name)
-    for key_name in ("models", "initialModels"):
-        key = f'"{key_name}":['
-        pos = 0
-        while True:
-            idx = unescaped.find(key, pos)
-            if idx == -1:
-                break
-            idxs.append((idx, key_name))
-            pos = idx + 1
-    if not idxs:
-        if verbose:
-            print("  Artificial Analysis: no models array found", file=sys.stderr)
-        return {}
+# Arena's own leaderboard dataset (cc-by-4.0). arena.ai serves 403 to scrapers,
+# so this is the fetch path; parse_lmarena's HTML reader stays for legacy
+# snapshots only.
+LMARENA_HF_DATASET = "lmarena-ai/leaderboard-dataset"
+LMARENA_HF_ROWS_API = "https://datasets-server.huggingface.co/rows"
+LMARENA_HF_CONFIG = "webdev"
+LMARENA_HF_ELO_CATEGORY = "webdev"        # same board the retired HTML scrape read
+LMARENA_HF_CODING_CATEGORY = "webdev-react"  # second Arena coding board → lm_coding leg
 
-    # Pick the largest array that actually carries score data (the payload
-    # repeats a slimmer slug-only nav/marketing copy of "models" elsewhere).
-    best_idx, best_end, best_len, best_key = -1, -1, -1, None
-    for idx, key_name in idxs:
-        if "intelligenceIndex" not in unescaped[idx: idx + 3000]:
+
+def _index_hf_rows(row_list: list) -> dict[str, dict]:
+    """Index HF Arena rows by lowercase model_name, keeping highest rating on duplicates."""
+    by_slug: dict[str, dict] = {}
+    for r in row_list:
+        key = (r.get("model_name") or "").strip().lower()
+        if not key:
             continue
-        start = idx + len(f'"{key_name}":[')
-        depth, p, in_str, esc = 1, start, False, False
-        while p < len(unescaped) and depth > 0:
-            c = unescaped[p]
-            if in_str:
-                if esc:
-                    esc = False
-                elif c == "\\":
-                    esc = True
-                elif c == '"':
-                    in_str = False
-            else:
-                if c == '"':
-                    in_str = True
-                elif c == "[":
-                    depth += 1
-                elif c == "]":
-                    depth -= 1
-            p += 1
-        if (p - idx) > best_len:
-            best_len, best_idx, best_end = (p - idx), idx, p
-            best_key = key_name
-    if best_idx == -1:
-        if verbose:
-            print("  Artificial Analysis: no intelligenceIndex array found", file=sys.stderr)
-        return {}
+        cur = _safe_float(r.get("rating"))
+        prev = _safe_float(by_slug[key].get("rating")) if key in by_slug else None
+        if prev is None or (cur is not None and cur > prev):
+            by_slug[key] = r
+    return by_slug
 
-    out = {}
-    try:
-        seg = unescaped[best_idx:best_end]
-        models = json.loads("{" + seg + "}")[best_key]
-        for m in models:
-            slug = m.get("slug")
-            if not slug:
-                continue
-            out[slug] = {
-                "slug": slug,
-                "name": m.get("name") or m.get("shortName") or slug,
-                "intelligenceIndex": _safe_float(m.get("intelligenceIndex")),
-                "codingIndex": _safe_float(m.get("codingIndex")),
-                "agenticIndex": _safe_float(m.get("agenticIndex")),
-                "medianTps": _safe_float(m.get("medianOutputTokensPerSecond")),
-                "price_in": _safe_float(m.get("price1mInputTokens")),
-                "price_out": _safe_float(m.get("price1mOutputTokens")),
-                "terminalbenchHard": _safe_float(m.get("terminalbenchHard")),
-                "itbenchSre": _safe_float(m.get("itbenchSre")),
-                "tau2": _safe_float(m.get("tau2")),
-                "ifbench": _safe_float(m.get("ifbench")),
-                "gpqa": _safe_float(m.get("gpqa")),
-                "hle": _safe_float(m.get("hle")),
-                "scicode": _safe_float(m.get("scicode")),
-                "omniscienceAccuracy": _safe_float(m.get("omniscienceAccuracy")),
-            }
-    except Exception as e:
-        if verbose:
-            print(f"  WARN Artificial Analysis parse: {e}", file=sys.stderr)
+
+def _hf_record(r: dict, c: dict | None) -> dict:
+    """Assemble normalized LMArena record from HF primary and coding rows."""
+    elo = _safe_float(r.get("rating"))
+    elo = round(elo, 0) if elo is not None else None
+    c_elo = _safe_float(c.get("rating")) if c else None
+    return {
+        "rank": _safe_int(r.get("rank")),
+        "elo": elo,
+        "votes": _safe_int(r.get("vote_count")),
+        "coding": round(c_elo, 0) if c_elo is not None else None,
+        "coding_rank": _safe_int(c.get("rank")) if c else None,
+        "price_raw": "",
+        "context_raw": "",
+        "score_raw": str(int(elo)) if elo is not None else "",
+        "org": r.get("organization"),
+        "publish_date": r.get("leaderboard_publish_date"),
+    }
+
+
+def _unwrap_hf_rows(payload) -> dict[str | None, list]:
+    """Extract HF rows grouped by category."""
+    rows = payload.get("rows") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
         return {}
+    by_cat: dict[str | None, list] = {}
+    for item in rows:
+        r = item.get("row", item) if isinstance(item, dict) else None
+        if isinstance(r, dict):
+            by_cat.setdefault(r.get("category"), []).append(r)
+    return by_cat
+
+
+def parse_lmarena_hf(payload, verbose: bool = False) -> dict:
+    """Build the same map as parse_lmarena from the Arena leaderboard dataset."""
+    by_cat = _unwrap_hf_rows(payload)
+    primary = _index_hf_rows(by_cat.get(LMARENA_HF_ELO_CATEGORY) or by_cat.get("overall") or [])
+    coding = _index_hf_rows(by_cat.get(LMARENA_HF_CODING_CATEGORY) or by_cat.get("webdev-html") or [])
+    out = {slug: _hf_record(r, coding.get(slug)) for slug, r in primary.items()}
     if verbose:
-        print(f"  Artificial Analysis: parsed {len(out)} models")
+        n_cod = sum(1 for v in out.values() if v["coding"] is not None)
+        print(f"  LMArena HF: parsed {len(out)} models ({n_cod} with coding Elo)")
     return out
 
 
+def _fetch_url_retry(url: str, timeout: int = 30, retries: int = 3) -> str | None:
+    """Fetch URL with linear backoff retries."""
+    for attempt in range(retries):
+        txt = fetch_url(url, timeout=timeout)
+        if txt:
+            return txt
+        time.sleep(2 * (attempt + 1))
+    return None
+
+
+def fetch_lmarena_hf_rows(config: str = LMARENA_HF_CONFIG, timeout: int = 30, per_page: int = 100) -> list:
+    """Page the HF datasets-server rows API for one Arena config."""
+    rows, offset, total = [], 0, None
+    while total is None or offset < total:
+        q = urllib.parse.urlencode({
+            "dataset": LMARENA_HF_DATASET, "config": config, "split": "latest",
+            "offset": offset, "length": per_page,
+        })
+        txt = _fetch_url_retry(f"{LMARENA_HF_ROWS_API}?{q}", timeout=timeout)
+        if not txt:
+            return []
+        try:
+            page = json.loads(txt)
+        except ValueError:
+            return []
+        total = page.get("num_rows_total", 0)
+        batch = [x.get("row", x) for x in page.get("rows", [])]
+        if not batch:
+            break
+        rows.extend(batch)
+        offset += per_page
+    cats = {r.get("category") for r in rows}
+    if LMARENA_HF_ELO_CATEGORY not in cats or LMARENA_HF_CODING_CATEGORY not in cats:
+        return []
+    return rows
+
+
+def load_lmarena_map(raw_dir, verbose: bool = False) -> dict:
+    """Offline Arena map: newest HF dataset snapshot, else newest legacy HTML."""
+    raw = pathlib.Path(raw_dir)
+    hf = sorted(glob.glob(str(raw / "*lmarena_hf*20*.json")))
+    if hf:
+        try:
+            payload = json.loads(pathlib.Path(hf[-1]).read_text(encoding="utf-8"))
+            m = parse_lmarena_hf(payload, verbose=verbose)
+            if m:
+                return m
+        except Exception as exc:
+            if verbose:
+                print(f"  WARN LMArena HF cache read failed ({hf[-1]}): {exc}", file=sys.stderr)
+    html = sorted(glob.glob(str(raw / "*lmarena*20*.html")))
+    if not html:
+        return {}
+    try:
+        return parse_lmarena(pathlib.Path(html[-1]).read_text(encoding="utf-8", errors="ignore"), verbose=verbose)
+    except Exception as exc:
+        if verbose:
+            print(f"  WARN LMArena HTML cache read failed ({html[-1]}): {exc}", file=sys.stderr)
+        return {}
+
+
+def _read_cached_hf_snapshot(path: pathlib.Path, verbose: bool = False) -> dict | None:
+    """Read cached HF Arena JSON snapshot if readable and non-empty."""
+    try:
+        cached = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(cached, dict) and cached.get("rows"):
+            return cached
+    except Exception as exc:
+        if verbose:
+            print(f"  WARN cached LMArena HF unreadable ({path}): {exc}", file=sys.stderr)
+    return None
+
+
+def fetch_lmarena_hf_snapshot(
+    raw_dir,
+    verbose: bool = False,
+    do_write: bool = True,
+    force: bool = False,
+) -> dict | None:
+    """Fetch the Arena HF board and persist it as `lmarena_hf_YYYYMMDD.json` (UTC date)."""
+    raw = pathlib.Path(raw_dir)
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d")
+    path = raw / f"lmarena_hf_{stamp}.json"
+    if not force and path.exists():
+        cached = _read_cached_hf_snapshot(path, verbose=verbose)
+        if cached:
+            return cached
+    rows = fetch_lmarena_hf_rows()
+    if not rows:
+        return None
+    payload = {"rows": rows}
+    if do_write and (force or not path.exists()):
+        try:
+            atomic_write_text(path, json.dumps(payload, indent=1))
+            if verbose:
+                print(f"  saved LMArena HF -> {path} ({len(rows)} rows)")
+        except Exception as exc:
+            print(f"  WARN failed to save LMArena HF snapshot ({path}): {exc}", file=sys.stderr)
+    return payload
+
+
+def _extract_aa_array(unescaped: str, decoder: json.JSONDecoder) -> list:
+    """Find and decode the largest score-bearing models array from AA Next.js payload."""
+    best: list = []
+    for key_name in ("models", "initialModels"):
+        key = f'"{key_name}":['
+        pos = 0
+        while (idx := unescaped.find(key, pos)) != -1:
+            arr_start = idx + len(key) - 1
+            pos = arr_start + 1
+            try:
+                parsed, offset = decoder.raw_decode(unescaped[arr_start:])
+            except Exception:
+                continue
+            pos = arr_start + offset
+            if isinstance(parsed, list) and len(parsed) > len(best) and any(
+                isinstance(m, dict) and "intelligenceIndex" in m for m in parsed
+            ):
+                best = parsed
+    return best
+
+
+def _aa_variant_suffix(m: dict) -> str:
+    label = str(m.get("shortName") or m.get("name") or "")
+    par = re.search(r"\(([^)]+)\)\s*$", label)
+    return re.sub(r"[^a-z0-9]+", "-", par.group(1).lower()).strip("-") if par else ""
+
+
+def _aa_slugs(m: dict) -> tuple[str, str] | None:
+    """Derive (variant_slug, release_slug) across AA v4 top-level slug and v5 release.slug."""
+    rel = m.get("release")
+    rslug = str(rel.get("slug") or "") if isinstance(rel, dict) else ""
+    top_slug = str(m.get("slug") or "")
+    if top_slug:
+        return top_slug, (rslug or top_slug)
+    if not rslug:
+        return None
+    tok = _aa_variant_suffix(m)
+    return (f"{rslug}-{tok}" if tok and not rslug.endswith(f"-{tok}") else rslug), rslug
+
+
+def _aa_pct(scores: dict, *keys: str, fallback=None) -> float | None:
+    """Read AA sub-benchmark score, normalizing [0, 1] ratios to 0..100 percentages."""
+    for k in keys:
+        v = _safe_float(scores.get(k))
+        if v is not None:
+            return round(v * 100.0, 2) if 0.0 <= v <= 1.0 else round(v, 2)
+    return _safe_float(fallback)
+
+
+_AA_SCORE_SPECS: tuple[tuple[str, tuple[str, ...], str | None], ...] = (
+    ("terminalbench4", ("terminalbench-4-0",), None),
+    ("terminalbenchHard", ("terminalbench-hard",), "terminalbenchHard"),
+    ("frontiercode2", ("frontiercode-2-0", "frontiercode"), None),
+    ("livecodebench", ("livecodebench",), None),
+    ("itbenchSre", ("itbench-aa",), "itbenchSre"),
+    ("tau2", ("tau2-bench",), "tau2"),
+    ("automationbench", ("automationbench-aa",), None),
+    ("ifbench", ("ifbench",), "ifbench"),
+    ("gpqa", ("gpqa-diamond",), "gpqa"),
+    ("hle", ("hle-diamond", "humanitys-last-exam"), "hle"),
+    ("critptHard", ("critpt-v2-hard", "critpt"), None),
+    ("scicode", ("scicode",), "scicode"),
+    ("longContextReasoning", ("artificial-analysis-long-context-reasoning",), None),
+    ("omniscienceAccuracy", ("omniscience-accuracy",), "omniscienceAccuracy"),
+    ("omniscienceNonHallucination", ("omniscience-non-hallucination",), None),
+)
+
+
+def _aa_record(m: dict) -> tuple[dict, str] | None:
+    """Convert raw AA model object (v4 or v5.0.1) to (canonical_dict, release_slug)."""
+    slugs = _aa_slugs(m)
+    if not slugs:
+        return None
+    vslug, rslug = slugs
+    raw_sc = m.get("scores")
+    sc = raw_sc if isinstance(raw_sc, dict) else {}
+    tps = _first_num(m.get("outputSpeed"), m.get("medianOutputTokensPerSecond"))
+    rec = {
+        "slug": vslug, "release_slug": rslug, "name": m.get("name") or m.get("shortName") or vslug,
+        "intelligenceIndex": _safe_float(m.get("intelligenceIndex")),
+        "codingIndex": _safe_float(m.get("codingIndex")), "agenticIndex": _safe_float(m.get("agenticIndex")),
+        "medianTps": tps, "medianOutputTokensPerSecond": tps,
+        "ttft": _first_num(m.get("timeToFirstAnswerToken"), m.get("timeToFirstToken")),
+        "costPerTask": _safe_float(m.get("intelligenceIndexCostPerTask")),
+        "contextWindowTokens": _safe_int(m.get("contextWindowTokens")),
+        "price_in": _safe_float(m.get("price1mInputTokens")), "price_out": _safe_float(m.get("price1mOutputTokens")),
+        **{dst: _aa_pct(sc, *src_keys, fallback=m.get(fb) if fb else None) for dst, src_keys, fb in _AA_SCORE_SPECS},
+    }
+    return rec, rslug
+
+
+def _aa_rank_key(rec: dict) -> tuple[bool, float]:
+    val = rec.get("intelligenceIndex")
+    return (val is not None, float(val) if val is not None else -1e9)
+
+
+def parse_aa(html_text: str, verbose: bool = False) -> dict:
+    """Parse Artificial Analysis leaderboard from its Next.js App Router RSC payload."""
+    unescaped = html_text.replace('\\"', '"').replace("\\/", "/")
+    models = _extract_aa_array(unescaped, json.JSONDecoder())
+    if not models:
+        if verbose:
+            print("  Artificial Analysis: no intelligenceIndex array found", file=sys.stderr)
+        return {}
+    out: dict[str, dict] = {}
+    for m in models:
+        if not isinstance(m, dict):
+            continue
+        item = _aa_record(m)
+        if not item:
+            continue
+        rec, rslug = item
+        out[rec["slug"]] = rec
+        if rslug not in out or _aa_rank_key(rec) > _aa_rank_key(out[rslug]):
+            out[rslug] = rec
+    if verbose:
+        print(f"  Artificial Analysis: parsed {len(out)} model keys")
+    return out
+
+
+def _openrouter_record(rec: dict) -> dict | None:
+    """Normalize one OpenRouter model entry."""
+    oid = rec.get("id", "")
+    if not oid:
+        return None
+    pricing = rec.get("pricing", {}) or {}
+    p_prompt = _safe_float(pricing.get("prompt"))
+    p_comp = _safe_float(pricing.get("completion"))
+    ctx = _safe_int(rec.get("context_length"))
+    return {
+        "id": oid,
+        "name": rec.get("name") or oid,
+        "description": rec.get("description"),
+        "context": ctx,
+        "context_length": ctx,
+        "pricing": pricing,
+        "architecture": rec.get("architecture") or {},
+        "prompt_price_1m": (p_prompt * 1_000_000.0) if p_prompt is not None else None,
+        "completion_price_1m": (p_comp * 1_000_000.0) if p_comp is not None else None,
+        "is_free": oid.endswith(":free") or (p_prompt == 0.0 and p_comp == 0.0),
+        "is_stealth": oid.startswith("stealth/"),
+        "created": rec.get("created"),
+    }
+
+
 def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
-    """
-    Parse OpenRouter /api/v1/models JSON payload.
-    Returns: dict[model_id -> {id, name, context, prompt_price_1m, completion_price_1m, is_free, ...}]
-    """
+    """Parse OpenRouter /api/v1/models JSON payload."""
+    data = data_json
     if isinstance(data_json, str):
         try:
             data = json.loads(data_json)
@@ -827,137 +1069,110 @@ def parse_openrouter(data_json: str | dict, verbose: bool = False) -> dict:
             if verbose:
                 print(f"  WARN OpenRouter JSON parse error: {e}", file=sys.stderr)
             return {}
-    else:
-        data = data_json
-
-    out = {}
     items = data.get("data", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+    out = {}
     for rec in items:
-        oid = rec.get("id", "")
-        if not oid:
-            continue
-        pricing = rec.get("pricing", {}) or {}
-        p_prompt = _safe_float(pricing.get("prompt"))
-        p_comp = _safe_float(pricing.get("completion"))
-        ctx = _safe_int(rec.get("context_length"))
-        is_free = oid.endswith(":free") or (p_prompt == 0.0 and p_comp == 0.0)
-
-        out[oid] = {
-            "id": oid,
-            "name": rec.get("name") or oid,
-            "description": rec.get("description"),
-            "context": ctx,
-            "context_length": ctx,
-            "pricing": pricing,
-            "architecture": rec.get("architecture") or {},
-            "prompt_price_1m": (p_prompt * 1_000_000.0) if p_prompt is not None else None,
-            "completion_price_1m": (p_comp * 1_000_000.0) if p_comp is not None else None,
-            "is_free": is_free,
-            "is_stealth": oid.startswith("stealth/"),
-            "created": rec.get("created"),
-        }
+        parsed = _openrouter_record(rec)
+        if parsed:
+            out[parsed["id"]] = parsed
     if verbose:
         print(f"  OpenRouter: parsed {len(out)} models")
     return out
 
 
+def _is_devalue_tag(x) -> bool:
+    """True when `x` looks like an Astro devalue `[tag, value]` tuple."""
+    return isinstance(x, list) and len(x) == 2 and type(x[0]) is int and 0 <= x[0] <= 11
+
+
+def _unwrap_devalue_tag(tag: int, val):
+    """Decode a single tagged Astro devalue container."""
+    if tag == 0 and isinstance(val, dict):
+        return {k: unwrap_astro_devalue(v) for k, v in val.items()}
+    if tag == 1 and isinstance(val, list):
+        return [unwrap_astro_devalue(item) for item in val]
+    return val
+
+
 def unwrap_astro_devalue(x):
     """Recursively decode Astro island serialized devalue structures ([tag, payload])."""
-    if isinstance(x, list) and len(x) == 2 and isinstance(x[0], int) and 0 <= x[0] <= 11:
-        tag, val = x
-        if tag == 0:  # Object / Dict
-            return {k: unwrap_astro_devalue(v) for k, v in val.items()} if isinstance(val, dict) else val
-        elif tag == 1:  # Array / List
-            return [unwrap_astro_devalue(item) for item in val] if isinstance(val, list) else val
-        return val
-    elif isinstance(x, dict):
+    if _is_devalue_tag(x):
+        return _unwrap_devalue_tag(x[0], x[1])
+    if isinstance(x, dict):
         return {k: unwrap_astro_devalue(v) for k, v in x.items()}
-    elif isinstance(x, list):
-        return [unwrap_astro_devalue(item) for item in x]
-    return x
+    return [unwrap_astro_devalue(item) for item in x] if isinstance(x, list) else x
 
 
-def parse_vals_index(html_text: str, verbose: bool = False) -> dict:
-    """
-    Parse Vals Index (https://www.vals.ai/benchmarks/vals_index) from its Astro island
-    SSR props (ValsIndexBarGraph or ScatterGraph).
-    Returns: dict[model_slug -> {
-        model_slug, bare_slug, norm_slug,
-        vals_overall, vals_coding, vals_terminal, vals_coding_blend,
-        vals_cost_per_test, vals_latency,
-        vals_finance, vals_emb, vals_legal, vals_hlab, vals_tax, vals_migration
-    }]
-    """
-    if not html_text:
-        return {}
-    m = re.search(r'<astro-island[^>]+component-url="[^"]*ValsIndexBarGraph[^"]*"[^>]*props="([^"]+)"', html_text)
-    if not m:
-        m = re.search(r'<astro-island[^>]+component-url="[^"]*ScatterGraph[^"]*"[^>]*props="([^"]+)"', html_text)
-    if not m:
-        if verbose:
-            print("  WARN Vals Index: no Astro island props found", file=sys.stderr)
-        return {}
+_VALS_TASK_FIELDS = {
+    "vals_coding": "vibe_code_bench",
+    "vals_terminal": "terminal_bench_4",
+    "vals_emb": "emb",
+    "vals_finance": "finance_agent",
+    "vals_legal": "legal_research",
+    "vals_hlab": "legal_agent_benchmark",
+    "vals_tax": "tax_agent_bench",
+    "vals_migration": "code_migration",
+}
 
-    try:
-        raw_props = html_lib.unescape(m.group(1))
-        data = unwrap_astro_devalue(json.loads(raw_props))
-    except Exception as e:
-        if verbose:
-            print(f"  WARN Vals Index JSON/devalue decode error: {e}", file=sys.stderr)
-        return {}
 
-    bv = data.get("benchmarkView") or {}
-    tasks = bv.get("tasks") or {}
-    overall = tasks.get("overall") or {}
-    if not overall:
-        if verbose:
-            print("  WARN Vals Index: no overall task results found", file=sys.stderr)
-        return {}
+def _vals_record(model_slug: str, stats: dict, tasks: dict) -> dict:
+    """Build normalized Vals Index record across all task legs for one model."""
+    bare_slug = model_slug.split("/", 1)[-1]
+    norm_bare = norm_model_slug(bare_slug)
+    rec = {
+        "model_slug": model_slug,
+        "bare_slug": bare_slug,
+        "norm_slug": norm_bare,
+        "vals_overall": _safe_float(stats.get("accuracy")),
+        "vals_cost_per_test": _safe_float(stats.get("cost_per_test")),
+        "vals_latency": _safe_float(stats.get("latency")),
+    }
+    for field, task_key in _VALS_TASK_FIELDS.items():
+        rec[field] = _safe_float((tasks.get(task_key) or {}).get(model_slug, {}).get("accuracy"))
+    code_terms = [v for v in (rec["vals_coding"], rec["vals_terminal"]) if v is not None]
+    rec["vals_coding_blend"] = (sum(code_terms) / len(code_terms)) if code_terms else None
+    return rec
 
-    out = {}
+
+def _extract_vals_props(html_text: str, verbose: bool) -> dict | None:
+    """Locate and decode the Vals Index Astro island JSON payload."""
+    for comp in ("ValsIndexHeatmap", "ValsIndexBarGraph", "ScatterGraph"):
+        m = re.search(rf'<astro-island[^>]+component-url="[^"]*{comp}[^"]*"[^>]*props="([^"]+)"', html_text)
+        if not m:
+            continue
+        try:
+            return unwrap_astro_devalue(json.loads(html_lib.unescape(m.group(1))))
+        except Exception as e:
+            if verbose:
+                print(f"  WARN Vals Index JSON/devalue decode error: {e}", file=sys.stderr)
+            return None
+    if verbose:
+        print("  WARN Vals Index: no Astro island props found", file=sys.stderr)
+    return None
+
+
+def _collect_vals_models(overall: dict, tasks: dict) -> dict:
+    """Build slug-indexed Vals Index dictionary for all rows in `overall`."""
+    out: dict[str, dict] = {}
     for model_slug, stats in overall.items():
         if not isinstance(stats, dict):
             continue
-        raw_acc = stats.get("accuracy")
-        cost = stats.get("cost_per_test")
-        lat = stats.get("latency")
-
-        coding_acc = tasks.get("vibe_code_bench", {}).get(model_slug, {}).get("accuracy")
-        terminal_acc = tasks.get("terminal_bench_4", {}).get(model_slug, {}).get("accuracy")
-        emb_acc = tasks.get("emb", {}).get(model_slug, {}).get("accuracy")
-        fin_acc = tasks.get("finance_agent", {}).get(model_slug, {}).get("accuracy")
-        legal_res_acc = tasks.get("legal_research", {}).get(model_slug, {}).get("accuracy")
-        hlab_acc = tasks.get("legal_agent_benchmark", {}).get(model_slug, {}).get("accuracy")
-        tax_acc = tasks.get("tax_agent_bench", {}).get(model_slug, {}).get("accuracy")
-        migration_acc = tasks.get("code_migration", {}).get(model_slug, {}).get("accuracy")
-
-        code_terms = [v for v in [coding_acc, terminal_acc] if isinstance(v, (int, float))]
-        coding_blend = (sum(code_terms) / len(code_terms)) if code_terms else None
-
-        bare_slug = model_slug.split("/", 1)[-1] if "/" in model_slug else model_slug
-        norm_bare = norm_model_slug(bare_slug)
-
-        rec = {
-            "model_slug": model_slug,
-            "bare_slug": bare_slug,
-            "norm_slug": norm_bare,
-            "vals_overall": _safe_float(raw_acc),
-            "vals_coding": _safe_float(coding_acc),
-            "vals_terminal": _safe_float(terminal_acc),
-            "vals_coding_blend": _safe_float(coding_blend),
-            "vals_cost_per_test": _safe_float(cost),
-            "vals_latency": _safe_float(lat),
-            "vals_finance": _safe_float(fin_acc),
-            "vals_emb": _safe_float(emb_acc),
-            "vals_legal": _safe_float(legal_res_acc),
-            "vals_hlab": _safe_float(hlab_acc),
-            "vals_tax": _safe_float(tax_acc),
-            "vals_migration": _safe_float(migration_acc),
-        }
+        rec = _vals_record(model_slug, stats, tasks)
         out[model_slug] = rec
-        if norm_bare and norm_bare not in out:
-            out[norm_bare] = rec
+        if rec["norm_slug"] and rec["norm_slug"] not in out:
+            out[rec["norm_slug"]] = rec
+    return out
 
+
+def parse_vals_index(html_text: str, verbose: bool = False) -> dict:
+    """Parse Vals Index Astro island SSR props (ValsIndexHeatmap / ValsIndexBarGraph / ScatterGraph)."""
+    if not html_text or not (data := _extract_vals_props(html_text, verbose)):
+        return {}
+    tasks = (data.get("benchmarkView") or {}).get("tasks") or {}
+    overall = tasks.get("overall") or {}
+    if not overall:
+        return {}
+    out = _collect_vals_models(overall, tasks)
     if verbose:
         print(f"  Vals Index: parsed {len(overall)} models across {len(tasks)} tasks")
     return out
@@ -971,30 +1186,24 @@ OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 OPENCODE_ZEN_API = "https://opencode.ai/zen/v1/models"
 OPENCODE_GO_API = "https://opencode.ai/zen/go/v1/models"
 CLINE_RECOMMENDED_MODELS_API = "https://api.cline.bot/api/v1/ai/cline/recommended-models"
-CLINE_FREEMODEL_API = CLINE_RECOMMENDED_MODELS_API
-OCGO_DOCS = "https://opencode.ai/docs/go/"
+OCGO_DOCS = "https://opencode.ai/v2/docs/console/go/"
+
+
+def _vals_candidate_names(model_entry: dict | str) -> list[str]:
+    """Collect ordered candidate identifier strings for Vals Index lookup."""
+    if not isinstance(model_entry, dict):
+        return [str(model_entry)]
+    names = [v for k in ("model_id", "display", "or_slug", "aa_slug", "lm_slug") if (v := model_entry.get(k))]
+    for key in ("live_aliases", "lm_aliases", "aa_aliases"):
+        names.extend(a for a in model_entry.get(key, ()) if a)
+    return names
 
 
 def find_vals_for_model(model_entry: dict | str, vals_map: dict) -> dict | None:
-    """Find matching Vals Index record for a model catalog entry or identifier.
-    Checks exact slugs, tier-stripped slugs, and all alias legs.
-    """
+    """Find matching Vals Index record for a model catalog entry or identifier."""
     if not vals_map or not model_entry:
         return None
-
-    names = []
-    if isinstance(model_entry, dict):
-        for k in ("model_id", "display", "or_slug", "aa_slug", "lm_slug"):
-            v = model_entry.get(k)
-            if v:
-                names.append(v)
-        for a in model_entry.get("live_aliases", []) + model_entry.get("lm_aliases", []) + model_entry.get("aa_aliases", []):
-            if a:
-                names.append(a)
-    else:
-        names.append(str(model_entry))
-
-    for name in names:
+    for name in _vals_candidate_names(model_entry):
         for cand in (name, name.replace(" ", "-"), name.replace("_", "-")):
             sn = norm_model_slug(cand)
             if sn in vals_map:
@@ -1002,62 +1211,59 @@ def find_vals_for_model(model_entry: dict | str, vals_map: dict) -> dict | None:
             st = strip_tier_tokens(sn)
             if st in vals_map:
                 return vals_map[st]
+    return None
 
+
+def _pick_best_score(records: list[dict], score_key: str) -> dict | None:
+    """Pick highest-scoring record by `score_key`."""
+    return max(records, key=lambda r: float(r.get(score_key) or 0.0)) if records else None
+
+
+def _find_best_ranked(
+    model_id: str,
+    record_map: dict,
+    score_key: str,
+    extra_rungs: tuple = (),
+) -> dict | None:
+    """Shared ranked lookup across AA, Arena, and LiveBench maps.
+
+    Rungs: exact slug -> symmetric tier-stripped slug -> caller extra rungs ->
+    guarded non-conflicting fallback picking highest `score_key`.
+    """
+    if not record_map or not model_id:
+        return None
+    sn = norm_model_slug(model_id)
+    if not sn:
+        return None
+    ssn = strip_tier_tokens(model_id)
+    scored = [(slug, rec) for slug, rec in record_map.items() if rec.get(score_key) is not None]
+
+    for pred in (
+        lambda slug: norm_model_slug(slug) == sn,
+        lambda slug: bool(ssn) and strip_tier_tokens(slug) == ssn,
+        *extra_rungs,
+        lambda slug: not variant_conflict(sn, norm_model_slug(slug)),
+    ):
+        if hits := [rec for slug, rec in scored if pred(slug)]:
+            return _pick_best_score(hits, score_key)
     return None
 
 
 def find_aa_for_model(model_id: str, aa_map: dict) -> dict | None:
-    """Find best Artificial Analysis record for a model ID.
-    Collects exact and tier-base candidates and selects the highest scoring one.
-    """
-    if not aa_map or not model_id:
-        return None
-    sn = norm_model_slug(model_id)
-    if not sn:
-        return None
-
-    # 1. Exact canonical matches + tier-base candidates (highest intelligenceIndex)
-    candidates = [
-        rec for slug, rec in aa_map.items()
-        if rec.get("intelligenceIndex") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
-    ]
-    if candidates:
-        return max(candidates, key=lambda r: float(r.get("intelligenceIndex") or 0.0))
-
-    # 2. Strict variant fallback
-    for slug, rec in aa_map.items():
-        if rec.get("intelligenceIndex") is None:
-            continue
-        if not variant_conflict(sn, norm_model_slug(slug)):
-            return rec
-    return None
+    """Find best Artificial Analysis record for a model ID."""
+    return _find_best_ranked(model_id, aa_map, "intelligenceIndex")
 
 
 def find_lm_for_model(model_id: str, lm_map: dict) -> dict | None:
-    """Find best LMArena record for a model ID.
-    Collects exact and tier-base candidates and selects the highest ELO rating.
-    """
-    if not lm_map or not model_id:
-        return None
-    sn = norm_model_slug(model_id)
-    if not sn:
-        return None
-
-    # 1. Exact canonical matches + tier-base candidates (highest ELO)
-    candidates = [
-        rec for slug, rec in lm_map.items()
-        if rec.get("elo") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
-    ]
-    if candidates:
-        return max(candidates, key=lambda r: float(r.get("elo") or 0.0))
-
-    # 2. Strict variant fallback
-    for slug, rec in lm_map.items():
-        if rec.get("elo") is None:
-            continue
-        if not variant_conflict(sn, norm_model_slug(slug)):
-            return rec
-    return None
+    """Find best LMArena record for a model ID (with parenthetical + token-bag rungs)."""
+    base = arena_base_key(model_id or "")
+    tkey = arena_token_key(model_id or "")
+    rungs = []
+    if base:
+        rungs.append(lambda slug: arena_base_key(slug) == base)
+    if tkey:
+        rungs.append(lambda slug: arena_token_key(slug) == tkey)
+    return _find_best_ranked(model_id, lm_map, "elo", extra_rungs=tuple(rungs))
 
 
 def find_or_for_model(model_id: str, or_map: dict) -> tuple[str | None, dict | None]:
@@ -1067,14 +1273,10 @@ def find_or_for_model(model_id: str, or_map: dict) -> tuple[str | None, dict | N
     sn = norm_model_slug(model_id)
     if not sn:
         return None, None
-
-    # 1. Exact canonical match on suffix or full id
     for oid, rec in or_map.items():
         suffix = oid.split("/")[-1]
         if norm_model_slug(suffix) == sn or norm_model_slug(oid) == sn:
             return oid, rec
-
-    # 2. Strict variant fallback
     for oid, rec in or_map.items():
         suffix = oid.split("/")[-1]
         if not variant_conflict(sn, norm_model_slug(suffix)) or not variant_conflict(sn, norm_model_slug(oid)):
@@ -1083,37 +1285,8 @@ def find_or_for_model(model_id: str, or_map: dict) -> tuple[str | None, dict | N
 
 
 def find_livebench_for_model(model_id: str, live_map: dict) -> dict | None:
-    """Find best LiveBench record for a model ID.
-    Collects exact and tier-base candidates and selects the highest overall score.
-    """
-    if not live_map or not model_id:
-        return None
-    sn = norm_model_slug(model_id)
-    if not sn:
-        return None
-
-    # 1. Exact canonical matches + tier-base candidates (highest overall score)
-    candidates = [
-        rec for slug, rec in live_map.items()
-        if rec.get("overall") is not None and (norm_model_slug(slug) == sn or strip_tier_tokens(slug) == sn)
-    ]
-    if candidates:
-        return max(candidates, key=lambda r: float(r.get("overall") or 0.0))
-
-    # 2. Strict variant fallback
-    for slug, rec in live_map.items():
-        if rec.get("overall") is None:
-            continue
-        if not variant_conflict(sn, norm_model_slug(slug)):
-            return rec
-    return None
-
-
-# Backward-compatible aliases for checker migration
-find_aa_for_ocgo = find_aa_for_model
-find_lm_for_ocgo = find_lm_for_model
-find_or_for_ocgo = find_or_for_model
-find_livebench_for_ocgo = find_livebench_for_model
+    """Find best LiveBench record for a model ID."""
+    return _find_best_ranked(model_id, live_map, "overall")
 
 
 # ==============================================================================
@@ -1138,44 +1311,53 @@ def display_len(text: str) -> int:
     return w
 
 
-def pad_display(text: str, width: int, align: str = "<") -> str:
-    """
-    Pad string to exact display width using display_len, safely truncating if too long
-    without cutting wide/emoji glyphs in half.
-    """
-    dlen = display_len(text)
-    if dlen > width:
-        cur = ""
-        cur_w = 0
-        for ch in str(text):
-            ch_w = display_len(ch)
-            if cur_w + ch_w > width:
-                break
-            cur += ch
-            cur_w += ch_w
-        pad_needed = max(0, width - cur_w)
-        return cur + (" " * pad_needed)
+_ANSI_TOKEN_RE = re.compile(r"\x1b\[[0-9;]*m")
 
+
+def _truncate_display(text: str, width: int) -> str:
+    """Truncate text to <= `width` display columns while preserving ANSI SGR escapes."""
+    out: list[str] = []
+    cur_w, pos, has_ansi = 0, 0, False
+    for m in _ANSI_TOKEN_RE.finditer(text):
+        for ch in text[pos:m.start()]:
+            cw = display_len(ch)
+            if cur_w + cw > width:
+                res = "".join(out) + (" " * max(0, width - cur_w))
+                return (res + C_RESET) if has_ansi else res
+            out.append(ch)
+            cur_w += cw
+        out.append(m.group(0))
+        has_ansi = True
+        pos = m.end()
+    for ch in text[pos:]:
+        cw = display_len(ch)
+        if cur_w + cw > width:
+            break
+        out.append(ch)
+        cur_w += cw
+    res = "".join(out) + (" " * max(0, width - cur_w))
+    return (res + C_RESET) if has_ansi else res
+
+
+def pad_display(text: str, width: int, align: str = "<") -> str:
+    """Pad string to exact display width using display_len, ANSI- and wide-glyph-safe."""
+    s = str(text)
+    dlen = display_len(s)
+    if dlen > width:
+        return _truncate_display(s, width)
     pad_needed = max(0, width - dlen)
     if align == ">":
-        return (" " * pad_needed) + str(text)
-    elif align == "^":
+        return (" " * pad_needed) + s
+    if align == "^":
         left_pad = pad_needed // 2
-        right_pad = pad_needed - left_pad
-        return (" " * left_pad) + str(text) + (" " * right_pad)
-    else:
-        return str(text) + (" " * pad_needed)
+        return (" " * left_pad) + s + (" " * (pad_needed - left_pad))
+    return s + (" " * pad_needed)
 
 
 def color_cell(text, color: str = "", width: int | None = None, align: str = "<", bg: str = "") -> str:
     """Format and align text cell with background/foreground color and exact padding."""
-    if width is not None:
-        padded = pad_display(str(text), width, align)
-    else:
-        padded = str(text)
-
-    bg_p = bg if bg else ""
-    return f"{bg_p}{color} {padded} {C_RESET}"
+    padded = pad_display(str(text), width, align) if width is not None else str(text)
+    return f"{bg}{color} {padded} {C_RESET}"
 
 
 
@@ -1287,15 +1469,6 @@ def compute_column_medals(models_list, col_keys, id_key="display"):
     return col_medals
 
 
-def _pad_to_width(line, target_w):
-    """Truncate-or-left-pad a (possibly ANSI-colored) line to an exact visible width."""
-    dlen = display_len(line)
-    if dlen > target_w:
-        clean = re.sub(r"\x1b\[[0-9;]*m", "", str(line))
-        return clean[:target_w]
-    return str(line) + (" " * max(0, target_w - dlen))
-
-
 def render_banner_box(
     title,
     summary_lines=None,
@@ -1306,27 +1479,17 @@ def render_banner_box(
     plain_diff_parts=None,
     box_color=None,
 ):
-    """
-    Shared rounded-box (color) / `=`-rule (plain) banner used atop every
-    checker's main CLI table. Callers pre-format their own title/summary/diff
-    text (business logic stays local); this only handles box-drawing + padding.
-
-    color mode: title on its own row, each entry in summary_lines on its own
-    dim row, then an optional diff-notice row — all inside a ╭─╮/╰─╯ box.
-    plain mode: a single `plain_title_line` (falls back to `title`), then an
-    optional single diff line built from `plain_diff_parts` joined by " | ",
-    wrapped in `=` full-width rules.
-    """
+    """Shared rounded-box (color) / `=`-rule (plain) banner atop CLI tables."""
     box_color = box_color or C_CYAN
     out = []
     if color:
         out.append(f"{box_color}╭{'─' * inner_w}╮{C_RESET}")
-        out.append(f"{box_color}│{C_RESET} {C_BOLD}{C_WHITE}{_pad_to_width(title, inner_w - 2)}{C_RESET} {box_color}│{C_RESET}")
+        out.append(f"{box_color}│{C_RESET} {C_BOLD}{C_WHITE}{pad_display(title, inner_w - 2)}{C_RESET} {box_color}│{C_RESET}")
         for line in (summary_lines or []):
-            out.append(f"{box_color}│{C_RESET}{C_DIM} {_pad_to_width(line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
+            out.append(f"{box_color}│{C_RESET}{C_DIM} {pad_display(line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
         if diff_notices:
             diff_line = " │ ".join(diff_notices)
-            out.append(f"{box_color}│{C_RESET} {_pad_to_width(diff_line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
+            out.append(f"{box_color}│{C_RESET} {pad_display(diff_line, inner_w - 2)} {C_RESET}{box_color}│{C_RESET}")
         out.append(f"{box_color}╰{'─' * inner_w}╯{C_RESET}")
         out.append("")
     else:
@@ -1378,47 +1541,25 @@ def color_ladder(val, checks, default_color=None):
     return default_color if default_color is not None else C_DIM
 
 
-def pool_badge(pool: str, color: bool = True) -> str:
-    """Return colored pool tag badge (e.g. [CLD], [AGY], [OCG], [FRT], [OR], [STEALTH])."""
-    p = pool.lower().strip()
-    tag = pool.upper()[:4]
-    if p in ("claude", "cld"):
-        col = C_CLAUDE
-        tag = "CLD"
-    elif p in ("agy", "gemini", "google"):
-        col = C_AGY
-        tag = "AGY"
-    elif p in ("ocgo", "opencode", "oc"):
-        col = C_OCGO
-        tag = "OCG" if p != "oc" else "OC"
-    elif p in ("frontier", "frt"):
-        col = C_FRONTIER
-        tag = "FRT"
-    elif p in ("openrouter", "or"):
-        col = C_OPENROUTER
-        tag = "OR"
-    elif p in ("cline", "cln"):
-        col = C_CLINE
-        tag = "CLN"
-    elif p in ("api", "upstream", "ext"):
-        col = C_CYAN
-        tag = "API"
-    elif p in ("hetzner", "htz"):
-        col = C_HETZNER
-        tag = "HTZ"
-    elif p in ("nvidia", "nvd"):
-        col = C_NVIDIA
-        tag = "NVD"
-    elif p in ("stealth", "stl"):
-        col = C_MAGENTA
-        tag = "STL"
-    else:
-        col = C_WHITE
-        tag = tag[:3]
+_POOL_STYLE = {
+    "claude": ("CLD", C_CLAUDE), "cld": ("CLD", C_CLAUDE),
+    "agy": ("AGY", C_AGY), "gemini": ("AGY", C_AGY), "google": ("AGY", C_AGY),
+    "ocgo": ("OCG", C_OCGO), "opencode": ("OCG", C_OCGO), "oc": ("OC", C_OCGO),
+    "frontier": ("FRT", C_FRONTIER), "frt": ("FRT", C_FRONTIER),
+    "openrouter": ("OR", C_OPENROUTER), "or": ("OR", C_OPENROUTER),
+    "cline": ("CLN", C_CLINE), "cln": ("CLN", C_CLINE),
+    "api": ("API", C_CYAN), "upstream": ("API", C_CYAN), "ext": ("API", C_CYAN),
+    "hetzner": ("HTZ", C_HETZNER), "htz": ("HTZ", C_HETZNER),
+    "nvidia": ("NVD", C_NVIDIA), "nvd": ("NVD", C_NVIDIA),
+    "stealth": ("STL", C_MAGENTA), "stl": ("STL", C_MAGENTA),
+}
 
-    if not color:
-        return f"[{tag}]"
-    return f"{C_BOLD}{col}[{tag}]{C_RESET}"
+
+def pool_badge(pool: str, color: bool = True) -> str:
+    """Return colored pool tag badge (e.g. [CLD], [AGY], [OCG], [FRT], [OR], [STL])."""
+    p = pool.lower().strip()
+    tag, col = _POOL_STYLE.get(p, (pool.upper()[:3], C_WHITE))
+    return f"{C_BOLD}{col}[{tag}]{C_RESET}" if color else f"[{tag}]"
 
 
 # ==============================================================================
@@ -1496,9 +1637,12 @@ td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowra
 .badge-frt { background: rgba(139,92,246,0.15); color: #8b5cf6; }
 .badge-or { background: rgba(6,182,212,0.15); color: #06b6d4; }
 .badge-cln { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.badge-htz { background: rgba(213,12,45,0.15); color: #ef4444; }
+.badge-nvd { background: rgba(118,185,0,0.18); color: #76b900; }
 .badge-stl { background: rgba(244,63,94,0.18); color: #f43f5e; border: 1px solid #f43f5e; }
 tr.added { background: rgba(63, 185, 80, 0.08) !important; }
 tr.added td.m, tr.added td:first-child { color: #3fb950 !important; font-weight: 700; }
+tr.top-row { background: rgba(210,153,34,0.08); font-weight: 600; }
 .removed-section { background: rgba(248,81,73,0.06); border: 1px solid rgba(248,81,73,0.25); border-radius: 8px; padding: 14px 16px; margin: 16px 0; }
 .removed-title { color: #f85149; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
 .removed-tag { display: inline-block; background: rgba(248,81,73,0.12); color: #ff7b72; border: 1px solid rgba(248,81,73,0.25); border-radius: 4px; padding: 3px 8px; font-family: monospace; font-size: 11.5px; margin: 3px 6px 3px 0; }
@@ -1560,278 +1704,188 @@ HTML_SORT_SCRIPT = """
 # ==============================================================================
 # 7. DYNAMIC ROLE & FUNCTION RECOMMENDATIONS (SOFTWARE ENGINEERING)
 # ==============================================================================
+def _role_pool_label(m: dict, name: str, context: str) -> str:
+    """Format pool/limit badge for role recommendations by checker context."""
+    pricing = m.get("pricing") or {}
+    if context in ("ccheck", "ocheck"):
+        limit = pricing.get("monthly_credits") if context == "ccheck" else None
+        if limit is None:
+            limit = pricing.get("monthly_usage_limit_usd")
+        if limit is not None:
+            return f"${limit:.0f}/m"
+        mid = m.get("model_id", "").lower()
+        return "Free" if ("free" in mid or "free" in name.lower()) else "—"
+    return pool_badge(m.get("pool") or "api", color=False)
+
+
 def _extract_model_role_features(m: dict, context: str = "bcheck") -> dict:
-    """Standardize model metrics for role scoring across bcheck and ocheck."""
+    """Standardize model metrics into homogeneous source legs for role scoring."""
     raw_name = m.get("display") or m.get("model_id") or "Unknown"
-    name = re.sub(r"\s*\([^)]*\)", "", raw_name).strip()
-    
-    # Pool / Limit badge
-    if context == "ccheck":
-        cred = m.get("pricing", {}).get("monthly_credits")
-        if cred is None:
-            # fallback for older snapshots that used monthly_usage_limit_usd
-            cred = m.get("pricing", {}).get("monthly_usage_limit_usd")
-        if cred is not None:
-            pool_str = f"${cred:.0f}/m"
-        elif "free" in m.get("model_id", "").lower() or "free" in name.lower():
-            pool_str = "Free"
-        else:
-            pool_str = "—"
-    elif context == "ocheck":
-        usage = m.get("pricing", {}).get("monthly_usage_limit_usd")
-        if usage is not None:
-            pool_str = f"${usage:.0f}/m"
-        elif "free" in m.get("model_id", "").lower() or "free" in name.lower():
-            pool_str = "Free"
-        else:
-            pool_str = "—"
-    else:
-        p = (m.get("pool") or "").upper()
-        pool_str = {"CLAUDE": "[CLD]", "AGY": "[AGY]", "OCGO": "[OCG]", "FRONTIER": "[FRT]"}.get(p, f"[{p[:3]}]" if p else "[API]")
+    name = clean_display_name(raw_name)
+    val, bms, bm = m.get("value") or {}, m.get("benchmarks") or {}, m.get("base_metrics") or {}
 
-    # Role scoring runs ONLY on benchmarked models (compute_role_recommendations
-    # filters on real capability_q below). No fabricated mid-range defaults:
-    # a model that renders "—" in the table must not silently win a role on
-    # invented q/fgi/avi/bfi/psucc values (S1 "See Something, Say Something").
-    q = _safe_float(m.get("capability_q") or m.get("benchmarks", {}).get("capability_q") or m.get("composite_score"))
-    fgi = _safe_float(m.get("fgi_score") or m.get("value", {}).get("fgi_score") or m.get("benchmarks", {}).get("fgi_score"))
-    avi = _safe_float(m.get("avi_score") or m.get("value", {}).get("avi_score") or m.get("benchmarks", {}).get("avi_score"))
-    bfi = _safe_float(m.get("bfi_score") or m.get("value", {}).get("bfi_score") or m.get("benchmarks", {}).get("bfi_score"))
-    psucc = _safe_float(m.get("p_success") or m.get("benchmarks", {}).get("p_success"))
-
-    eff_cost = _safe_float(m.get("effective_cost") or m.get("value", {}).get("effective_cost_per_request") or m.get("cost_per_request_usd"))
+    eff_cost = _first_num(
+        m.get("empirical_cost"), m.get("effective_cost"),
+        val.get("effective_cost_per_request"), m.get("cost_per_request_usd"),
+    )
     if eff_cost == 0.0:
-        # Real free tier: log-safe positive marker so free models win the cost z.
-        # Unknown (None) stays None — neutral cohort position, never a $10 guess.
         eff_cost = 0.0001
-        
-    coding = _safe_float(
-        m.get("vals_coding")
-        or m.get("base_metrics", {}).get("lm_coding")
-        or m.get("benchmarks", {}).get("aa_coding")
-        or m.get("base_metrics", {}).get("aa_coding")
-        or m.get("benchmarks", {}).get("terminalbenchHard"),
-        default=None,
-    )
-    
-    reasoning = _safe_float(
-        m.get("vals_overall")
-        or m.get("benchmarks", {}).get("aa_intelligence")
-        or m.get("base_metrics", {}).get("aa_quality")
-        or m.get("base_metrics", {}).get("aa_reasoning")
-        or m.get("base_metrics", {}).get("lm_elo"),
-        default=None,
-    )
-    
-    # Speed = real benchmark throughput only. The old req_cnt/100 fallback
-    # fabricated "TPS" from request-quota math (e.g. 453 TPS for a 45k-req/5h
-    # model) and let unbenchmarked bulk models win the boilerplate role.
-    speed = _safe_float(
-        m.get("base_metrics", {}).get("speed_tps")
-        or m.get("benchmarks", {}).get("aa_median_tps")
-    )
 
     return {
         "raw": m,
         "name": name,
-        "pool_str": pool_str,
-        "q": q,
-        "fgi": fgi,
-        "avi": avi,
-        "bfi": bfi,
-        "psucc": psucc,
+        "pool_str": _role_pool_label(m, name, context),
+        "q": _first_num(m.get("capability_q"), bms.get("capability_q"), m.get("composite_score")),
+        "roles": m.get("roles") if isinstance(m.get("roles"), dict) else None,
         "eff_cost": eff_cost,
-        "coding": coding,
-        "reasoning": reasoning,
-        "speed": speed,
+        "ctx": _first_num(m.get("context_length"), bms.get("openrouter_context"), bms.get("aa_context")),
+        "vals_coding": _first_num(m.get("vals_coding_blend"), m.get("vals_coding")),
+        "aa_coding": _first_num(bm.get("aa_tb4"), bm.get("aa_coding"), bms.get("aa_coding"), m.get("aa_live_coding")),
+        "lm_coding": _first_num(bm.get("lm_coding"), bms.get("lmarena_coding")),
+        "vals_overall": _first_num(m.get("vals_overall")),
+        "aa_reasoning": _first_num(bms.get("aa_intelligence"), bm.get("aa_quality"), m.get("aa_live_quality")),
+        "lm_elo": _first_num(bm.get("lm_elo"), bms.get("lmarena_elo")),
+        "speed": _first_num(bm.get("speed_tps"), bms.get("aa_median_tps")),
     }
+
+
+SHRINKAGE_LAMBDA = 0.20
+
+
+def shrunk_weighted_z(pairs: list[tuple[float, float | None]], lam: float = SHRINKAGE_LAMBDA) -> float | None:
+    """Empirical Bayes shrunk weighted z-score; returns None when all legs are missing."""
+    present = [(w, z) for w, z in pairs if z is not None]
+    if not present:
+        return None
+    return sum(w * z for w, z in present) / (sum(w for w, _ in present) + lam)
+
+
+def scale_axis_score(z_val: float | None) -> float | None:
+    """Map shrunk z-score onto bounded [40.0, 99.9] capability scale."""
+    return round(max(40.0, min(99.9, 78.0 + (9.0 * z_val))), 1) if z_val is not None else None
+
+
+def _pack_role_winner(scored_list: list[tuple[float, dict]], meta: tuple[str, str, str, str, str]) -> dict:
+    """Pack winner + runner-up payload for one role recommendation."""
+    title, label_short, icon, desc, desc_short = meta
+    w_score, w_f = scored_list[0] if scored_list else (0.0, {})
+    r_score, r_f = scored_list[1] if len(scored_list) > 1 else (0.0, {})
+    return {
+        "title": title,
+        "label_short": label_short,
+        "icon": icon,
+        "desc": desc,
+        "desc_short": desc_short,
+        "winner": {"name": w_f.get("name", "—"), "pool_str": w_f.get("pool_str", ""), "score": w_score, "q": w_f.get("q", 0.0)},
+        "runner_up": {"name": r_f.get("name", "—"), "pool_str": r_f.get("pool_str", ""), "score": r_score, "q": r_f.get("q", 0.0)},
+    }
+
+
+ROLE_META: dict[str, tuple[str, str, str, str, str]] = {
+    "architecture": (
+        "System Architecture & Spec Lock", "Architect", "🏗️",
+        "HLE, CritPt, LiveBench & non-hallucination. Use for contracts, invariants, and hard debugging.",
+        "Deep reasoning & spec lock for contracts and root-cause debugging.",
+    ),
+    "software_dev": (
+        "Agentic Software Development", "Soft Dev", "💻",
+        "CursorBench, FrontierCode 2.0, FrontierSWE, TerminalBench-4 & $/task ROI.",
+        "Multi-file repo coding, CLI execution & empirical $/task efficiency.",
+    ),
+    "design": (
+        "UI / UX & Frontend Design", "Design", "🎨",
+        "Arena webdev-react, webdev Elo & IFBench constraint adherence.",
+        "React/CSS layout craft, interactive UX & strict instruction fidelity.",
+    ),
+    "research": (
+        "Academic Research & Synthesis", "Research", "🔬",
+        "Omniscience non-hallucination, Long-Context, FrontierSWE Research, SciCode & GPQA (>=200k ctx).",
+        "High epistemic honesty, long-context synthesis & scientific rigor.",
+    ),
+}
+_ROLE_META = ROLE_META
+ROLE_BADGE_LABELS = {k: f"{v[2]} {v[1]}" for k, v in ROLE_META.items()}
+
+
+def _score_fallback_row(f: dict, zs: dict[str, list[float | None]], i: int) -> list[tuple[str, float]]:
+    s_arc = scale_axis_score(shrunk_weighted_z([(0.50, zs["rsn"][i]), (0.30, zs["cod"][i]), (0.20, zs["q"][i])]))
+    s_dev = scale_axis_score(shrunk_weighted_z([(0.45, zs["cod"][i]), (0.25, zs["q"][i]), (0.20, zs["cst"][i]), (0.10, zs["spd"][i])]))
+    s_des = scale_axis_score(shrunk_weighted_z([(0.65, zs["des"][i]), (0.20, zs["cod"][i]), (0.15, zs["cst"][i])]))
+    s_res = scale_axis_score(shrunk_weighted_z([(0.55, zs["rsn"][i]), (0.30, zs["q"][i]), (0.15, zs["cod"][i])]))
+    if s_res is not None and f["ctx"] is not None and f["ctx"] < 200_000:
+        s_res = round(max(40.0, s_res - 10.0), 1)
+    pairs = (("architecture", s_arc), ("software_dev", s_dev), ("design", s_des), ("research", s_res))
+    return [(rk, sv) for rk, sv in pairs if sv is not None]
+
+
+def _fallback_z_series(feats: list[dict]) -> dict[str, list[float | None]]:
+    return {
+        "q": z_scores_none([f["q"] for f in feats]),
+        "spd": z_scores_none([_pos_log10(f["speed"]) for f in feats]),
+        "cst": z_scores_none([_neg_log10(f["eff_cost"]) for f in feats]),
+        "cod": z_scores_none([_first_num(f["aa_coding"], f["vals_coding"]) for f in feats]),
+        "des": z_scores_none([_first_num(f["lm_coding"], f["lm_elo"]) for f in feats]),
+        "rsn": z_scores_none([_first_num(f["aa_reasoning"], f["vals_overall"]) for f in feats]),
+    }
+
+
+def _fallback_analyzer_role_buckets(feats: list[dict]) -> dict[str, list[tuple[float, dict]]]:
+    """Fallback role scoring for legacy analyzer rows (ocheck/ccheck) lacking 5-axis fields."""
+    zs = _fallback_z_series(feats)
+    buckets: dict[str, list[tuple[float, dict]]] = {k: [] for k in ROLE_META}
+    for i, f in enumerate(feats):
+        for rk, sv in _score_fallback_row(f, zs, i):
+            buckets[rk].append((sv, f))
+    return buckets
+
+
+def _precomputed_role_buckets(feats: list[dict]) -> dict[str, list[tuple[float, dict]]]:
+    buckets: dict[str, list[tuple[float, dict]]] = {k: [] for k in ROLE_META}
+    for f in feats:
+        rmap = f["roles"] or {}
+        for rk, sv in rmap.items():
+            num = _safe_float(sv)
+            if rk in buckets and num is not None:
+                buckets[rk].append((num, f))
+    return buckets
 
 
 def compute_role_recommendations(models_list: list[dict], context: str = "bcheck") -> dict[str, dict]:
-    """
-    Compute dynamic role & function recommendations via weighted multi-metric Z-scores.
-    
-    Roles:
-      1. architecture: System Architecture & Complex Design (Spec Lock / Deep Logic)
-      2. pair_programming: Pair Programming & Code Editing (Interactive Refactoring & Diffs)
-      3. daily_driver: Daily Driver / Value Workhorse (Highest Agentic ROI)
-      4. boilerplate: Fast Boilerplate & Scaffolding (Mechanical Code Gen)
-    """
-    if not models_list:
-        return {}
-
-    feats = [_extract_model_role_features(m, context=context) for m in models_list]
-    # Eligibility: real capability signal required. Models that render "—" in
-    # the table (no verified benchmarks) are excluded from role scoring — they
-    # previously entered with fabricated q=70 priors and could WIN roles.
-    feats = [f for f in feats if f["q"] is not None]
+    """Compute top winner & runner-up across Architecture, Software Dev, Design, and Research."""
+    clean = [m for m in (models_list or []) if not m.get("signal_mirror_of")]
+    feats = [f for f in (_extract_model_role_features(m, context=context) for m in clean) if f["q"] is not None]
     if len(feats) < 2:
         return {}
-
-    # None-passthrough z + renormalized weighted sums (aggregator semantics):
-    # a missing leg is skipped, never banked at the cohort mean.
-    z_q = z_scores_none([f["q"] for f in feats])
-    z_fgi = z_scores_none([f["fgi"] for f in feats])
-    z_avi = z_scores_none([f["avi"] for f in feats])
-    z_bfi = z_scores_none([f["bfi"] for f in feats])
-    z_psucc = z_scores_none([f["psucc"] for f in feats])
-    z_speed = z_scores_none([f["speed"] for f in feats])
-
-    # Invert log cost so lower cost gives higher score
-    inv_log_costs = [-math.log10(max(0.00001, f["eff_cost"])) if f["eff_cost"] is not None else None for f in feats]
-    z_cost = z_scores_none(inv_log_costs)
-
-    # Fill missing coding / reasoning with z_q
-    cod_vals = [f["coding"] if f["coding"] is not None else f["q"] for f in feats]
-    z_coding = z_scores_none(cod_vals)
-
-    reas_vals = [f["reasoning"] if f["reasoning"] is not None else f["q"] for f in feats]
-    z_reasoning = z_scores_none(reas_vals)
-
-    def _wsum(pairs) -> float:
-        num = sum(w * z for w, z in pairs if z is not None)
-        den = sum(w for w, z in pairs if z is not None)
-        return num / den if den > 0 else 0.0
-
-    scored_arch = []
-    scored_pair = []
-    scored_driver = []
-    scored_boiler = []
-
-    for i, f in enumerate(feats):
-        # 1. Architecture: High FGI + Q + Reasoning
-        s_arch_raw = _wsum([(0.40, z_fgi[i]), (0.30, z_q[i]), (0.30, z_reasoning[i])])
-        s_arch = round(max(50.0, min(99.9, 80.0 + (s_arch_raw * 7.0))), 1)
-        scored_arch.append((s_arch, f))
-
-        # 2. Pair Programming: Coding performance + Q + AVI + P_succ
-        s_pair_raw = _wsum([(0.35, z_coding[i]), (0.30, z_q[i]), (0.20, z_avi[i]), (0.15, z_psucc[i])])
-        s_pair = round(max(50.0, min(99.9, 80.0 + (s_pair_raw * 7.0))), 1)
-        scored_pair.append((s_pair, f))
-
-        # 3. Daily Driver Workhorse: High AVI ROI + Q + Cost Efficiency
-        s_driver_raw = _wsum([(0.50, z_avi[i]), (0.30, z_q[i]), (0.20, z_cost[i])])
-        s_driver = round(max(50.0, min(99.9, 80.0 + (s_driver_raw * 7.0))), 1)
-        scored_driver.append((s_driver, f))
-
-        # 4. Boilerplate & Fast Fill: BFI + Speed + Cost (gated to Q >= 64 to avoid corrupt code)
-        if f["q"] >= 64.0:
-            s_boiler_raw = _wsum([(0.45, z_bfi[i]), (0.30, z_speed[i]), (0.25, z_cost[i])])
-            s_boiler = round(max(50.0, min(99.9, 80.0 + (s_boiler_raw * 7.0))), 1)
-        else:
-            s_boiler = 45.0
-        scored_boiler.append((s_boiler, f))
-
-    scored_arch.sort(key=lambda x: x[0], reverse=True)
-    scored_pair.sort(key=lambda x: x[0], reverse=True)
-    scored_driver.sort(key=lambda x: x[0], reverse=True)
-    scored_boiler.sort(key=lambda x: x[0], reverse=True)
-
-    def _pack_role(scored_list, title, label_short, icon, desc, desc_short):
-        w_score, w_f = scored_list[0] if scored_list else (0.0, {})
-        r_score, r_f = scored_list[1] if len(scored_list) > 1 else (0.0, {})
-        return {
-            "title": title,
-            "label_short": label_short,
-            "icon": icon,
-            "desc": desc,
-            "desc_short": desc_short,
-            "winner": {
-                "name": w_f.get("name", "—"),
-                "pool_str": w_f.get("pool_str", ""),
-                "score": w_score,
-                "q": w_f.get("q", 0.0),
-                "fgi": w_f.get("fgi", 0.0),
-                "avi": w_f.get("avi", 0.0),
-            },
-            "runner_up": {
-                "name": r_f.get("name", "—"),
-                "pool_str": r_f.get("pool_str", ""),
-                "score": r_score,
-                "q": r_f.get("q", 0.0),
-                "fgi": r_f.get("fgi", 0.0),
-                "avi": r_f.get("avi", 0.0),
-            },
-        }
-
+    buckets = _precomputed_role_buckets(feats) if any(f["roles"] for f in feats) else _fallback_analyzer_role_buckets(feats)
     return {
-        "architecture": _pack_role(
-            scored_arch,
-            "System Architecture & Complex Design",
-            "Architecture",
-            "🏗️",
-            "Deep reasoning & high FGI gates. Use for contracts, spec lock, and hard debugging.",
-            "High FGI & reasoning gates. Use for spec lock and deep debugging.",
-        ),
-        "pair_programming": _pack_role(
-            scored_pair,
-            "Pair Programming & Code Editing",
-            "Pair Coder",
-            "💻",
-            "Surgical diffs, coding Elo & multi-turn alignment without drift.",
-            "Surgical diffs, coding Elo & alignment without drift.",
-        ),
-        "daily_driver": _pack_role(
-            scored_driver,
-            "Daily Driver (High ROI Workhorse)",
-            "Daily Driver",
-            "🔄",
-            "Top AVI & cost-efficiency. Autonomous loops without token explosion.",
-            "Top AVI & cost-efficiency. Loops without token runaway.",
-        ),
-        "boilerplate": _pack_role(
-            scored_boiler,
-            "Fast Boilerplate & Mechanical Fill",
-            "Boilerplate",
-            "⚡",
-            "High throughput (TPS/BFI) for mechanical generation and test scaffolding.",
-            "High TPS & low cost for mechanical fill & scaffolding.",
-        ),
+        rk: _pack_role_winner(sorted(buckets[rk], key=lambda x: x[0], reverse=True), meta)
+        for rk, meta in ROLE_META.items()
+        if buckets[rk]
     }
+
+
+def _role_palette(color: bool) -> tuple[str, str, str, str, str, str]:
+    """Return ANSI tuple (label, winner, runner_up, score, dim, reset) or empty strings."""
+    return (C_BOLD + C_CYAN, C_BOLD + C_GREEN, C_SILVER, C_YELLOW, C_DIM, C_RESET) if color else ("", "", "", "", "", "")
 
 
 def render_role_recommendations_cli(role_recs: dict[str, dict], color: bool = True, is_slim: bool = False, width: int = 100) -> list[str]:
     """Render ANSI-formatted CLI role recommendations box."""
     if not role_recs:
         return []
-
-    out = []
-    title_text = "🎯 ROLE & FUNCTION RECOMMENDATIONS (Weighted Multi-Metric Selection):" if not is_slim else "🎯 ROLE RECOMMENDATIONS (Weighted Selection):"
-    
-    if color:
-        out.append(f"{C_BOLD}{C_GOLD}{title_text}{C_RESET}")
-    else:
-        out.append(title_text)
-
-    for role_key, r in role_recs.items():
-        w = r["winner"]
-        ru = r["runner_up"]
-        label = r["title"] if not is_slim else r["label_short"]
-        desc = r["desc"] if not is_slim else r["desc_short"]
-        icon = r["icon"]
-
-        w_name = w["name"][:24] if not is_slim else w["name"][:18]
-        ru_name = ru["name"][:24] if not is_slim else ru["name"][:17]
-        lbl_w = 34 if not is_slim else 14
-        lbl_pad = f"{label:<{lbl_w}}"
-
-        if color:
-            c_icon = C_BOLD + C_WHITE
-            c_label = C_BOLD + C_CYAN
-            c_win = C_BOLD + C_GREEN
-            c_ru = C_SILVER
-            c_desc = C_DIM
-            c_score = C_YELLOW
-            
-            line1 = f"  • {icon} {c_label}{lbl_pad}{C_RESET}: {c_win}{w_name}{C_RESET} {w['pool_str']} ({c_score}{w['score']:.1f}{C_RESET}) · {C_DIM}Runner-up:{C_RESET} {c_ru}{ru_name}{C_RESET} {ru['pool_str']} ({ru['score']:.1f})"
-            line2 = f"       {C_DIM}↳ {desc}{C_RESET}"
-        else:
-            line1 = f"  • {icon} {lbl_pad}: {w_name} {w['pool_str']} ({w['score']:.1f}) · Runner-up: {ru_name} {ru['pool_str']} ({ru['score']:.1f})"
-            line2 = f"       ↳ {desc}"
-
-        out.append(line1)
-        out.append(line2)
-
+    title = "🎯 ROLE RECOMMENDATIONS (Weighted Selection):" if is_slim else "🎯 ROLE & FUNCTION RECOMMENDATIONS (Weighted Multi-Metric Selection):"
+    out = [f"{C_BOLD}{C_GOLD}{title}{C_RESET}" if color else title]
+    c_lbl, c_win, c_ru, c_scr, c_dim, c_rst = _role_palette(color)
+    n_lim, ru_lim, lbl_w = (26, 26, 14) if is_slim else (28, 28, 34)
+    for r in role_recs.values():
+        w, ru = r["winner"], r["runner_up"]
+        label = (r["label_short"] if is_slim else r["title"]).ljust(lbl_w)
+        desc = r["desc_short"] if is_slim else r["desc"]
+        out.append(
+            f"  • {r['icon']} {c_lbl}{label}{c_rst}: {c_win}{w['name'][:n_lim]}{c_rst} {w['pool_str']} "
+            f"({c_scr}{w['score']:.1f}{c_rst}) · {c_dim}Runner-up:{c_rst} {c_ru}{ru['name'][:ru_lim]}{c_rst} {ru['pool_str']} ({ru['score']:.1f})"
+        )
+        out.append(f"       {c_dim}↳ {desc}{c_rst}")
     return out
 
 
@@ -1914,39 +1968,108 @@ def load_previous_snapshot(json_path: pathlib.Path | str) -> list[dict] | dict |
     return None
 
 
+def _epoch_to_utc(num: float) -> dt.datetime | None:
+    """Convert Unix seconds or milliseconds scalar into aware UTC datetime."""
+    try:
+        secs = num / 1000.0 if num > 1e11 else num
+        return dt.datetime.fromtimestamp(secs, tz=dt.UTC)
+    except Exception:
+        return None
+
+
+def _parse_str_timestamp(s: str) -> dt.datetime | None:
+    """Parse ISO 8601 or numeric string timestamp into aware UTC datetime."""
+    with contextlib.suppress(Exception):
+        parsed = dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=dt.UTC) if parsed.tzinfo is None else parsed
+    with contextlib.suppress(Exception):
+        num = float(s)
+        return _epoch_to_utc(num) if math.isfinite(num) else None
+    return None
+
+
 def parse_timestamp(val) -> dt.datetime | None:
-    """Parse ISO 8601 string, numeric epoch (seconds/ms), or string timestamp to timezone-aware UTC datetime."""
-    if val is None:
+    """Parse ISO 8601 string or numeric epoch (seconds/ms) into aware UTC datetime."""
+    if val is None or isinstance(val, bool):
         return None
     if isinstance(val, (int, float)):
-        try:
-            if val > 1e11:  # Epoch milliseconds
-                val = val / 1000.0
-            return dt.datetime.fromtimestamp(val, tz=dt.timezone.utc)
-        except Exception:
-            return None
-    if isinstance(val, str):
-        val = val.strip()
-        if not val:
-            return None
-        # Try ISO 8601 string
-        try:
-            iso_str = val.replace("Z", "+00:00")
-            parsed = dt.datetime.fromisoformat(iso_str)
-            if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=dt.timezone.utc)
-            return parsed
-        except Exception:
-            pass
-        # Try numeric string
-        try:
-            num = float(val)
-            if num > 1e11:
-                num = num / 1000.0
-            return dt.datetime.fromtimestamp(num, tz=dt.timezone.utc)
-        except Exception:
-            pass
+        return _epoch_to_utc(val) if math.isfinite(val) else None
+    if isinstance(val, str) and (s := val.strip()):
+        return _parse_str_timestamp(s)
     return None
+
+
+def _catalog_entry_id(r: dict, id_key: str) -> str | None:
+    """Return canonical row ID checking `id_key` and concrete IDs before aliases."""
+    if not isinstance(r, dict):
+        return None
+    for k in (id_key, "model_id", "or_slug", "aa_slug", "lm_slug", "display", "id"):
+        if v := r.get(k):
+            return v
+    for ak in ("aa_aliases", "lm_aliases", "live_aliases"):
+        aliases = r.get(ak)
+        if aliases and aliases[0]:
+            return aliases[0]
+    return None
+
+
+def _index_baseline_catalog(
+    prev_snapshot: list[dict] | dict | None,
+    id_key: str,
+    require_docs_tag: bool,
+) -> tuple[str, dict[str, dict], dict[str, dict]]:
+    """Return (baseline_mode ['empty'|'catalog'], display_map, seen_map)."""
+    if isinstance(prev_snapshot, dict):
+        mode = "catalog"
+        rows = prev_snapshot.get("models", [])
+        docs_only = require_docs_tag and id_key == "model_id" and ("catalog_diff" in prev_snapshot)
+    elif isinstance(prev_snapshot, list):
+        mode, rows, docs_only = "catalog", prev_snapshot, False
+    else:
+        return "empty", {}, {}
+
+    display_map: dict[str, dict] = {}
+    seen_map: dict[str, dict] = {}
+    for m in rows:
+        if mid := _catalog_entry_id(m, id_key):
+            seen_map[mid] = m
+            if not docs_only or m.get("is_docs_model"):
+                display_map[mid] = m
+    return mode, display_map, seen_map
+
+
+def _resolve_first_seen(nr: dict, prev_m: dict | None, created_val, brand_new: bool, now_dt: dt.datetime) -> str | None:
+    """Resolve earliest known timestamp across row, baseline, creation date, or now."""
+    if first_seen := (nr.get("first_seen") or (prev_m.get("first_seen") if prev_m else None)):
+        return first_seen
+    if created_val is not None and (created_dt := parse_timestamp(created_val)):
+        return created_dt.isoformat()
+    return now_dt.isoformat() if brand_new else None
+
+
+def _classify_catalog_row(
+    r: dict,
+    seen_map: dict[str, dict],
+    baseline_mode: str,
+    id_key: str,
+    window_days: float,
+    now_dt: dt.datetime,
+) -> tuple[str, dict, bool] | None:
+    """Resolve `first_seen` and freshness status for one current catalog row."""
+    if not (mid := _catalog_entry_id(r, id_key)):
+        return None
+    nr = dict(r)
+    created_val = nr.get("created") or nr.get("created_date")
+    brand_new = baseline_mode == "catalog" and mid not in seen_map
+    first_seen = _resolve_first_seen(nr, seen_map.get(mid), created_val, brand_new, now_dt)
+    if first_seen:
+        nr["first_seen"] = first_seen
+
+    parsed_fs = parse_timestamp(first_seen)
+    age_days = (now_dt - parsed_fs).total_seconds() / 86400.0 if parsed_fs else -1.0
+    in_window = 0 <= age_days <= window_days and (baseline_mode == "catalog" or created_val is not None)
+    nr["is_new"] = in_window or brand_new
+    return mid, nr, nr["is_new"]
 
 
 def diff_model_catalog(
@@ -1957,124 +2080,25 @@ def diff_model_catalog(
     now: dt.datetime | None = None,
     require_docs_tag: bool = True,
 ) -> dict:
-    """Compute added (green) and removed (red) models comparing current rows to previous baseline snapshot.
-
-    Persists and propagates 'first_seen' timestamps across runs so that newly added models
-    remain highlighted in green for up to `window_days` (default 7 days).
-
-    require_docs_tag: the ocheck snapshots tag docs-backed models with
-    `is_docs_model` and must diff against that subset only; callers whose payload
-    shape has no such tag (fcheck, bcheck) pass False so their own previous rows
-    populate the baseline map (S3-F3-2).
-
-    Two-set diff (S1-M1): the docs filter applies ONLY to the added/removed
-    display map (prev_models_map) so subset rows can never fake a removal.
-    first_seen carry-over and the brand-new check use a catalog-wide map
-    (prev_seen_map) — otherwise every non-docs row misses its own baseline
-    entry and gets re-stamped "brand new" on every single run.
-    """
-    now_dt = now or dt.datetime.now(dt.timezone.utc)
+    """Compute added (green) and removed (red) models against previous baseline snapshot."""
+    now_dt = now or dt.datetime.now(dt.UTC)
     if now_dt.tzinfo is None:
-        now_dt = now_dt.replace(tzinfo=dt.timezone.utc)
+        now_dt = now_dt.replace(tzinfo=dt.UTC)
 
-    def _extract_id(r: dict) -> str | None:
-        if not isinstance(r, dict):
-            return None
-        # Stable-first: upstream slugs survive AA display renames. Aliases
-        # beat id_key when id_key is display: bcheck diffs id_key=display
-        # but rows carry aa_aliases[0] as the rename-proof identity.
-        aliases = r.get("aa_aliases") or r.get("lm_aliases") or r.get("live_aliases") or []
-        if isinstance(aliases, list) and aliases and aliases[0]:
-            return aliases[0]
-        for k in (id_key, "model_id", "or_slug", "aa_slug", "lm_slug"):
-            v = r.get(k)
-            if v:
-                return v
-        return r.get("display") or r.get("id")
-
-    prev_models_map = {}  # docs-filtered display set: added/removed pass
-    prev_seen_map = {}    # catalog-wide: first_seen carry-over + brand-new check (S1-M1)
-    has_prev_snapshot = False
-
-    if isinstance(prev_snapshot, dict):
-        has_prev_snapshot = True
-        prev_models_list = prev_snapshot.get("models", [])
-        has_catalog_diff = "catalog_diff" in prev_snapshot
-    elif isinstance(prev_snapshot, list):
-        has_prev_snapshot = True
-        prev_models_list = prev_snapshot
-        has_catalog_diff = False
-    else:
-        prev_models_list = []
-        has_catalog_diff = False
-
-    for m in prev_models_list:
-        if isinstance(m, dict):
-            mid = _extract_id(m)
-            if mid:
-                prev_seen_map[mid] = m
-                # ocheck snapshots: the added/removed display pass diffs against the
-                # docs-backed subset only when the caller requires the is_docs_model
-                # tag; fcheck/bcheck payloads pass require_docs_tag=False
-                if require_docs_tag and id_key == "model_id" and has_catalog_diff and not m.get("is_docs_model"):
-                    continue
-                prev_models_map[mid] = m
-
-    current_ids = set()
-    added_ids = set()
-    out_rows = []
-
+    baseline_mode, prev_models_map, prev_seen_map = _index_baseline_catalog(prev_snapshot, id_key, require_docs_tag)
+    current_ids, added_ids, out_rows = set(), set(), []
     for r in current_rows:
-        if not isinstance(r, dict):
+        classified = _classify_catalog_row(r, prev_seen_map, baseline_mode, id_key, window_days, now_dt)
+        if not classified:
             continue
-        mid = _extract_id(r)
-        if not mid:
-            continue
+        mid, nr, is_new = classified
         current_ids.add(mid)
-        nr = dict(r)
-
-        # 1. Resolve first_seen timestamp
-        first_seen_str = nr.get("first_seen")
-        prev_m = prev_seen_map.get(mid)
-
-        if not first_seen_str and prev_m:
-            first_seen_str = prev_m.get("first_seen")
-
-        # Check API creation date (e.g. OpenRouter "created" integer or string)
-        created_val = nr.get("created") or nr.get("created_date")
-        if not first_seen_str and created_val is not None:
-            created_dt = parse_timestamp(created_val)
-            if created_dt:
-                first_seen_str = created_dt.isoformat()
-
-        # If brand new model unseen in previous snapshot
-        is_brand_new = has_prev_snapshot and (mid not in prev_seen_map)
-        if not first_seen_str and is_brand_new:
-            first_seen_str = now_dt.isoformat()
-
-        if first_seen_str:
-            nr["first_seen"] = first_seen_str
-
-        # 2. Check if within freshness window (<= window_days)
-        is_fresh = False
-        parsed_first_seen = parse_timestamp(first_seen_str)
-        if parsed_first_seen:
-            age_days = (now_dt - parsed_first_seen).total_seconds() / 86400.0
-            if 0 <= age_days <= window_days:
-                # If cold start without prior snapshot, only mark green if it has explicit created date
-                if has_prev_snapshot or created_val is not None:
-                    is_fresh = True
-
-        if is_fresh or is_brand_new:
+        if is_new:
             added_ids.add(mid)
-            nr["is_new"] = True
-        else:
-            nr["is_new"] = False
         out_rows.append(nr)
 
-    removed_ids = set(prev_models_map.keys()) - current_ids if has_prev_snapshot else set()
-    removed_models = [prev_models_map[mid] for mid in sorted(removed_ids) if mid in prev_models_map]
-
+    removed_ids = (set(prev_models_map) - current_ids) if baseline_mode == "catalog" else set()
+    removed_models = [prev_models_map[mid] for mid in sorted(removed_ids)]
     return {
         "added_ids": added_ids,
         "removed_ids": removed_ids,
@@ -2083,144 +2107,1219 @@ def diff_model_catalog(
     }
 
 
+def _nested_num(rm: dict, key: str, parents: tuple[str, ...]) -> float | None:
+    """Extract first finite numeric score checking sub-dicts before top-level."""
+    for p in parents:
+        sub = rm.get(p)
+        if isinstance(sub, dict) and _is_num(v := sub.get(key)):
+            return float(v)
+    return float(v) if _is_num(v := rm.get(key)) else None
 
+
+def _removed_scope_badge(rm: dict, mid: str) -> str | None:
+    """Format pricing limit, pool, or provider tag for a removed catalog entry."""
+    if isinstance(pr := rm.get("pricing"), dict):
+        lim = pr.get("monthly_credits") if pr.get("monthly_credits") is not None else pr.get("monthly_usage_limit_usd")
+        if lim is not None:
+            return f"Prior Limit: ${lim:.0f}/m"
+        return "Prior Limit: Free" if "free" in mid.lower() else None
+    if "pool" in rm:
+        return f"Pool: {str(rm.get('pool', '')).upper()}"
+    return f"Prov: {rm['provider']}" if "provider" in rm else None
+
+
+def _removed_model_details(rm: dict, mid: str) -> list[str]:
+    """Build detail tokens for one removed/deprecated model row."""
+    details = [b] if (b := _removed_scope_badge(rm, mid)) else []
+    fgi = _nested_num(rm, "fgi_score", ("value", "benchmarks"))
+    avi = _nested_num(rm, "avi_score", ("value", "benchmarks"))
+    q_val = _nested_num(rm, "capability_q", ("benchmarks",))
+    for label, val in (("FGI", fgi), ("AVI", avi)):
+        if val is not None:
+            details.append(f"{label} {val:.1f}")
+    if q_val is not None and fgi is None:
+        details.append(f"Q {q_val:.1f}")
+    return details
 
 
 def render_removed_models_cli(removed_models: list[dict], color: bool = True, is_slim: bool = False, id_key: str = "model_id") -> list[str]:
-    """Format removed/deprecated models list as a red CLI section."""
+    """Format removed/deprecated models list uniformly across color and plain modes."""
     if not removed_models:
         return []
-
-    lines = []
-    if color:
-        lines.append(f"{C_BOLD}{C_RED}🔻 REMOVED / DEPRECATED MODELS ({len(removed_models)}):{C_RESET}")
-        for rm in removed_models:
-            mid = rm.get(id_key) or rm.get("model_id") or rm.get("display") or rm.get("or_slug") or rm.get("id") or "unknown"
-            details = []
-            if "pricing" in rm and isinstance(rm["pricing"], dict):
-                pr_lim = rm["pricing"].get("monthly_usage_limit_usd")
-                lim_s = f"${pr_lim:.0f}/m" if pr_lim is not None else "Free"
-                details.append(f"Prior Limit: {lim_s}")
-            elif "pool" in rm:
-                details.append(f"Pool: {rm.get('pool', '').upper()}")
-            elif "provider" in rm:
-                details.append(f"Prov: {rm.get('provider')}")
-
-            fgi = rm.get("value", {}).get("fgi_score") if isinstance(rm.get("value"), dict) else None
-            if fgi is None:
-                fgi = rm.get("benchmarks", {}).get("fgi_score") if isinstance(rm.get("benchmarks"), dict) else rm.get("fgi_score")
-            if fgi is not None and isinstance(fgi, (int, float)):
-                details.append(f"FGI {fgi:.1f}")
-
-            avi = rm.get("value", {}).get("avi_score") if isinstance(rm.get("value"), dict) else None
-            if avi is None:
-                avi = rm.get("benchmarks", {}).get("avi_score") if isinstance(rm.get("benchmarks"), dict) else rm.get("avi_score")
-            if avi is not None and isinstance(avi, (int, float)):
-                details.append(f"AVI {avi:.1f}")
-
-            q_val = rm.get("benchmarks", {}).get("capability_q") if isinstance(rm.get("benchmarks"), dict) else rm.get("capability_q")
-            if q_val is not None and isinstance(q_val, (int, float)) and fgi is None:
-                details.append(f"Q {q_val:.1f}")
-
-            detail_str = f" ({', '.join(details)})" if details else ""
-            lines.append(f"  {C_RED}❌ {C_BOLD}{mid:<22}{C_RESET}{C_DIM}{detail_str}{C_RESET}")
-    else:
-        lines.append(f"REMOVED / DEPRECATED MODELS ({len(removed_models)}):")
-        for rm in removed_models:
-            mid = rm.get(id_key) or rm.get("model_id") or rm.get("display") or rm.get("or_slug") or rm.get("id") or "unknown"
-            details = []
-            if "pricing" in rm and isinstance(rm["pricing"], dict):
-                pr_lim = rm["pricing"].get("monthly_usage_limit_usd")
-                lim_s = f"${pr_lim:.0f}/m" if pr_lim is not None else "Free"
-                details.append(f"Prior Limit: {lim_s}")
-            elif "pool" in rm:
-                details.append(f"Pool: {rm.get('pool', '').upper()}")
-            elif "provider" in rm:
-                details.append(f"Prov: {rm.get('provider')}")
-
-            fgi = rm.get("value", {}).get("fgi_score") if isinstance(rm.get("value"), dict) else None
-            if fgi is None:
-                fgi = rm.get("benchmarks", {}).get("fgi_score") if isinstance(rm.get("benchmarks"), dict) else rm.get("fgi_score")
-            if fgi is not None and isinstance(fgi, (int, float)):
-                details.append(f"FGI {fgi:.1f}")
-
-            avi = rm.get("value", {}).get("avi_score") if isinstance(rm.get("value"), dict) else None
-            if avi is None:
-                avi = rm.get("benchmarks", {}).get("avi_score") if isinstance(rm.get("benchmarks"), dict) else rm.get("avi_score")
-            if avi is not None and isinstance(avi, (int, float)):
-                details.append(f"AVI {avi:.1f}")
-
-            detail_str = f" ({', '.join(details)})" if details else ""
-            lines.append(f"  [-] {mid:<22}{detail_str}")
-
+    header = f"🔻 REMOVED / DEPRECATED MODELS ({len(removed_models)}):"
+    lines = [f"{C_BOLD}{C_RED}{header}{C_RESET}" if color else f"REMOVED / DEPRECATED MODELS ({len(removed_models)}):"]
+    prefix = f"  {C_RED}❌ {C_BOLD}" if color else "  [-] "
+    mid_end = C_RESET if color else ""
+    det_start, det_end = (C_DIM, C_RESET) if color else ("", "")
+    id_keys = (id_key, "model_id", "display", "or_slug", "id")
+    for rm in removed_models:
+        mid = next((str(v) for k in id_keys if (v := rm.get(k))), "unknown")
+        details = _removed_model_details(rm, mid)
+        detail_str = f" ({', '.join(details)})" if details else ""
+        lines.append(f"{prefix}{mid:<22}{mid_end}{det_start}{detail_str}{det_end}")
     return lines
 
 
 def format_context_window(tokens: int | float | None) -> str:
     """Format token count into compact human-readable string (e.g. 1.0M, 200k, 128k, 64k, —)."""
-    if tokens is None or not isinstance(tokens, (int, float)) or tokens <= 0:
+    if not _is_num(tokens) or tokens <= 0:
         return "—"
     t = int(tokens)
     if t >= 1_000_000:
         val = t / 1_000_000
         return f"{val:.1f}M" if (val % 1 != 0) else f"{int(val)}M"
-    elif t >= 1000:
+    if t >= 1000:
         return f"{t // 1000}k"
     return str(t)
 
 
-def extract_capability_pillars(m: dict) -> dict:
-    """Extract normalized capability dimensions across LMSYS Arena and Artificial Analysis."""
-    bm = m.get("base_metrics", {})
-
-    reason = bm.get("aa_quality") or bm.get("aa_reasoning") or m.get("aa_live_quality") or bm.get("lm_elo")
-    coding = bm.get("aa_coding") or m.get("aa_live_coding") or bm.get("lm_coding")
-    coding_elo = bm.get("lm_coding")
-    speed = bm.get("speed_tps")
-    ctx = m.get("context_length") or bm.get("context_length")
-
-    has_live = False
-    has_arena = bm.get("lm_elo") is not None
-    has_aa = (m.get("aa_live_quality") is not None) or (bm.get("aa_quality") is not None)
-    has_vals = (m.get("vals_overall") is not None) or (m.get("vals_metrics") is not None)
-    coverage_count = (1 if has_arena else 0) + (1 if has_aa else 0) + (1 if has_vals else 0)
-
-    # Determine recommended role archetype
-    q_val = _safe_float(m.get("capability_q") or m.get("composite_score"))
-    fgi_val = _safe_float(m.get("fgi_score"))
-    avi_val = _safe_float(m.get("avi_score"))
-    r_float = _safe_float(reason)
-    c_float = _safe_float(coding)
-    s_float = _safe_float(speed)
-
+def _best_role_from_map(roles: dict | None, q_val: float | None, coverage_count: int) -> str:
     if q_val is None or coverage_count == 0:
-        best_role = "—"
-    elif fgi_val is not None and (fgi_val >= 60.0 or (r_float is not None and r_float >= 88.0)):
-        best_role = "🏗️ Architect"
-    elif (c_float is not None and c_float >= 78.0) or (coding_elo is not None and coding_elo >= 1470):
-        best_role = "💻 Pair Coder"
-    elif s_float is not None and s_float >= 180.0:
-        best_role = "⚡ Fast Fill"
-    elif avi_val is not None and avi_val >= 250.0:
-        best_role = "🔄 Workhorse"
-    elif q_val >= 75.0:
-        best_role = "💻 Generalist"
-    else:
-        best_role = "⚡ Lightweight"
+        return "—"
+    if isinstance(roles, dict):
+        scored = [(v, k) for k, v in roles.items() if _is_num(v) and k in ROLE_BADGE_LABELS]
+        if scored:
+            return ROLE_BADGE_LABELS[max(scored)[1]]
+    return "🏗️ Architect" if q_val >= 88.0 else ("💻 Soft Dev" if q_val >= 72.0 else "🎨 Design")
+
+
+_AA_AUTH_KEYS = ("aa_quality", "aa_hle", "aa_critpt", "aa_tb4", "aa_ifbench", "aa_gpqa", "aa_scicode", "aa_lcr", "aa_non_halluc")
+
+
+def _authority_flags(m: dict, bm: dict, lb: dict) -> dict[str, bool]:
+    return {
+        "has_arena": any(bm.get(k) is not None for k in ("lm_elo", "lm_coding", "lm_webdev_elo")),
+        "has_aa": (m.get("aa_live_quality") is not None) or any(bm.get(k) is not None for k in _AA_AUTH_KEYS),
+        "has_vals": (m.get("vals_overall") is not None) or (m.get("vals_metrics") is not None),
+        "has_live": lb.get("overall") is not None,
+        "has_fc2": bm.get("fc2_score") is not None,
+        "has_fswe": bm.get("fswe_overall") is not None,
+        "has_cursor": bm.get("cursor_score") is not None,
+    }
+
+
+def _as_dict(val) -> dict:
+    return val if isinstance(val, dict) else {}
+
+
+def extract_capability_pillars(m: dict) -> dict:
+    """Extract normalized capability dimensions and 7-authority coverage."""
+    bm = _as_dict(m.get("base_metrics"))
+    lb = _as_dict(m.get("livebench"))
+    axes = _as_dict(m.get("axes"))
+
+    reason = _first_num(axes.get("reasoning"), bm.get("aa_quality"), m.get("aa_live_quality"), lb.get("reasoning"))
+    coding = _first_num(axes.get("coding"), bm.get("cursor_score"), bm.get("fc2_score"), bm.get("aa_tb4"), lb.get("coding"))
+    coding_elo = _first_num(bm.get("lm_coding"))
+    speed = _first_num(bm.get("speed_tps"))
+    ctx = _first_num(m.get("context_length"), bm.get("context_length"))
+
+    flags = _authority_flags(m, bm, lb)
+    coverage_count = sum(flags.values())
+    q_val = _first_num(m.get("capability_q"), m.get("composite_score"))
+    best_role = m.get("best_role") or _best_role_from_map(m.get("roles"), q_val, coverage_count)
 
     return {
-        "reasoning": _safe_float(reason),
-        "coding": _safe_float(coding),
-        "coding_elo": _safe_int_round(coding_elo),
-        "speed": _safe_float(speed),
+        "reasoning": reason,
+        "coding": coding,
+        "design": _first_num(axes.get("design")),
+        "research": _first_num(axes.get("research")),
+        "economics": _first_num(axes.get("economics")),
+        "coding_elo": _safe_int(coding_elo),
+        "speed": speed,
         "context_length": _safe_int(ctx),
         "coverage_count": coverage_count,
-        "has_live": has_live,
-        "has_arena": has_arena,
-        "has_aa": has_aa,
-        "has_vals": has_vals,
+        "authority_total": 7,
+        **flags,
         "vals_overall": _safe_float(m.get("vals_overall")),
         "vals_coding": _safe_float(m.get("vals_coding")),
         "best_role": best_role,
     }
 
+
+# ==============================================================================
+# 9. QUOTA MONITOR & COST-BENEFIT ANALYZER SHARED CORE
+# ==============================================================================
+OCGO_DOCS = "https://opencode.ai/v2/docs/console/go/"
+
+
+def parse_iso_utc(iso_str: str | None) -> dt.datetime | None:
+    """Parse an ISO-8601 timestamp into an aware UTC datetime (or None)."""
+    if not iso_str:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(str(iso_str).replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=dt.UTC) if parsed.tzinfo is None else parsed
+    except Exception:
+        return None
+
+
+def format_relative_seconds(total_seconds: int) -> str:
+    """Format a countdown delta in seconds as '2d 3h', '4h 12m', '15m', or 'now'."""
+    if total_seconds <= 0:
+        return "now"
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    if days > 0:
+        return f"{days}d {hours}h" if hours > 0 else f"{days}d"
+    if hours > 0:
+        return f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
+    return f"{minutes}m"
+
+
+def format_relative_time(target: dt.datetime | None, now: dt.datetime | None = None) -> str:
+    """Format target - now countdown robustly across naive/aware datetimes."""
+    if not target:
+        return "unknown"
+    t_utc = target.replace(tzinfo=dt.UTC) if target.tzinfo is None else target
+    n_utc = dt.datetime.now(dt.UTC) if now is None else (now.replace(tzinfo=dt.UTC) if now.tzinfo is None else now)
+    return format_relative_seconds(int((t_utc - n_utc).total_seconds()))
+
+
+def format_relative_epoch_ms(epoch_ms: int | float | None, now_ms: float | None = None) -> str:
+    """Format an epoch-millisecond deadline relative to now."""
+    if not epoch_ms:
+        return "unknown"
+    if now_ms is None:
+        now_ms = dt.datetime.now(dt.UTC).timestamp() * 1000.0
+    return format_relative_seconds(int((epoch_ms - now_ms) / 1000.0))
+
+
+def get_percent_color(percent: float) -> str:
+    """Color band for quota usage percentage [0..100]."""
+    return color_ladder(
+        percent,
+        [(lambda v: v >= 90.0, C_BOLD + C_RED), (lambda v: v >= 70.0, C_YELLOW), (lambda v: v >= 40.0, C_CYAN)],
+        default_color=C_GREEN,
+    )
+
+
+def format_bar(percent: float, width: int = 20, colorize: bool = True) -> str:
+    """Render a fixed-width quota bar with [0, 100] clamping."""
+    clamped = max(0.0, min(100.0, float(percent)))
+    filled = int(round((clamped / 100.0) * width))
+    bar = ("█" * filled) + ("░" * (width - filled))
+    if not colorize:
+        return f"[{bar}]"
+    return f"{get_percent_color(clamped)}[{bar}]{C_RESET}"
+
+
+def quota_box_chrome(title: str, subtitle_lines: list[str], box_w: int, color: bool) -> tuple[list[str], str, str]:
+    """Build Unicode/plain quota dashboard header lines using true display_len()."""
+    c_b, c_d, c_c, c_r = (C_BOLD, C_DIM, C_CYAN, C_RESET) if color else ("", "", "", "")
+    top = f"{c_d}┌" + ("─" * (box_w - 2)) + f"┐{c_r}" if color else "-" * box_w
+    mid = f"{c_d}├" + ("─" * (box_w - 2)) + f"┤{c_r}" if color else "-" * box_w
+    bot = f"{c_d}└" + ("─" * (box_w - 2)) + f"┘{c_r}" if color else "-" * box_w
+    inner = box_w - 2
+    t_pad = max(0, inner - display_len(f" {title}"))
+    lines = [top, f"{c_d}│{c_r} {c_b}{c_c}{title}{c_r}{' ' * t_pad}{c_d}│{c_r}" if color else f"| {title}"]
+    for raw_sub in subtitle_lines:
+        sub = raw_sub
+        if display_len(sub) > inner - 2:
+            sub = _truncate_display(sub, inner - 2)
+        s_pad = max(0, inner - display_len(sub))
+        lines.append(f"{c_d}│{c_r}{c_d}{sub}{c_r}{' ' * s_pad}{c_d}│{c_r}" if color else f"|{sub}")
+    lines.append(mid)
+    return lines, mid, bot
+
+
+def format_compact_num(v) -> str:
+    """Format request counts compactly (e.g. 1.2M, 14.5k, 320); NaN/None -> '—'."""
+    if not _is_num(v):
+        return "—"
+    n = float(v)
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 10_000:
+        return f"{int(n) // 1000}k" if (n % 1000 == 0) else f"{n / 1_000:.1f}k"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}k"
+    return f"{n:.0f}"
+
+
+def offline_snapshot_note(raw_dir: pathlib.Path, labels: tuple[tuple[str, str], ...]) -> tuple[str, str]:
+    """Summarize raw snapshot dates and >24h staleness warnings for an analyzer run."""
+    dates, stale = [], []
+    for name, part in labels:
+        snap = pick_latest_raw(raw_dir, part)
+        if snap is None:
+            stale.append(f"{name} missing")
+            continue
+        ds = snapshot_date_str(snap)
+        if ds:
+            dates.append(ds)
+        age_h = snapshot_age_hours(snap)
+        if age_h > CACHE_TTL_H:
+            stale.append(f"{name} {age_h / 24:.0f}d old")
+    span = f"{min(dates)}..{max(dates)}" if dates else "none"
+    label = f"OFFLINE (data: {span})"
+    line = f"  {label}"
+    if stale:
+        line += "\n  WARN cached responses >24h — run with --fetch: " + ", ".join(stale)
+    return line, label
+
+
+def fetch_bytes(url: str, timeout: int = 20, verbose: bool = False) -> bytes | None:
+    """Fetch raw bytes from URL with explicit timeout and stderr warning on failure."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            body = r.read()
+            if verbose:
+                print(f"  fetched {url} -> {r.status} {len(body)} bytes")
+            return body
+    except Exception as e:
+        print(f"  WARN fetch {url}: {e}", file=sys.stderr)
+        return None
+
+
+def _read_livebench_csv(raw_dir: pathlib.Path, p: pathlib.Path) -> dict | None:
+    try:
+        m_date = re.search(r"(\d{8})", p.stem)
+        cat_json = None
+        if m_date:
+            cat_p = raw_dir / f"livebench_categories_{m_date.group(1)}.json"
+            if cat_p.exists():
+                cat_json = cat_p.read_text(encoding="utf-8", errors="ignore")
+        return parse_livebench(p.read_text(encoding="utf-8", errors="ignore"), categories_json=cat_json)
+    except Exception as e:  # noqa: BLE001 — logged skip
+        print(f"  WARN LiveBench snapshot skipped ({p}): {e}", file=sys.stderr)
+        return None
+
+
+def load_livebench_snapshots(raw_dir: pathlib.Path, verbose: bool = False) -> dict:
+    """Load LiveBench CSV + paired category JSON snapshots newest-first."""
+    live_map: dict = {}
+    csv_matches = [p for p in sorted(glob.glob(str(raw_dir / "*livebench*20*.csv"))) if "cost" not in p]
+    for p_csv in reversed(csv_matches):
+        p = pathlib.Path(p_csv)
+        data = _read_livebench_csv(raw_dir, p)
+        if not data:
+            continue
+        filled = sum(1 for k in data if k not in live_map)
+        for k, v in data.items():
+            live_map.setdefault(k, v)
+        if verbose:
+            print(f"  LiveBench {p.name}: {len(data)} rows, {filled} new keys")
+    return live_map
+
+
+def extract_balanced_tag(text: str, start_idx: int, tag: str = "div") -> str | None:
+    """Extract balanced `<tag>...</tag>` substring starting at `start_idx`."""
+    pat = re.compile(rf"<(/?){tag}\b[^>]*>", re.IGNORECASE)
+    depth = 0
+    for m in pat.finditer(text, start_idx):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return text[start_idx : m.end()]
+    return None
+
+
+def extract_panels_by_plan(html_text: str, plan: str) -> list[str]:
+    """Extract matching `role='tabpanel'` / `data-plan-panel` HTML blocks."""
+    pat = re.compile(rf'<div\b[^>]*role=["\']tabpanel["\'][^>]*data-plan-panel=["\']{re.escape(plan)}["\'][^>]*>', re.I)
+    panels = []
+    for m in pat.finditer(html_text):
+        blk = extract_balanced_tag(html_text, m.start(), "div")
+        if blk:
+            panels.append(blk)
+    return panels
+
+
+def _num_or(v, fallback: float = -1.0) -> float:
+    return float(v) if _is_num(v) else fallback
+
+
+def _req_doc_or_comp(r: dict, doc_key: str, comp_key: str) -> float:
+    reqs = r.get("requests") or {}
+    val = reqs.get(doc_key)
+    if val is None:
+        val = reqs.get(comp_key)
+    return float(val) if _is_num(val) else -1.0
+
+
+_SORT_FIELD_MAP = {
+    "value": (("value", "qvi_score"), ("benchmarks", "capability_q")),
+    "qvi": (("value", "qvi_score"), ("benchmarks", "capability_q")),
+    "avi": (("value", "avi_score"), ("benchmarks", "capability_q")),
+    "fgi": (("value", "fgi_score"), ("benchmarks", "capability_q")),
+    "bfi": (("value", "bfi_score"), ("benchmarks", "capability_q")),
+    "cap": (("benchmarks", "capability_q"), ("value", "avi_score")),
+    "quality": (("benchmarks", "aa_intelligence"), ("benchmarks", "capability_q")),
+    "intel": (("value", "intelligence_per_dollar"), ("benchmarks", "capability_q")),
+    "intel-cc": (("benchmarks", "cc_intelligence"), ("benchmarks", "capability_q")),
+}
+
+
+_REQ_SORT_FIELDS = {
+    "reqmo": ("per_month_docs", "per_month_computed"),
+    "req5h": ("per_5h_docs", "per_5h_computed"),
+}
+
+
+def build_analyzer_sort_key(sort_mode: str, eff_cost_fn):
+    """Build a sort key callable for analyzer CLI tables without branching bloat."""
+    if sort_mode in _REQ_SORT_FIELDS:
+        doc_k, comp_k = _REQ_SORT_FIELDS[sort_mode]
+        return lambda r: (-_req_doc_or_comp(r, doc_k, comp_k), -_num_or(r["value"].get("avi_score")), r["model_id"])
+    spec = _SORT_FIELD_MAP.get(sort_mode)
+    if spec is not None:
+        (s1, k1), (s2, k2) = spec
+        return lambda r: (-_num_or(r[s1].get(k1)), -_num_or(r[s2].get(k2)), r["model_id"])
+    if sort_mode != "cost":
+        raise ValueError(f"unknown sort mode: {sort_mode}")
+    return lambda r: (eff_cost_fn(r), -_num_or(r["benchmarks"].get("capability_q")), r["model_id"])
+
+
+def _clear_unscored_analyzer_row(b: dict, v: dict) -> None:
+    for bk in ("composite_score", "capability_q", "p_success", "token_multiplier", "qvi_score", "avi_score", "fgi_score", "bfi_score"):
+        b[bk] = None
+    for vk in ("effective_cost_per_request", "effective_requests_per_5h", "effective_requests_per_month", "qvi_score", "value_score", "avi_score", "fgi_score", "bfi_score"):
+        v[vk] = None
+
+
+def _eff_req_count(r: dict, doc_k: str, comp_k: str, t_mult: float) -> int | None:
+    raw = _req_doc_or_comp(r, doc_k, comp_k)
+    if raw < 0:
+        return None
+    return 0 if raw == 0 else _safe_int(round(raw / t_mult), strip_currency=False)
+
+
+def _apply_analyzer_prices(b: dict, v: dict, p: dict, t_mult: float) -> None:
+    pin = _safe_float(p.get("input_per_1m"), strip_currency=False)
+    pout = _safe_float(p.get("output_per_1m"), strip_currency=False)
+    if pin is None or pout is None:
+        b["blended_price"] = b["effective_cost"] = v["effective_blended_price"] = None
+        return
+    blended = (0.80 * pin) + (0.20 * pout)
+    eff_blended = compute_effective_cost(blended, t_mult)
+    b["blended_price"] = round(blended, 2)
+    b["effective_cost"] = v["effective_blended_price"] = eff_blended
+
+
+def _apply_analyzer_economics(r: dict, q_score: float, p_succ: float, t_mult: float) -> None:
+    b, v, p = r["benchmarks"], r["value"], r["pricing"]
+    _apply_analyzer_prices(b, v, p, t_mult)
+    c_req = r.get("cost_per_request_usd")
+    eff_c_req = (c_req * t_mult) if c_req is not None else None
+    v["effective_cost_per_request"] = round(eff_c_req, 6) if eff_c_req is not None else None
+
+    eff_5h = _eff_req_count(r, "per_5h_docs", "per_5h_computed", t_mult)
+    eff_mo = _eff_req_count(r, "per_month_docs", "per_month_computed", t_mult)
+    v["effective_requests_per_5h"] = eff_5h
+    v["effective_requests_per_month"] = eff_mo
+    qvi = compute_qvi(q_score, eff_5h)
+    b["qvi_score"] = v["qvi_score"] = v["value_score"] = qvi
+
+    toks = sum(r.get("tokens", {}).get(tk, 0) or 0 for tk in ("est_input", "est_cached", "est_output"))
+    has_pos_cost = eff_c_req is not None and eff_c_req > 0 and toks > 0
+    avi = compute_avi(q_score, eff_c_req * 1_000_000.0 / toks) if has_pos_cost else None
+    fgi = compute_fgi(q_score, p_succ)
+    speed = _safe_float(b.get("aa_median_tps"), default=60.0, strip_currency=False) or 60.0
+    bl = b.get("blended_price")
+    bfi = compute_bfi(q_score, speed, bl) if bl is not None else None
+    b["avi_score"] = v["avi_score"] = avi
+    b["fgi_score"] = v["fgi_score"] = fgi
+    b["bfi_score"] = v["bfi_score"] = bfi
+
+
+def _analyzer_z_vecs(rows: list[dict]) -> tuple:
+    lb_vals = [
+        r["benchmarks"]["livebench"].get("overall") if isinstance(r["benchmarks"].get("livebench"), dict) else None
+        for r in rows
+    ]
+    return (
+        ("aa_intelligence", 0.30, get_z_scores([r["benchmarks"]["aa_intelligence"] for r in rows])),
+        ("aa_coding", 0.21, get_z_scores([r["benchmarks"]["aa_coding"] for r in rows])),
+        ("aa_agentic", 0.17, get_z_scores([r["benchmarks"]["aa_agentic"] for r in rows])),
+        ("lmarena_elo", 0.17, get_z_scores([r["benchmarks"]["lmarena_elo"] for r in rows])),
+        ("livebench", 0.15, get_z_scores(lb_vals)),
+    )
+
+
+def score_analyzer_rows(rows: list[dict]) -> None:
+    """Compute composite Q, P_succ, T_mult, QVI, AVI, FGI, and BFI across analyzer rows."""
+    vecs = _analyzer_z_vecs(rows)
+    for i, r in enumerate(rows):
+        b, v = r["benchmarks"], r["value"]
+        cov = [lbl for key, lbl in (("aa_intelligence", "AA"), ("lmarena_elo", "LM"), ("livebench", "LB")) if b[key] is not None]
+        r["coverage"] = cov or ["—"]
+        present = [(w, zs[i]) for fk, w, zs in vecs if b[fk] is not None]
+        if not present:
+            _clear_unscored_analyzer_row(b, v)
+            continue
+        cz = sum(w * z for w, z in present) / sum(w for w, _ in present)
+        q_score = compute_capability_q(cz)
+        p_succ = compute_p_success(q_score)
+        t_mult = compute_token_multiplier(p_succ)
+        b["composite_score"] = b["capability_q"] = q_score
+        b["p_success"] = p_succ
+        b["token_multiplier"] = t_mult
+        _apply_analyzer_economics(r, q_score, p_succ, t_mult)
+
+
+def compute_pareto_ids(rows: list[dict], eff_cost_fn, allowed_ids: set | None = None) -> set:
+    """Return undefeated capability-vs-cost model_ids."""
+    cand = [
+        r for r in rows
+        if (allowed_ids is None or r["model_id"] in allowed_ids) and r["benchmarks"].get("capability_q") is not None
+    ]
+    out = set()
+    for a in cand:
+        a_cost, a_q = eff_cost_fn(a), a["benchmarks"]["capability_q"]
+        peers = [(eff_cost_fn(b), b["benchmarks"]["capability_q"]) for b in cand if b is not a]
+        if not pareto_dominated(a_cost, a_q, peers, cost_epsilon=0.0001):
+            out.add(a["model_id"])
+    return out
+
+
+def render_removed_html_section(removed_models: list[dict], limit_fn, subtitle: str) -> str:
+    """Shared HTML block listing removed/deprecated models for analyzer dashboards."""
+    if not removed_models:
+        return ""
+    tags = []
+    for rm in removed_models:
+        rm_id = html_lib.escape(rm.get("model_id", "unknown"))
+        fgi = _nested_num(rm, "fgi_score", ("value", "benchmarks"))
+        avi = _nested_num(rm, "avi_score", ("value", "benchmarks"))
+        fgi_s = f"FGI {fgi:.1f}" if fgi is not None else "FGI —"
+        avi_s = f"AVI {avi:.1f}" if avi is not None else "AVI —"
+        tags.append(f'<span class="removed-tag">❌ <b>{rm_id}</b> <span class="mid">(Prior: {limit_fn(rm)}, {fgi_s}, {avi_s})</span></span>')
+    return (
+        f'<div class="removed-section">\n'
+        f'  <div class="removed-title">🔻 Removed / Deprecated Models ({len(removed_models)})</div>\n'
+        f'  <div class="sub" style="margin-bottom:8px;">{html_lib.escape(subtitle)}</div>\n'
+        f'  <div>{"".join(tags)}</div>\n</div>'
+    )
+
+
+def render_analyzer_html_shell(
+    title: str,
+    subtitle_html: str,
+    legend_top_html: str,
+    th_cols: list[str],
+    trs: list[str],
+    legend_bot: str,
+    removed_html: str,
+    role_recs_html: str,
+    takeaway_html: str,
+    footer_note_html: str,
+    work_sentence: str = "",
+    out_href: str = "",
+) -> str:
+    """Shared standalone HTML document wrapper for ocheck/ccheck dashboards."""
+    ths = "".join(f"<th>{html_lib.escape(h)}</th>" for h in th_cols)
+    footer = f'<div class="footer"><span class="path">path: {html_lib.escape(out_href)}</span><span class="work">{html_lib.escape(work_sentence)}</span></div>' if (out_href or work_sentence) else ""
+    body = (
+        f'<h1>{html_lib.escape(title)}</h1>\n<p class="sub">{subtitle_html}</p>\n'
+        f'<div class="card">{legend_top_html}</div>\n'
+        f'<div class="card"><table id="tbl"><thead><tr>{ths}</tr></thead>\n<tbody>{"".join(trs)}</tbody></table>\n'
+        f'<div class="legend">{html_lib.escape(legend_bot)}</div></div>\n'
+        f'{removed_html}\n{role_recs_html}\n'
+        f'<div class="call">{takeaway_html}</div>\n<p class="note">{footer_note_html}</p>\n{footer}'
+    )
+    return (
+        f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        f'<meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>{html_lib.escape(title)}</title><style>{HTML_CSS_COMMON}</style></head>'
+        f'<body><div class="wrap">{body}</div>{HTML_SORT_SCRIPT}</body></html>\n'
+    )
+
+
+# ==============================================================================
+# 10. SHARED SNAPSHOT LOADERS & STYLED CLI TABLE ENGINE (fcheck / scheck)
+# ==============================================================================
+
+_RANK_BADGE_MAP = {1: "🥇#1", 2: "🥈#2", 3: "🥉#3"}
+_RANK_COLOR_MAP = {1: C_BOLD + C_GOLD, 2: C_BOLD + C_SILVER, 3: C_BOLD + C_BRONZE}
+
+
+def rank_label_and_color(rank_num: int) -> tuple[str, str]:
+    """Return 1-based podium badge and bold ANSI foreground color."""
+    return _RANK_BADGE_MAP.get(rank_num, f" #{rank_num}"), _RANK_COLOR_MAP.get(rank_num, C_BOLD + C_WHITE)
+
+
+def _decode_body(body: str | bytes, errors: str = "ignore") -> str:
+    return body if isinstance(body, str) else body.decode("utf-8", errors=errors)
+
+
+def _fetch_live_json(raw_dir: pathlib.Path, root_dir: pathlib.Path, api_url: str, prefix: str, write: bool):
+    body = fetch_url(api_url, timeout=20)
+    if not body:
+        print(f"  WARN {api_url} fetch failed, falling back to cached snapshot", file=sys.stderr)
+        return None
+    try:
+        data = json.loads(_decode_body(body))
+    except Exception as exc:
+        print(f"  WARN {prefix} json parse: {exc}", file=sys.stderr)
+        return None
+    if write:
+        stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d")
+        target = raw_dir / f"{prefix}_{stamp}.json"
+        atomic_write_text(target, json.dumps(data, indent=2))
+        print(f"  saved {prefix} -> {target.relative_to(root_dir)} ({len(body)} bytes)")
+    return data
+
+
+def fetch_or_load_json_snapshot(
+    raw_dir: pathlib.Path,
+    root_dir: pathlib.Path,
+    api_url: str,
+    prefix: str,
+    fetch: bool = False,
+    write: bool = True,
+    verbose: bool = False,
+):
+    """Load newest JSON snapshot from raw_dir, or fetch live and validate JSON before writing."""
+    if fetch:
+        live = _fetch_live_json(raw_dir, root_dir, api_url, prefix, write)
+        if live is not None:
+            return live
+
+    snap = pick_latest_raw(raw_dir, prefix)
+    if not snap:
+        print(f"  WARN no cached snapshot found for {prefix} — run with --fetch once to populate", file=sys.stderr)
+        return None
+    try:
+        data = json.loads(snap.read_text(encoding="utf-8", errors="replace"))
+        print(f"  cached {prefix}: {snap.name}{staleness_tag(snap)}")
+        return data
+    except Exception as exc:
+        print(f"  WARN {prefix} cached snapshot bad: {exc}", file=sys.stderr)
+        return None
+
+
+def _read_aa_snapshot(raw_dir: pathlib.Path, verbose: bool) -> dict:
+    snaps = sorted(raw_dir.glob("artificial_analysis*.html"), reverse=True)
+    if not snaps:
+        print("  AA: no cached snapshot available — run with --fetch once to populate")
+        return {}
+    for snap in snaps:
+        try:
+            aa_map = parse_aa(snap.read_text(encoding="utf-8", errors="ignore"), verbose=verbose)
+        except Exception as exc:
+            print(f"  WARN AA offline parse ({snap.name}): {exc}", file=sys.stderr)
+            continue
+        if aa_map:
+            print(f"  AA: {len(aa_map)} entries ({snap.name}{staleness_tag(snap)})")
+            return aa_map
+        print(f"  WARN AA snapshot parsed 0 entries: {snap.name}", file=sys.stderr)
+    return {}
+
+
+def fetch_or_load_aa(
+    raw_dir: pathlib.Path,
+    root_dir: pathlib.Path,
+    fetch: bool = False,
+    write: bool = True,
+    verbose: bool = False,
+) -> dict:
+    """Fetch Artificial Analysis leaderboard and validate non-empty parse before caching."""
+    if not fetch:
+        return _read_aa_snapshot(raw_dir, verbose)
+    body = fetch_url(AA_URL, timeout=20)
+    if not body:
+        print("  WARN AA fetch failed, falling back to cached snapshot", file=sys.stderr)
+        return _read_aa_snapshot(raw_dir, verbose)
+    html_txt = _decode_body(body)
+    aa_map = parse_aa(html_txt, verbose=verbose)
+    if not aa_map:
+        print("  WARN AA fetch parsed 0 models, keeping cached snapshot", file=sys.stderr)
+        return _read_aa_snapshot(raw_dir, verbose)
+    if write:
+        stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d")
+        target = raw_dir / f"artificial_analysis_{stamp}.html"
+        atomic_write_text(target, html_txt)
+        print(f"  saved AA -> {target.relative_to(root_dir)} ({len(html_txt)} bytes)")
+    print(f"  AA: {len(aa_map)} models")
+    return aa_map
+
+
+def fetch_or_load_lmarena(
+    raw_dir: pathlib.Path,
+    fetch: bool = False,
+    write: bool = True,
+    verbose: bool = False,
+) -> dict:
+    """Load cached LMArena snapshot or fetch HF board live (honoring write=False on --check)."""
+    if not fetch:
+        lm_map = load_lmarena_map(raw_dir, verbose=verbose)
+        msg = f"  LMArena: {len(lm_map)} models (HF/HTML snapshot)" if lm_map else "  LMArena: no cached snapshot available — run with --fetch once to populate"
+        print(msg)
+        return lm_map
+    payload = fetch_lmarena_hf_snapshot(raw_dir, verbose=verbose, do_write=write, force=True)
+    lm_map = parse_lmarena_hf(payload, verbose=verbose) if payload else load_lmarena_map(raw_dir, verbose=verbose)
+    if lm_map:
+        print(f"  LMArena: {len(lm_map)} models")
+    else:
+        print("  WARN LMArena fetch failed", file=sys.stderr)
+    return lm_map
+
+
+def _render_ansi_table(headers: list[tuple[str, int, str]], styled_rows: list[list[tuple[str, str, int, str]]]) -> list[str]:
+    sep = f"{C_DIM}│{C_RESET}"
+    widths = [w + 2 for _, w, _ in headers]
+    hdr_cells = [color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER) for h, w, a in headers]
+    out = [
+        f"{C_DIM}┌{'┬'.join('─' * n for n in widths)}┐{C_RESET}",
+        f"{BG_HEADER}{sep}" + f"{BG_HEADER}{sep}".join(hdr_cells) + f"{BG_HEADER}{sep}",
+        f"{C_DIM}├{'┼'.join('─' * n for n in widths)}┤{C_RESET}",
+    ]
+    for idx, cells in enumerate(styled_rows):
+        bg = BG_ODD if idx % 2 else BG_EVEN
+        row_sep = f"{bg}{sep}"
+        rendered = [color_cell(txt, col, width=w, align=al, bg=bg) for txt, col, w, al in cells]
+        out.append(f"{row_sep}{row_sep.join(rendered)}{row_sep}")
+    out.append(f"{C_DIM}└{'┴'.join('─' * n for n in widths)}┘{C_RESET}")
+    return out
+
+
+def render_styled_cli_table(
+    headers: list[tuple[str, int, str]],
+    styled_rows: list[list[tuple[str, str, int, str]]],
+    color: bool = True,
+) -> list[str]:
+    """Render ANSI-boxed or plain space-aligned CLI table from pre-styled cell tuples."""
+    if color:
+        return _render_ansi_table(headers, styled_rows)
+    inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
+    out = [" ".join(pad_display(h, w, a) for h, w, a in headers), "-" * (inner_w + 2)]
+    out.extend(" ".join(pad_display(txt, w, al) for txt, _, w, al in cells) for cells in styled_rows)
+    out.append("-" * (inner_w + 2))
+    return out
+
+
+# ==============================================================================
+# 11. EFFORT DISAGGREGATION, FRONTIER AGENT EVALS & 5-AXIS ROLE SCORING
+# ==============================================================================
+FRONTIERCODE_URL = "https://cognition.com/data/frontier-code-2.0/data.json"
+FRONTIERSWE_URL = "https://www.frontierswe.com/"
+CURSOR_EVALS_URL = "https://cursor.com/evals"
+
+_EFFORT_ALIASES: dict[str, str] = {
+    "minimal": "minimal",
+    "low": "low",
+    "medium": "medium",
+    "med": "medium",
+    "high": "high",
+    "xhigh": "xhigh",
+    "x-high": "xhigh",
+    "extra-high": "xhigh",
+    "extra high": "xhigh",
+    "max": "max",
+    "maximum": "max",
+    "none": "non-reasoning",
+    "non-reasoning": "non-reasoning",
+    "non reasoning": "non-reasoning",
+    "instant": "non-reasoning",
+}
+EFFORT_DISPLAY: dict[str, str] = {
+    "minimal": "Minimal",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "xhigh": "Xhigh",
+    "max": "Max",
+    "non-reasoning": "Non-reasoning",
+}
+_EFFORT_SUFFIX_RE = re.compile(
+    r"[-_\s]+(extra[-_\s]+high|x-?high|max|maximum|high|medium|med|low|minimal|non[-_\s]+reasoning)(?:[-_\s]+effort)?$",
+    flags=re.I,
+)
+_CURSOR_SLUG_MAP: dict[str, str] = {
+    "fable52": "claude-fable-5-2",
+    "fable51": "claude-fable-5-1",
+    "opus55": "claude-opus-5-5",
+    "opus5": "claude-opus-5",
+    "sonnet55": "claude-sonnet-5-5",
+    "sonnet5": "claude-sonnet-5",
+    "haiku55": "claude-haiku-5-5",
+    "grok47": "grok-4-7",
+    "grok": "grok-4-6",
+    "sol": "gpt-5-6-sol",
+    "terra": "gpt-5-6-terra",
+    "luna": "gpt-5-6-luna",
+    "muse-spark": "muse-spark-1-3",
+}
+
+
+def normalize_effort(val: str | None) -> str | None:
+    """Normalize thinking/effort token onto canonical tier or None."""
+    if not val:
+        return None
+    key = re.sub(r"\s+", " ", str(val).strip().lower()).removesuffix("-effort").removesuffix(" effort").strip()
+    return _EFFORT_ALIASES.get(key)
+
+
+_SIZE_TIER_PREFIXES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("max", ("qwen",)),
+    ("medium", ("mistral", "devstral", "magistral", "ministral", "pixtral", "voxtral")),
+)
+
+
+def _is_model_size_suffix(stem: str, eff: str | None) -> bool:
+    low = stem.lower()
+    return any(eff == tier and low.startswith(prefixes) for tier, prefixes in _SIZE_TIER_PREFIXES)
+
+
+def extract_effort_from_label(text: str | None) -> str | None:
+    """Extract canonical thinking/effort tier from parenthetical or slug suffix."""
+    if not text:
+        return None
+    s = str(text).strip()
+    for grp in reversed(re.findall(r"\(([^)]+)\)", s)):
+        for part in grp.split(","):
+            eff = normalize_effort(part)
+            if eff:
+                return eff
+    bare = re.sub(r"\s*\([^)]*\)", "", s).strip()
+    m = _EFFORT_SUFFIX_RE.search(bare)
+    if not m:
+        return None
+    eff = normalize_effort(m.group(1))
+    return None if _is_model_size_suffix(bare[: m.start()], eff) else eff
+
+
+def clean_display_name(raw_name: str) -> str:
+    """Keep explicit thinking tier in display names while stripping Default Fallback noise."""
+    cleaned = re.sub(r",\s*Default Fallback", "", str(raw_name or ""), flags=re.I)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def _fc2_entry(model_name: str, eff: str, main: dict) -> tuple[str, str, dict] | None:
+    score = _safe_float(main.get("new_score"))
+    if score is None:
+        return None
+    base_slug = norm_model_slug(model_name)
+    canon_eff = normalize_effort(eff)
+    vslug = f"{base_slug}-{canon_eff}" if canon_eff else base_slug
+    disp_eff = f" ({EFFORT_DISPLAY[canon_eff]})" if canon_eff else ""
+    correct = _safe_float(main.get("correct"))
+    rec = {
+        "slug": vslug,
+        "base_slug": base_slug,
+        "name": f"{model_name}{disp_eff}",
+        "effort": canon_eff,
+        "is_fallback": False,
+        "fc2_score": round(score * 100.0, 2) if score <= 1.0 else round(score, 2),
+        "fc2_correct": round(correct * 100.0, 2) if (correct is not None and correct <= 1.0) else correct,
+        "fc2_cost": _safe_float(main.get("cost")),
+        "fc2_tokens": _safe_int(main.get("tokens")),
+    }
+    return vslug, base_slug, rec
+
+
+def _store_with_base_fallback(out: dict[str, dict], vslug: str, base_slug: str, rec: dict, metric_key: str) -> None:
+    out[vslug] = rec
+    cur = out.get(base_slug)
+    if cur is None or (cur.get("is_fallback") and (rec.get(metric_key) or -1.0) > (cur.get(metric_key) or -1.0)):
+        fb = dict(rec)
+        fb["is_fallback"] = vslug != base_slug
+        out[base_slug] = fb
+
+
+def _decode_json_dict(payload) -> dict:
+    if isinstance(payload, dict):
+        return payload
+    if isinstance(payload, str):
+        try:
+            obj = json.loads(payload)
+            return obj if isinstance(obj, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _ingest_fc2_model(out: dict[str, dict], model_name: str, effs: list, m_data: dict) -> None:
+    for eff in effs:
+        main = _as_dict(_as_dict(m_data.get(eff)).get("main"))
+        built = _fc2_entry(model_name, eff, main)
+        if built:
+            _store_with_base_fallback(out, built[0], built[1], built[2], "fc2_score")
+
+
+def parse_frontiercode(payload, verbose: bool = False) -> dict[str, dict]:
+    """Parse Cognition FrontierCode 2.0 JSON with explicit effort levels."""
+    data = _decode_json_dict(payload)
+    efforts_map = _as_dict(data.get("efforts"))
+    scores_data = _as_dict(data.get("data"))
+    out: dict[str, dict] = {}
+    for model_name in data.get("models") or []:
+        _ingest_fc2_model(out, model_name, efforts_map.get(model_name) or [], _as_dict(scores_data.get(model_name)))
+    if verbose:
+        print(f"  FrontierCode 2.0: parsed {len(out)} model/effort keys")
+    return out
+
+
+def _fswe_record(r: dict) -> tuple[str, dict] | None:
+    name = str(r.get("model") or "").strip()
+    overall = _safe_float(r.get("overall"))
+    if not name or overall is None:
+        return None
+    slug = norm_model_slug(name)
+    impl = _safe_float(r.get("implementation"))
+    perf = _safe_float(r.get("performance"))
+    res = _safe_float(r.get("research"))
+    cost = _safe_float(r.get("avgCostUsd"))
+    return slug, {
+        "slug": slug,
+        "base_slug": slug,
+        "name": name,
+        "effort": extract_effort_from_label(name),
+        "fswe_overall": round(overall, 2),
+        "fswe_impl": round(impl, 2) if impl is not None else None,
+        "fswe_perf": round(perf, 2) if perf is not None else None,
+        "fswe_research": round(res, 2) if res is not None else None,
+        "fswe_cost": round(cost, 2) if cost is not None else None,
+    }
+
+
+def parse_frontierswe(html_text: str, verbose: bool = False) -> dict[str, dict]:
+    """Parse FrontierSWE leaderboard mean table from Next.js RSC HTML."""
+    unesc = html_text.replace('\\"', '"').replace("\\/", "/")
+    marker = '"mean":[{"model":'
+    idx = unesc.find(marker)
+    if idx == -1:
+        return {}
+    try:
+        rows, _ = json.JSONDecoder().raw_decode(unesc[idx + len('"mean":'):])
+    except Exception:
+        return {}
+    out: dict[str, dict] = {}
+    for r in rows if isinstance(rows, list) else []:
+        built = _fswe_record(r) if isinstance(r, dict) else None
+        if built:
+            out[built[0]] = built[1]
+    if verbose:
+        print(f"  FrontierSWE: parsed {len(out)} models")
+    return out
+
+
+def _extract_cursor_js_entries(js_text: str) -> list[dict]:
+    """Extract {key, label, runs} records from Cursor's immutable evals bundle."""
+    entries: list[dict] = []
+    pat = re.compile(r'\{key:"([^"]+)",[^{]*?label:"([^"]+)"[^{]*?runs:\[([^\]]+)\]')
+    run_pat = re.compile(
+        r'\{(?:effort:"([^"]+)",)?(?:isDefaultEffort:(!0|true),)?score:([0-9.]+),avgCost:([0-9.]+)'
+        r'(?:,outputTokens:([0-9.]+))?(?:,avgSteps:([0-9.]+))?'
+    )
+    for m in pat.finditer(js_text):
+        key, label, runs_blob = m.group(1), m.group(2), m.group(3)
+        runs = [
+            {
+                "effort": rm.group(1) or None,
+                "is_default": bool(rm.group(2)),
+                "score": float(rm.group(3)),
+                "cost": float(rm.group(4)),
+                "tokens": int(float(rm.group(5))) if rm.group(5) else None,
+                "steps": float(rm.group(6)) if rm.group(6) else None,
+            }
+            for rm in run_pat.finditer(runs_blob)
+        ]
+        if runs:
+            entries.append({"key": key, "label": label, "runs": runs})
+    return entries
+
+
+def _extract_cursor_aria_entries(html_text: str) -> list[dict]:
+    """Fallback extractor parsing CursorBench aria-label points directly from HTML."""
+    seen: set[str] = set()
+    by_base: dict[str, dict] = {}
+    pat = re.compile(r'aria-label="([^":]+):\s*([0-9.]+)%,\s*\$([0-9.]+)\s*avg cost per task"')
+    for m in pat.finditer(html_text):
+        raw_lbl, scr, cst = m.group(1).strip(), float(m.group(2)), float(m.group(3))
+        if raw_lbl in seen:
+            continue
+        seen.add(raw_lbl)
+        eff = extract_effort_from_label(raw_lbl)
+        base_lbl = _EFFORT_SUFFIX_RE.sub("", raw_lbl).strip() if eff else raw_lbl
+        slug = _CURSOR_SLUG_MAP.get(norm_model_slug(base_lbl), norm_model_slug(base_lbl))
+        slot = by_base.setdefault(slug, {"key": slug, "label": base_lbl, "runs": []})
+        slot["runs"].append({"effort": eff, "is_default": False, "score": scr, "cost": cst, "tokens": None, "steps": None})
+    return list(by_base.values())
+
+
+def fetch_cursor_evals_json(timeout: int = 20) -> str | None:
+    """Fetch CursorBench 4.0 HTML + immutable JS dataset and return normalized JSON string."""
+    body = fetch_url(CURSOR_EVALS_URL, timeout=timeout)
+    if not body:
+        return None
+    html_txt = _decode_body(body)
+    entries: list[dict] = []
+    for ch in dict.fromkeys(re.findall(r"/marketing-static/_next/static/immutable/chunks/[^\"']+\.js", html_txt)):
+        js_body = fetch_url("https://cursor.com" + ch, timeout=timeout)
+        if not js_body:
+            continue
+        js_txt = _decode_body(js_body)
+        if "gemini-4-carbon" in js_txt or "avgSteps:" in js_txt:
+            entries = _extract_cursor_js_entries(js_txt)
+            if entries:
+                break
+    if not entries:
+        entries = _extract_cursor_aria_entries(html_txt)
+    return json.dumps({"source": "cursorbench-4.0", "entries": entries}, indent=2) if entries else None
+
+
+def _cursor_full_label(base_slug: str, label: str) -> str:
+    if base_slug.startswith("claude-") and not label.lower().startswith("claude"):
+        return f"Claude {label}"
+    return label
+
+
+def _cursor_run_record(base_slug: str, label: str, run: dict) -> tuple[str, dict] | None:
+    score = _safe_float(run.get("score"))
+    if score is None:
+        return None
+    eff = normalize_effort(run.get("effort"))
+    vslug = f"{base_slug}-{eff}" if eff else base_slug
+    disp_base = _cursor_full_label(base_slug, label)
+    disp_eff = f" ({EFFORT_DISPLAY[eff]})" if eff else ""
+    return vslug, {
+        "slug": vslug,
+        "base_slug": base_slug,
+        "name": f"{disp_base}{disp_eff}",
+        "effort": eff,
+        "is_default_effort": bool(run.get("is_default")),
+        "is_fallback": False,
+        "cursor_score": round(score, 2),
+        "cursor_cost": _safe_float(run.get("cost")),
+        "cursor_tokens": _safe_int(run.get("tokens")),
+        "cursor_steps": _safe_float(run.get("steps")),
+    }
+
+
+def _cursor_entries_from_payload(payload) -> list[dict]:
+    if isinstance(payload, dict):
+        return payload.get("entries") or []
+    if not isinstance(payload, str):
+        return []
+    txt = payload.strip()
+    return (_decode_json_dict(txt).get("entries") or []) if txt.startswith("{") else _extract_cursor_aria_entries(txt)
+
+
+def _ingest_cursor_item(out: dict[str, dict], item: dict) -> None:
+    raw_k = str(item.get("key") or "")
+    base_slug = _CURSOR_SLUG_MAP.get(raw_k, norm_model_slug(raw_k))
+    label = str(item.get("label") or base_slug)
+    for run in item.get("runs") or []:
+        built = _cursor_run_record(base_slug, label, run)
+        if built:
+            _store_with_base_fallback(out, built[0], base_slug, built[1], "cursor_score")
+
+
+def parse_cursor_evals(payload, verbose: bool = False) -> dict[str, dict]:
+    """Parse CursorBench 4.0 JSON snapshot (or raw HTML fallback) with distinct efforts."""
+    out: dict[str, dict] = {}
+    for item in _cursor_entries_from_payload(payload):
+        if isinstance(item, dict):
+            _ingest_cursor_item(out, item)
+    if verbose:
+        print(f"  CursorBench: parsed {len(out)} model/effort keys")
+    return out
+
+
+def _read_parsed_snapshots(raw_dir: pathlib.Path, glob_pat: str, parser, min_keys: int, verbose: bool) -> dict[str, dict]:
+    for snap in sorted(raw_dir.glob(glob_pat), reverse=True):
+        try:
+            parsed = parser(snap.read_text(encoding="utf-8", errors="ignore"), verbose=verbose)
+        except Exception as exc:
+            print(f"  WARN snapshot parse failed ({snap.name}): {exc}", file=sys.stderr)
+            continue
+        if len(parsed) >= min_keys:
+            return parsed
+        print(f"  WARN snapshot below min_keys={min_keys}: {snap.name} ({len(parsed)})", file=sys.stderr)
+    return {}
+
+
+def load_or_fetch_frontiercode(raw_dir: pathlib.Path, fetch: bool = False, write: bool = True, verbose: bool = False) -> dict[str, dict]:
+    """Load cached Cognition FrontierCode 2.0 JSON or fetch live with fail-closed validation."""
+    if fetch:
+        body = fetch_url(FRONTIERCODE_URL, timeout=20)
+        txt = _decode_body(body) if body else ""
+        parsed = parse_frontiercode(txt, verbose=verbose) if txt else {}
+        if len(parsed) >= 20:
+            if write:
+                atomic_write_text(raw_dir / f"frontiercode_{dt.datetime.now(dt.UTC).strftime('%Y%m%d')}.json", txt)
+            return parsed
+        print("  WARN FrontierCode fetch failed/under-threshold, using cache", file=sys.stderr)
+    return _read_parsed_snapshots(raw_dir, "frontiercode_*.json", parse_frontiercode, 20, verbose)
+
+
+def load_or_fetch_frontierswe(raw_dir: pathlib.Path, fetch: bool = False, write: bool = True, verbose: bool = False) -> dict[str, dict]:
+    """Load cached FrontierSWE HTML or fetch live with fail-closed validation."""
+    if fetch:
+        body = fetch_url(FRONTIERSWE_URL, timeout=20)
+        txt = _decode_body(body) if body else ""
+        parsed = parse_frontierswe(txt, verbose=verbose) if txt else {}
+        if len(parsed) >= 15:
+            if write:
+                atomic_write_text(raw_dir / f"frontierswe_{dt.datetime.now(dt.UTC).strftime('%Y%m%d')}.html", txt)
+            return parsed
+        print("  WARN FrontierSWE fetch failed/under-threshold, using cache", file=sys.stderr)
+    return _read_parsed_snapshots(raw_dir, "frontierswe_*.html", parse_frontierswe, 15, verbose)
+
+
+def load_or_fetch_cursor_evals(raw_dir: pathlib.Path, fetch: bool = False, write: bool = True, verbose: bool = False) -> dict[str, dict]:
+    """Load cached CursorBench JSON or fetch live with fail-closed validation."""
+    if fetch:
+        txt = fetch_cursor_evals_json(timeout=20) or ""
+        parsed = parse_cursor_evals(txt, verbose=verbose) if txt else {}
+        if len(parsed) >= 15:
+            if write:
+                atomic_write_text(raw_dir / f"cursor_evals_{dt.datetime.now(dt.UTC).strftime('%Y%m%d')}.json", txt)
+            return parsed
+        print("  WARN CursorBench fetch failed/under-threshold, using cache", file=sys.stderr)
+    return _read_parsed_snapshots(raw_dir, "cursor_evals_*.json", parse_cursor_evals, 15, verbose)
+
+
+def _geom_mean_costs(m: dict, bm: dict) -> float | None:
+    costs = [
+        float(v) for v in (
+            bm.get("cursor_cost"), bm.get("fc2_cost"), bm.get("aa_cost_per_task"), m.get("vals_cost_per_test")
+        )
+        if _is_num(v) and float(v) > 0
+    ]
+    return round(math.exp(sum(math.log(c) for c in costs) / len(costs)), 2) if costs else None
+
+
+def _fswe_code_leg(bm: dict) -> float | None:
+    impl, perf = _safe_float(bm.get("fswe_impl")), _safe_float(bm.get("fswe_perf"))
+    if impl is not None and perf is not None:
+        return 0.60 * impl + 0.40 * perf
+    return impl if impl is not None else _safe_float(bm.get("fswe_overall"))
+
+
+def _neg_log10(val) -> float | None:
+    return -math.log10(max(0.0001, float(val))) if _is_num(val) else None
+
+
+def _pos_log10(val) -> float | None:
+    return math.log10(max(1.0, float(val))) if _is_num(val) else None
+
+
+def _z_against_non_mirrors(m_list: list[dict], values: list) -> list[float | None]:
+    """Z-score all rows (including mirrors) against the non-mirror cohort mean and stddev."""
+    cohort = [float(v) for m, v in zip(m_list, values) if not m.get("signal_mirror_of") and _is_num(v)]
+    if len(cohort) < 2:
+        return [0.0 if _is_num(v) else None for v in values]
+    mean_v = statistics.mean(cohort)
+    std_v = statistics.pstdev(cohort) or 1.0
+    return [(float(v) - mean_v) / std_v if _is_num(v) else None for v in values]
+
+
+_AXIS_EXTRACTORS: tuple[tuple[str, object], ...] = (
+    ("aa_hle", lambda m, bm, lb: bm.get("aa_hle")),
+    ("aa_critpt", lambda m, bm, lb: bm.get("aa_critpt")),
+    ("aa_intel", lambda m, bm, lb: _first_num(m.get("aa_live_quality"), bm.get("aa_quality"))),
+    ("lb_overall", lambda m, bm, lb: _safe_float(lb.get("overall"))),
+    ("cursor", lambda m, bm, lb: bm.get("cursor_score")),
+    ("fc2", lambda m, bm, lb: _first_num(bm.get("fc2_score"), bm.get("aa_fc2"))),
+    ("fswe_code", lambda m, bm, lb: _fswe_code_leg(bm)),
+    ("aa_tb4", lambda m, bm, lb: _first_num(bm.get("aa_tb4"), bm.get("aa_coding"))),
+    ("vals_code", lambda m, bm, lb: _first_num(m.get("vals_coding_blend"), m.get("vals_coding"))),
+    ("lb_agentic", lambda m, bm, lb: _safe_float(lb.get("agentic_coding"))),
+    ("lm_coding", lambda m, bm, lb: bm.get("lm_coding")),
+    ("lm_elo", lambda m, bm, lb: bm.get("lm_elo")),
+    ("aa_ifbench", lambda m, bm, lb: bm.get("aa_ifbench")),
+    ("aa_non_halluc", lambda m, bm, lb: bm.get("aa_non_halluc")),
+    ("aa_lcr", lambda m, bm, lb: bm.get("aa_lcr")),
+    ("fswe_res", lambda m, bm, lb: bm.get("fswe_research")),
+    ("aa_scicode", lambda m, bm, lb: bm.get("aa_scicode")),
+    ("aa_gpqa", lambda m, bm, lb: bm.get("aa_gpqa")),
+    ("emp_cost", lambda m, bm, lb: _neg_log10(m.get("empirical_cost"))),
+    ("speed", lambda m, bm, lb: _pos_log10(bm.get("speed_tps"))),
+    ("blended", lambda m, bm, lb: _neg_log10(m.get("blended_price"))),
+)
+
+
+def _build_axis_z_table(m_list: list[dict]) -> dict[str, list[float | None]]:
+    triples = [(m, _as_dict(m.get("base_metrics")), _as_dict(m.get("livebench"))) for m in m_list]
+    return {
+        key: _z_against_non_mirrors(m_list, [fn(m, bm, lb) for m, bm, lb in triples])
+        for key, fn in _AXIS_EXTRACTORS
+    }
+
+
+def _compute_row_axes_z(zt: dict[str, list[float | None]], i: int) -> dict[str, float | None]:
+    return {
+        "reasoning": shrunk_weighted_z([
+            (0.30, zt["aa_hle"][i]), (0.25, zt["aa_critpt"][i]), (0.25, zt["aa_intel"][i]), (0.20, zt["lb_overall"][i]),
+        ]),
+        "coding": shrunk_weighted_z([
+            (0.22, zt["cursor"][i]), (0.22, zt["fc2"][i]), (0.18, zt["fswe_code"][i]),
+            (0.16, zt["aa_tb4"][i]), (0.12, zt["vals_code"][i]), (0.10, zt["lb_agentic"][i]),
+        ]),
+        "design": shrunk_weighted_z([
+            (0.45, zt["lm_coding"][i]), (0.35, zt["lm_elo"][i]), (0.20, zt["aa_ifbench"][i]),
+        ]),
+        "research": shrunk_weighted_z([
+            (0.25, zt["aa_non_halluc"][i]), (0.20, zt["aa_lcr"][i]), (0.20, zt["fswe_res"][i]),
+            (0.20, zt["aa_scicode"][i]), (0.15, zt["aa_gpqa"][i]),
+        ]),
+        "economics": shrunk_weighted_z([
+            (0.50, zt["emp_cost"][i]), (0.30, zt["speed"][i]), (0.20, zt["blended"][i]),
+        ]),
+    }
+
+
+def _compute_row_roles(m: dict, az: dict[str, float | None]) -> dict[str, float | None]:
+    cap_count = sum(az[k] is not None for k in ("reasoning", "coding", "design", "research"))
+    s_arc = scale_axis_score(
+        shrunk_weighted_z([(0.45, az["reasoning"]), (0.30, az["coding"]), (0.25, az["research"])], lam=0.10)
+    ) if cap_count >= 2 else None
+    s_dev = scale_axis_score(
+        shrunk_weighted_z([(0.55, az["coding"]), (0.20, az["reasoning"]), (0.25, az["economics"])], lam=0.10)
+    ) if az["coding"] is not None else None
+    s_des = scale_axis_score(
+        shrunk_weighted_z([(0.65, az["design"]), (0.20, az["coding"]), (0.15, az["economics"])], lam=0.10)
+    ) if az["design"] is not None else None
+    s_res = scale_axis_score(
+        shrunk_weighted_z([(0.55, az["research"]), (0.30, az["reasoning"]), (0.15, az["coding"])], lam=0.10)
+    ) if az["research"] is not None else None
+    ctx = _safe_int(m.get("context_length"))
+    if s_res is not None and ctx is not None and ctx < 200_000:
+        s_res = round(max(40.0, s_res - 10.0), 1)
+    return {"architecture": s_arc, "software_dev": s_dev, "design": s_des, "research": s_res}
+
+
+def _populate_price_and_emp_cost(m: dict) -> None:
+    bm = m.get("base_metrics") or {}
+    pin, pout = _safe_float(m.get("price_in")), _safe_float(m.get("price_out"))
+    blended = round((0.80 * pin) + (0.20 * pout), 2) if (pin is not None and pout is not None) else None
+    emp = _geom_mean_costs(m, bm)
+    eff_cost = emp if emp is not None else blended
+    m["blended_price"] = blended
+    m["empirical_cost"] = emp
+    m["effective_cost"] = eff_cost
+
+
+def _apply_five_axis_row(m: dict, az: dict[str, float | None]) -> None:
+    cz = shrunk_weighted_z([
+        (0.30, az["reasoning"]), (0.30, az["coding"]), (0.20, az["research"]), (0.20, az["design"]),
+    ])
+    if cz is None:
+        for k in ("composite_score", "capability_q", "avi_score", "axes", "roles", "best_role"):
+            m[k] = None
+        m["unmatched"] = True
+        return
+    q_score = scale_axis_score(cz)
+    axes_scaled = {k: scale_axis_score(v) for k, v in az.items()}
+    roles = _compute_row_roles(m, az)
+    eff = m.get("effective_cost")
+    m["composite_score"] = q_score
+    m["capability_q"] = q_score
+    m["axes"] = axes_scaled
+    m["roles"] = roles
+    m["avi_score"] = compute_avi(q_score, eff) if (_is_num(eff) and float(eff) > 0.0) else None
+    cov = extract_capability_pillars(m)["coverage_count"]
+    m["best_role"] = _best_role_from_map(roles, q_score, cov)
+
+
+def score_five_axes_and_roles(models_list: list[dict]) -> None:
+    """Authoritative 5-axis + 4-role shrunk z-score engine over the full model cohort."""
+    for m in models_list:
+        _populate_price_and_emp_cost(m)
+    zt = _build_axis_z_table(models_list)
+    for i, m in enumerate(models_list):
+        _apply_five_axis_row(m, _compute_row_axes_z(zt, i))
