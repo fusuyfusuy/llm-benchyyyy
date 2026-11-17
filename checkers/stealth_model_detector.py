@@ -1,33 +1,23 @@
 #!/usr/bin/env python3
 """
-stealth_models_check.py — OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence
+stealth_model_detector.py — OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence
 
-Reads the OpenRouter model catalog from the raw cache by default (rule 7;
---fetch is the only network path) and keeps only models in the `stealth/`
-namespace (OpenRouter's home for anonymous/undisclosed models,
-e.g. stealth/ox-alpha). Attaches intelligence signals from Artificial
-Analysis (Intelligence Index) and LMArena (ELO), builds a normalized
-composite score (z-scored per source, averaged — same scoring as fcheck),
-and prints a table sorted by intelligence.
-
-Stdlib only. Reuses parsers + cross-source matchers from ocgo_check.py.
-No API keys. Console table by default; --json / --html flag the files.
+Reads the OpenRouter model catalog from the raw cache by default
+(--fetch is the only network path) and keeps only models in `stealth/`.
 """
 import argparse
 import datetime as dt
 import html
 import json
+import os
 import pathlib
-import statistics
+import shutil
 import sys
 
-# ---- import ocgo_check's battle-tested parsers without duplicating them ----
 HERE = pathlib.Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
-# repo root: llm-search has scripts/ one level down, agents-config has tui-agent-settings/usage/ two levels down
 ROOT = HERE.parent
-# walk up to find setup.sh / .git so the same file works in both repos
 for _p in (HERE.parent, HERE.parent.parent, HERE.parent.parent.parent):
     if (_p / "setup.sh").exists() or (_p / ".git").exists():
         ROOT = _p
@@ -36,243 +26,160 @@ DATA = ROOT / "docs" / "data"
 RAW = DATA / "raw"
 OUT = ROOT / "docs" / "reports"
 
-import os
-import shutil
-import benchmark_common as bc
-from benchmark_common import (
-    C_RESET, C_BOLD, C_DIM,
-    BG_EVEN, BG_ODD, BG_HEADER,
-    C_GOLD, C_SILVER, C_BRONZE,
-    C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE,
-    _safe_float, _safe_int,
-    compute_meanfill_composite, comp_key, is_stealth_model, base_id,
-    color_cell, medal_badge,
+import benchmark_common as bc  # noqa: E402
+from benchmark_common import (  # noqa: E402
+    AA_URL,
+    C_BOLD,
+    C_CYAN,
+    C_DIM,
+    C_MAGENTA,
+    C_WHITE,
+    C_YELLOW,
+    HTML_CSS_COMMON,
+    HTML_SORT_SCRIPT,
+    LMARENA_URL,
+    OPENROUTER_API,
+    _safe_float,
+    _safe_int,
+    base_id,
+    comp_key,
+    compute_meanfill_composite,
+    is_stealth_model,
+    medal_badge,
     score_color_q,
-    HTML_CSS_COMMON, HTML_SORT_SCRIPT,
-    AA_URL, LMARENA_URL, OPENROUTER_API,
-    find_aa_for_model, find_lm_for_model,
 )
 
 STEALTH_PREFIX = "stealth/"
+_HEADERS_SLIM = [
+    ("Rank", 4, "^"), ("Model", 24, "<"), ("Q(Cap)", 6, ">"), ("Comp", 6, ">"),
+    ("Coverage", 8, "^"), ("Ctx", 5, ">"), ("Price", 12, ">"), ("Created", 10, "^"),
+]
+_HEADERS_FULL = [
+    ("Rank", 4, "^"), ("Model", 28, "<"), ("Q(Cap)", 6, ">"), ("AA Intel", 8, ">"),
+    ("LM ELO", 7, ">"), ("Comp", 6, ">"), ("Coverage", 8, "^"), ("Ctx", 5, ">"),
+    ("Modality", 12, "<"), ("Price", 12, ">"), ("Created", 10, "^"),
+]
 
 
-def pick_latest_raw(name_part):
-    """Newest snapshot in data/raw/ whose name contains name_part, or None."""
+def pick_latest_raw(name_part: str) -> pathlib.Path | None:
+    """Newest snapshot in docs/data/raw/ whose name contains name_part, or None."""
     return bc.pick_latest_raw(RAW, name_part)
 
 
-def created_date(rec):
-    """OR 'created' epoch → ISO date string, or '—'."""
+def created_date(rec: dict) -> str:
+    """OpenRouter 'created' epoch -> ISO date string, or '—'."""
     c = rec.get("created")
     try:
-        return dt.datetime.fromtimestamp(int(c), tz=dt.timezone.utc).date().isoformat()
+        return dt.datetime.fromtimestamp(int(c), tz=dt.UTC).date().isoformat()
     except Exception:
-        return "\u2014"
+        return "—"
+
+
+def _fmt_num(val, spec: str) -> str:
+    return f"{val:{spec}}" if bc._is_num(val) else "—"
+
+
+def _render_html_row(r: dict, top_id: str | None) -> str:
+    b = r["benchmarks"]
+    ctx_val = b.get("openrouter_context")
+    ctx = f"{int(ctx_val) // 1000}k" if bc._is_num(ctx_val) else "—"
+    lm_rk = b.get("lmarena_rank")
+    rk = f"#{lm_rk}" if isinstance(lm_rk, int) else "—"
+    cls = " class='top-row'" if r["model_id"] == top_id else ""
+    return (
+        f"<tr{cls}>"
+        f'<td class="m">{html.escape(r["display"])} <span class="badge badge-stl">STEALTH</span></td>'
+        f'<td>{html.escape(r["provider"])}</td>'
+        f'<td class="n" style="font-weight:700; color:#3fb950;">{_fmt_num(b.get("capability_q"), ".1f")}</td>'
+        f'<td class="n">{_fmt_num(b.get("aa_intelligence"), ".1f")}<span class="mid">{html.escape(b.get("aa_slug") or "")}</span></td>'
+        f'<td class="n">{_fmt_num(b.get("lmarena_elo"), ".0f")}</td><td class="n">{rk}</td>'
+        f'<td class="n" style="font-weight:700; color:#58a6ff;">{_fmt_num(r.get("composite"), ".2f")}</td>'
+        f'<td>{"·".join(r.get("coverage", ["—"]))}</td><td class="n">{ctx}</td>'
+        f'<td>{html.escape(r.get("modality", "—"))}</td>'
+        f"<td class='n'>{html.escape(r.get('price_str', '—'))}</td>"
+        f"<td class='n'>{html.escape(r.get('created', '—'))}</td></tr>"
+    )
 
 
 def render_html(rows, n_aa, n_lm):
     title = f"OpenRouter Stealth Models — Composite Intelligence ({dt.date.today().isoformat()})"
-    trs = []
     top_id = rows[0]["model_id"] if rows and rows[0].get("composite") is not None else None
-    for r in rows:
-        b = r["benchmarks"]
-        mid = html.escape(r["display"])
-        prov = html.escape(r["provider"])
-        aa = f"{b['aa_intelligence']:.1f}" if isinstance(b["aa_intelligence"], (int, float)) else "\u2014"
-        aa_slug = html.escape(b["aa_slug"] or "")
-        elo = f"{b['lmarena_elo']:.0f}" if isinstance(b["lmarena_elo"], (int, float)) else "\u2014"
-        rk = f"#{b['lmarena_rank']}" if isinstance(b["lmarena_rank"], int) else "\u2014"
-        comp = f"{r['composite']:.2f}" if isinstance(r.get("composite"), (int, float)) else "\u2014"
-        q_s = f"{b.get('capability_q'):.1f}" if isinstance(b.get("capability_q"), (int, float)) else "\u2014"
-        cov = "\u00b7".join(r.get("coverage", ["\u2014"]))
-        ctx = f"{b['openrouter_context'] // 1000}k" if isinstance(b["openrouter_context"], (int, float)) else "\u2014"
-        price_s = html.escape(r.get("price_str", "\u2014"))
-        created = html.escape(r.get("created", "\u2014"))
-        modality = html.escape(r.get("modality", "\u2014"))
-        cls = " class='top-row'" if r["model_id"] == top_id else ""
-        trs.append(
-            f'<tr{cls}>'
-            f'<td class="m">{mid} <span class="badge badge-stl">STEALTH</span></td><td>{prov}</td>'
-            f'<td class="n" style="font-weight:700; color:#3fb950;">{q_s}</td>'
-            f'<td class="n">{aa}<span class="mid">{aa_slug}</span></td>'
-            f'<td class="n">{elo}</td><td class="n">{rk}</td>'
-            f'<td class="n" style="font-weight:700; color:#58a6ff;">{comp}</td><td>{cov}</td><td class="n">{ctx}</td>'
-            f"<td>{modality}</td><td class='n'>{price_s}</td><td class='n'>{created}</td>"
-            f"</tr>"
-        )
+    trs = [_render_html_row(r, top_id) for r in rows]
+    top_disp = html.escape(rows[0]["display"]) if top_id else "none"
+    now_str = dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     body = f"""
 <div class="wrap">
 <h1>{html.escape(title)}</h1>
-<p class="sub">Models in OpenRouter's <code>stealth/</code> namespace (anonymous/undisclosed models being tested publicly, e.g. <code>stealth/ox-alpha</code>), ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text">Arena.ai</a> ELO. <b>{len(rows)}</b> stealth models · <b>{n_aa}</b> on AA · <b>{n_lm}</b> on Arena · Generated {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+<p class="sub">Models in OpenRouter's <code>stealth/</code> namespace (anonymous/undisclosed models being tested publicly, e.g. <code>stealth/ox-alpha</code>), ranked by normalized composite intelligence = mean of z-scored <a href="https://artificialanalysis.ai/leaderboards/models">Artificial Analysis</a> Intelligence Index and <a href="https://arena.ai/leaderboard/text">Arena.ai</a> ELO. <b>{len(rows)}</b> stealth models · <b>{n_aa}</b> on AA · <b>{n_lm}</b> on Arena · Generated {now_str}</p>
 <div class="card"><b>How to read:</b> <span class="badge badge-gold">TOP LEADER</span> = highest composite intelligence · <b>Q(Cap)</b> = Composite Capability (40–99.9). Stealth identity means provider/author is undisclosed on OpenRouter; AA/LMArena slugs may or may not resolve. Empty table = no stealth models currently listed.</div>
 <div class="card">
 <table id="tbl">
 <thead><tr><th>model</th><th>provider</th><th>Q(Cap)</th><th>AA intel</th><th>LM ELO</th><th>LM rank</th><th>composite</th><th>coverage</th><th>ctx</th><th>modality</th><th>$in/$out</th><th>created</th></tr></thead>
 <tbody>{''.join(trs)}</tbody>
 </table>
-<div class="legend">Click headers to sort. \u2014 = not on that leaderboard / unknown.</div>
+<div class="legend">Click headers to sort. — = not on that leaderboard / unknown.</div>
 </div>
-<div class="footer"><span class="path">docs/reports/stealth_models.html</span><span class="work">Composite rank of {len(rows)} stealth model(s) ({n_aa} on AA, {n_lm} on LMArena — top: {html.escape(rows[0]['display']) if rows and rows[0].get('composite') is not None else 'none'}).</span></div>
+<div class="footer"><span class="path">docs/reports/stealth_models.html</span><span class="work">Composite rank of {len(rows)} stealth model(s) ({n_aa} on AA, {n_lm} on LMArena — top: {top_disp}).</span></div>
 </div>
 {HTML_SORT_SCRIPT}
 """
-    return f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>{html.escape(title)}</title><style>{HTML_CSS_COMMON}\n.top-row {{{{ background: rgba(210,153,34,0.08); font-weight: 600; }}}}</style></head><body>{body}</body></html>"
+    return f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>{html.escape(title)}</title><style>{HTML_CSS_COMMON}</style></head><body>{body}</body></html>"
+
+
+def _cli_row_cells(idx: int, r: dict, meds: dict, color: bool, is_slim: bool) -> list[tuple[str, str, int, str]]:
+    rank_str, rank_col = bc.rank_label_and_color(idx + 1)
+    b = r["benchmarks"]
+    q_val, comp_val = b.get("capability_q"), r.get("composite")
+    ctx_val = b.get("openrouter_context")
+    ctx_s = f"{int(ctx_val) // 1000}k" if bc._is_num(ctx_val) else "—"
+    m_w = 24 if is_slim else 28
+
+    cells: list[tuple[str, str, int, str]] = [
+        (rank_str, rank_col, 4, "^"),
+        (r["display"][:m_w], C_BOLD + C_MAGENTA, m_w, "<"),
+        (_fmt_num(q_val, ".1f") + medal_badge(meds.get("q"), color=color), score_color_q(q_val), 6, ">"),
+    ]
+    if not is_slim:
+        cells.extend([
+            (_fmt_num(b.get("aa_intelligence"), ".1f"), C_WHITE, 8, ">"),
+            (_fmt_num(b.get("lmarena_elo"), ".0f"), C_WHITE, 7, ">"),
+        ])
+    cells.extend([
+        (_fmt_num(comp_val, ".2f"), C_BOLD + C_CYAN if comp_val is not None else C_DIM, 6, ">"),
+        ("·".join(r.get("coverage", ["—"])), C_DIM, 8, "^"),
+        (ctx_s, C_CYAN, 5, ">"),
+    ])
+    if not is_slim:
+        cells.append((r.get("modality", "—")[:12], C_WHITE, 12, "<"))
+    cells.extend([
+        (r.get("price_str", "—"), C_YELLOW, 12, ">"),
+        (r.get("created", "—"), C_DIM, 10, "^"),
+    ])
+    return cells
 
 
 def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
     """Render structured TUI table with adaptive terminal width and alternating row zebra striping."""
-    if is_slim:
-        headers = [
-            ("Rank", 4, "^"),
-            ("Model", 24, "<"),
-            ("Q(Cap)", 6, ">"),
-            ("Comp", 6, ">"),
-            ("Coverage", 8, "^"),
-            ("Ctx", 5, ">"),
-            ("Price", 12, ">"),
-            ("Created", 10, "^"),
-        ]
-    else:
-        headers = [
-            ("Rank", 4, "^"),
-            ("Model", 28, "<"),
-            ("Q(Cap)", 6, ">"),
-            ("AA Intel", 8, ">"),
-            ("LM ELO", 7, ">"),
-            ("Comp", 6, ">"),
-            ("Coverage", 8, "^"),
-            ("Ctx", 5, ">"),
-            ("Modality", 12, "<"),
-            ("Price", 12, ">"),
-            ("Created", 10, "^"),
-        ]
-
+    headers = _HEADERS_SLIM if is_slim else _HEADERS_FULL
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
-    total_models = len(rows_sorted)
     top_model = rows_sorted[0] if rows_sorted and rows_sorted[0].get("composite") is not None else None
-
     col_medals = bc.compute_column_medals(
         rows_sorted,
         {"q": (lambda r: r["benchmarks"].get("capability_q") or 0, True, None)},
         id_key="model_id",
     )
 
-    out = []
-    title_str = "⚡ STEALTH MODEL RADAR (OpenRouter stealth/ Anonymous Namespace)"
-    top_info = f"Top Leader: {top_model['display'][:16]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model and top_model.get("composite") is not None else "No benchmarked models"
-    summary_str = f" Tracked: {total_models} stealth models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
-
-    out.extend(bc.render_banner_box(
-        title_str,
+    top_info = f"Top Leader: {top_model['display'][:16]} (Q {top_model['benchmarks'].get('capability_q', 0):.1f})" if top_model else "No benchmarked models"
+    summary_str = f" Tracked: {len(rows_sorted)} stealth models │ AA data: {n_aa} │ Arena data: {n_lm} │ {top_info}"
+    out = bc.render_banner_box(
+        "⚡ STEALTH MODEL RADAR (OpenRouter stealth/ Anonymous Namespace)",
         summary_lines=[summary_str],
         inner_w=inner_w,
         color=color,
-        plain_title_line=f" STEALTH MODEL RADAR (OpenRouter stealth/ namespace) — Tracked: {total_models} models",
-    ))
-
-    # Border templates
-    bot_border = ""
-    if color:
-        top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
-        mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
-        bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in headers) + "┘"
-
-        out.append(f"{C_DIM}{top_border}{C_RESET}")
-        hdr_cells = [color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER) for h, w, a in headers]
-        out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
-        out.append(f"{C_DIM}{mid_border}{C_RESET}")
-    else:
-        hdr_str = " ".join([bc.pad_display(h, w, a) for h, w, a in headers])
-        out.append(hdr_str)
-        out.append("-" * (inner_w + 2))
-
-    for idx, r in enumerate(rows_sorted):
-        rank_num = idx + 1
-        bg = BG_ODD if (idx % 2 == 1) else BG_EVEN
-
-        if rank_num == 1:
-            rank_str = "🥇#1"
-        elif rank_num == 2:
-            rank_str = "🥈#2"
-        elif rank_num == 3:
-            rank_str = "🥉#3"
-        else:
-            rank_str = f" #{rank_num}"
-
-        meds = col_medals.get(r.get("model_id"), {})
-        b = r["benchmarks"]
-        q_val = b.get("capability_q")
-        q_s = (f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—") + medal_badge(meds.get("q"), color=color)
-        aa_s = f"{b['aa_intelligence']:.1f}" if isinstance(b["aa_intelligence"], (int, float)) else "—"
-        lm_s = f"{b['lmarena_elo']:.0f}" if isinstance(b["lmarena_elo"], (int, float)) else "—"
-        comp_val = r.get("composite")
-        comp_s = f"{comp_val:.2f}" if isinstance(comp_val, (int, float)) else "—"
-        cov_s = "·".join(r.get("coverage", ["—"]))
-        ctx_val = b.get("openrouter_context")
-        ctx_s = f"{ctx_val // 1000}k" if isinstance(ctx_val, (int, float)) else "—"
-        mod_str = r.get("modality", "—")[:12]
-        price_str = r.get("price_str", "—")
-        created_str = r.get("created", "—")
-
-        m_w = 24 if is_slim else 28
-        m_name = r["display"][:m_w]
-
-        if color:
-            rank_col = C_BOLD + (C_GOLD if rank_num == 1 else (C_SILVER if rank_num == 2 else (C_BRONZE if rank_num == 3 else C_WHITE)))
-            mid_col = C_BOLD + C_MAGENTA
-            q_col = score_color_q(q_val)
-            comp_col = C_BOLD + C_CYAN if comp_val is not None else C_DIM
-
-            row_cells = [
-                color_cell(rank_str, rank_col, width=4, align="^", bg=bg),
-                color_cell(m_name, mid_col, width=m_w, align="<", bg=bg),
-                color_cell(q_s, q_col, width=6, align=">", bg=bg),
-            ]
-            if not is_slim:
-                row_cells.extend([
-                    color_cell(aa_s, C_WHITE, width=8, align=">", bg=bg),
-                    color_cell(lm_s, C_WHITE, width=7, align=">", bg=bg),
-                ])
-            row_cells.extend([
-                color_cell(comp_s, comp_col, width=6, align=">", bg=bg),
-                color_cell(cov_s, C_DIM, width=8, align="^", bg=bg),
-                color_cell(ctx_s, C_CYAN, width=5, align=">", bg=bg),
-            ])
-            if not is_slim:
-                row_cells.append(color_cell(mod_str, C_WHITE, width=12, align="<", bg=bg))
-            row_cells.extend([
-                color_cell(price_str, C_YELLOW, width=12, align=">", bg=bg),
-                color_cell(created_str, C_DIM, width=10, align="^", bg=bg),
-            ])
-            out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
-        else:
-            row_items = [
-                bc.pad_display(rank_str, 4, "^"),
-                bc.pad_display(m_name, m_w, "<"),
-                bc.pad_display(q_s, 6, ">"),
-            ]
-            if not is_slim:
-                row_items.extend([
-                    bc.pad_display(aa_s, 8, ">"),
-                    bc.pad_display(lm_s, 7, ">"),
-                ])
-            row_items.extend([
-                bc.pad_display(comp_s, 6, ">"),
-                bc.pad_display(cov_s, 8, "^"),
-                bc.pad_display(ctx_s, 5, ">"),
-            ])
-            if not is_slim:
-                row_items.append(bc.pad_display(mod_str, 12, "<"))
-            row_items.extend([
-                bc.pad_display(price_str, 12, ">"),
-                bc.pad_display(created_str, 10, "^"),
-            ])
-            out.append(" ".join(row_items))
-
-    if color:
-        out.append(f"{C_DIM}{bot_border}{C_RESET}")
-    else:
-        out.append("-" * (inner_w + 2))
+        plain_title_line=f" STEALTH MODEL RADAR (OpenRouter stealth/ namespace) — Tracked: {len(rows_sorted)} models",
+    )
+    styled = [_cli_row_cells(i, r, col_medals.get(r.get("model_id"), {}), color, is_slim) for i, r in enumerate(rows_sorted)]
+    out.extend(bc.render_styled_cli_table(headers, styled, color=color))
     out.append("")
     out.extend(bc.render_metric_guide_cli(
         "Stealth Model Intelligence Guide",
@@ -283,212 +190,72 @@ def render_cli_table(rows_sorted, color=True, is_slim=False, n_aa=0, n_lm=0):
         ],
         color=color,
     ))
-
     return "\n".join(out)
 
 
-def main():  # noqa: PLR0915
-    ap = argparse.ArgumentParser(
-        description="OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
-    )
-    ap.add_argument("--fetch", action="store_true",
-                    help="network path: live-fetch OpenRouter/AA/LMArena and save dated snapshots to data/raw/. "
-                         "The default run is fully offline on the raw cache: >24h-old sources are tagged and used, never fetched.")
-    ap.add_argument("--check", action="store_true", help="print only: writes NOTHING (data/html outputs, raw snapshots) — even combined with --fetch")
-    ap.add_argument("--json", action="store_true", help="write data/stealth_models.json")
-    ap.add_argument("--html", action="store_true", help="write outputs/stealth_models.html")
-    ap.add_argument("--verbose", action="store_true", help="verbose fetch logging")
-    ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
-    ap.add_argument("--slim", action="store_true", help="Force compact table layout for split panes")
-    ap.add_argument("--wide", action="store_true", help="Force wide table layout")
-    args = ap.parse_args()
-    verbose = bool(args.verbose)
-    do_fetch = bool(args.fetch)
-    do_write = not bool(args.check)
-    color = not bool(args.plain or os.getenv("NO_COLOR"))
-    term_cols = shutil.get_terminal_size((120, 24)).columns
-    is_slim = bool(args.slim or (term_cols < 115 and not args.wide))
+def _load_or_catalog(do_fetch: bool, do_write: bool, verbose: bool) -> dict:
+    if not do_fetch and not pick_latest_raw("openrouter_models"):
+        print("  ERROR: no docs/data/raw/openrouter_models*.json snapshot — run with --fetch once to populate.", file=sys.stderr)
+        sys.exit(2)
+    j = bc.fetch_or_load_json_snapshot(RAW, ROOT, OPENROUTER_API, "openrouter_models", fetch=do_fetch, write=do_write, verbose=verbose)
+    or_map = bc.parse_openrouter(j, verbose=verbose) if isinstance(j, dict) else {}
+    if do_fetch and not or_map:
+        cached = bc.fetch_or_load_json_snapshot(RAW, ROOT, OPENROUTER_API, "openrouter_models", fetch=False, write=False, verbose=verbose)
+        or_map = bc.parse_openrouter(cached, verbose=verbose) if isinstance(cached, dict) else {}
+    return or_map
 
-    DATA.mkdir(parents=True, exist_ok=True)
-    RAW.mkdir(parents=True, exist_ok=True)
 
-    print("Stealth models (OpenRouter stealth/ namespace) \u2014 composite intelligence")
-    print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
-    print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
+def _format_or_price(pricing: dict | None) -> str:
+    p = pricing or {}
+    try:
+        pin = float(p.get("prompt", 0) or 0) * 1e6
+        pout = float(p.get("completion", 0) or 0) * 1e6
+        price_str = f"{pin:.2f}/{pout:.2f}"
+    except Exception:
+        return "—"
+    return f"{price_str} ($0)" if price_str == "0.00/0.00" else price_str
 
-    # ---- 1. OpenRouter catalog → stealth filter ----
-    or_map = {}
-    if not do_fetch:
-        snap = pick_latest_raw("openrouter_models")
-        if not snap:
-            print("  ERROR: no data/raw/openrouter_models*.json snapshot — run with --fetch once to populate.", file=sys.stderr)
-            sys.exit(2)
-        try:
-            j = json.loads(snap.read_text(errors="replace"))
-        except Exception as e:  # noqa: BLE001
-            print(f"  WARN offline OR snapshot bad: {e}", file=sys.stderr)
-            j = None
-        print(f"  cached OR snapshot: {snap.name}{bc.staleness_tag(snap)}")
-        or_map = bc.parse_openrouter(j, verbose=verbose) if j is not None else {}
-    else:
-        source_failed = False
-        body = bc.fetch_url(OPENROUTER_API, timeout=20)
-        if body:
-            try:
-                j = json.loads(body)
-                if do_write:
-                    s = RAW / f"openrouter_models_{dt.date.today().isoformat().replace('-', '')}.json"
-                    bc.atomic_write_text(s, json.dumps(j, indent=2))
-                    print(f"  saved OR -> {s.relative_to(ROOT)} ({len(body)} bytes)")
-                or_map = bc.parse_openrouter(j, verbose=verbose)
-            except Exception as e:  # noqa: BLE001
-                print(f"  WARN OR json: {e}", file=sys.stderr)
-                source_failed = True
-        else:
-            print("  WARN OR fetch failed", file=sys.stderr)
-            source_failed = True
-        if source_failed or not or_map:
-            # fcheck's cached-snapshot fallback (S3-F3-6): a blip must not leave
-            # an empty catalog ready to be written over the last-good output.
-            snap = pick_latest_raw("openrouter_models")
-            if snap:
-                try:
-                    j = json.loads(snap.read_text(errors="replace"))
-                    or_map = bc.parse_openrouter(j, verbose=verbose)
-                    print(f"  WARN live OR failed; using cached snapshot: {snap.name}")
-                except Exception as e:  # noqa: BLE001
-                    print(f"  WARN cached OR snapshot bad ({snap}): {e}", file=sys.stderr)
 
-    stealth_recs = [rec for rec in or_map.values() if is_stealth_model(rec)]
-    stealth_recs.sort(key=lambda r: r.get("id", ""))
-    print(f"  catalog: {len(or_map)} models in OR; stealth: {len(stealth_recs)}")
+def _stealth_bench_dict(b_id: str, oid: str, aa_map: dict, lm_map: dict, or_ctx) -> dict:
+    aa = (bc.find_aa_for_model(b_id, aa_map) or bc.find_aa_for_model(oid, aa_map) or {}) if aa_map else {}
+    lm = (bc.find_lm_for_model(b_id, lm_map) or bc.find_lm_for_model(oid, lm_map) or {}) if lm_map else {}
+    slug_raw = str(aa.get("slug") or "")
+    return {
+        "aa_slug": slug_raw if slug_raw and not slug_raw.startswith("$") else None,
+        "aa_intelligence": _safe_float(aa.get("intelligenceIndex")),
+        "lmarena_rank": _safe_int(lm.get("rank")),
+        "lmarena_elo": _safe_float(lm.get("elo")),
+        "openrouter_context": or_ctx,
+    }
 
-    # ---- 2. AA ----
-    aa_map = {}
-    if stealth_recs:
-        if not do_fetch:
-            snap = pick_latest_raw("artificial_analysis")
-            if snap:
-                try:
-                    aa_map = bc.parse_aa(snap.read_text(errors="ignore"), verbose=verbose)
-                except Exception as e:  # noqa: BLE001
-                    print(f"  WARN AA offline parse: {e}", file=sys.stderr)
-                print(f"  AA: {len(aa_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
-            else:
-                print("  AA: no cached snapshot available — run with --fetch once to populate")
-        else:
-            body = bc.fetch_url(AA_URL, timeout=20)
-            if body:
-                html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
-                if do_write:
-                    s = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-', '')}.html"
-                    bc.atomic_write_text(s, html_txt)
-                    print(f"  saved AA -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-                aa_map = bc.parse_aa(html_txt, verbose=verbose)
-                print(f"  AA: {len(aa_map)} models")
-            else:
-                print("  WARN AA fetch failed", file=sys.stderr)
 
-    # ---- 3. LMArena ----
-    lm_map = {}
-    if stealth_recs:
-        if not do_fetch:
-            snap = pick_latest_raw("lmarena")
-            if snap:
-                try:
-                    lm_map = bc.parse_lmarena(snap.read_text(errors="ignore"), verbose=verbose)
-                except Exception as e:  # noqa: BLE001
-                    print(f"  WARN LMArena offline parse: {e}", file=sys.stderr)
-                print(f"  LMArena: {len(lm_map)} entries ({snap.name}{bc.staleness_tag(snap)})")
-            else:
-                print("  LMArena: no cached snapshot available — run with --fetch once to populate")
-        else:
-            body = bc.fetch_url(LMARENA_URL, timeout=20)
-            if body:
-                html_txt = body if isinstance(body, str) else body.decode(errors="ignore")
-                if do_write:
-                    s = RAW / f"lmarena_{dt.date.today().isoformat().replace('-', '')}.html"
-                    bc.atomic_write_text(s, html_txt)
-                    print(f"  saved LMArena -> {s.relative_to(ROOT)} ({len(html_txt)} bytes)")
-                lm_map = bc.parse_lmarena(html_txt, verbose=verbose)
-                print(f"  LMArena: {len(lm_map)} entries")
-            else:
-                print("  WARN LMArena fetch failed", file=sys.stderr)
+def _build_stealth_row(rec: dict, aa_map: dict, lm_map: dict) -> dict:
+    oid = rec.get("id", "") or ""
+    b_id = base_id(oid)
+    bench = _stealth_bench_dict(b_id, oid, aa_map, lm_map, rec.get("context_length"))
+    cov = [tag for tag, val in (("AA", bench["aa_intelligence"]), ("LM", bench["lmarena_elo"])) if val is not None]
+    return {
+        "model_id": oid,
+        "display": b_id.split("/")[-1],
+        "display_full": b_id,
+        "provider": STEALTH_PREFIX.rstrip("/"),
+        "name": rec.get("name") or "",
+        "description": (rec.get("description") or "")[:280],
+        "created": created_date(rec),
+        "modality": (rec.get("architecture") or {}).get("modality") or "—",
+        "price_str": _format_or_price(rec.get("pricing")),
+        "benchmarks": bench,
+        "coverage": cov or ["—"],
+    }
 
-    # ---- 4. merge: attach intelligence to each stealth model ----
-    rows = []
-    for rec in stealth_recs:
-        oid = rec.get("id", "") or ""
-        b_id = base_id(oid)
-        aa_rec = bc.find_aa_for_model(b_id, aa_map) or bc.find_aa_for_model(oid, aa_map) if aa_map else None
-        lm_rec = bc.find_lm_for_model(b_id, lm_map) or bc.find_lm_for_model(oid, lm_map) if lm_map else None
 
-        aa_int = _safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
-        aa_slug = str(aa_rec.get("slug") or "") if aa_rec and not str(aa_rec.get("slug", "")).startswith("$") else None
-        lm_elo = _safe_float(lm_rec.get("elo")) if lm_rec else None
-        lm_rank = _safe_int(lm_rec.get("rank")) if lm_rec else None
-
-        p = rec.get("pricing", {}) or {}
-        try:
-            price_str = f"{float(p.get('prompt', 0) or 0)*1e6:.2f}/{float(p.get('completion', 0) or 0)*1e6:.2f}"
-        except Exception:
-            price_str = "\u2014"
-
-        coverage = []
-        if aa_int is not None:
-            coverage.append("AA")
-        if lm_elo is not None:
-            coverage.append("LM")
-        if not coverage:
-            coverage = ["\u2014"]
-
-        display_short = b_id.split("/")[-1] if "/" in b_id else b_id
-        rows.append(
-            {
-                "model_id": oid,
-                "display": display_short,
-                "display_full": b_id,
-                "provider": STEALTH_PREFIX.rstrip("/"),
-                "name": rec.get("name") or "",
-                "description": (rec.get("description") or "")[:280],
-                "created": created_date(rec),
-                "modality": (rec.get("architecture", {}) or {}).get("modality") or "\u2014",
-                "price_str": price_str + (" ($0)" if price_str == "0.00/0.00" else ""),
-                "benchmarks": {
-                    "aa_slug": aa_slug,
-                    "aa_intelligence": aa_int,
-                    "lmarena_rank": lm_rank,
-                    "lmarena_elo": lm_elo,
-                    "openrouter_context": rec.get("context_length"),
-                },
-                "coverage": coverage,
-            }
-        )
-
-    # ---- 5. normalized composite — mean of available z-scores ----
-    aa_vals, lm_vals, aa_mean, aa_std, lm_mean, lm_std = compute_meanfill_composite(rows)
-    if not aa_vals and not lm_vals:
-        print("  Note: no stealth model found on AA or LMArena — composites will be \u2014", file=sys.stderr)
-
-    rows_sorted = sorted(rows, key=comp_key)
-    n_aa = len(aa_vals)
-    n_lm = len(lm_vals)
-
-    # ---- 6. console table (always, the default output) ----
-    print("")
-    print(render_cli_table(rows_sorted, color=color, is_slim=is_slim, n_aa=n_aa, n_lm=n_lm))
-
-    # ---- 7. file outputs (only when --json/--html and not --check) ----
-    if not do_write:
-        print("\n(check-only, no files written)")
-        return
+def _write_stealth_outputs(args, rows_sorted: list[dict], or_map: dict, n_aa: int, n_lm: int) -> None:
     if (args.json or args.html) and not or_map:
-        # S3-F3-6: never overwrite last-good outputs with an empty catalog.
         print("  ERROR: OpenRouter catalog yielded 0 records (live fetch failed and no usable cached snapshot) — refusing --json/--html write", file=sys.stderr)
         sys.exit(1)
     if args.json:
         payload = {
-            "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "generated_at": dt.datetime.now(dt.UTC).isoformat(),
             "sources": {
                 "openrouter_api": OPENROUTER_API,
                 "artificial_analysis": AA_URL,
@@ -508,6 +275,62 @@ def main():  # noqa: PLR0915
         p = OUT / "stealth_models.html"
         bc.atomic_write_text(p, render_html(rows_sorted, n_aa, n_lm))
         print(f"wrote {p.relative_to(ROOT)}")
+
+
+def _parse_args():
+    ap = argparse.ArgumentParser(
+        description="OpenRouter stealth models (stealth/ namespace) ranked by composite intelligence (AA Index + LMArena ELO, z-scored)"
+    )
+    ap.add_argument("--fetch", action="store_true", help="network path: live-fetch OpenRouter/AA/LMArena and save dated snapshots")
+    ap.add_argument("--check", action="store_true", help="print only: writes NOTHING (data/html outputs, raw snapshots) — even combined with --fetch")
+    ap.add_argument("--json", action="store_true", help="write docs/data/stealth_models.json")
+    ap.add_argument("--html", action="store_true", help="write docs/reports/stealth_models.html")
+    ap.add_argument("--verbose", action="store_true", help="verbose fetch logging")
+    ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
+    ap.add_argument("--slim", action="store_true", help="Force compact table layout for split panes")
+    ap.add_argument("--wide", action="store_true", help="Force wide table layout")
+    return ap.parse_args()
+
+
+def _prepare_runtime(args) -> tuple[bool, bool, bool, bool, bool]:
+    DATA.mkdir(parents=True, exist_ok=True)
+    RAW.mkdir(parents=True, exist_ok=True)
+    do_fetch, do_write = bool(args.fetch), not bool(args.check)
+    mode = "fetch (network)" if do_fetch else "OFFLINE (cache-only)"
+    chk = " · check: no writes" if args.check else ""
+    print("Stealth models (OpenRouter stealth/ namespace) — composite intelligence")
+    print(f"  date: {dt.datetime.now(dt.UTC).isoformat()}")
+    print(f"  mode: {mode}{chk}")
+    color = not bool(args.plain or os.getenv("NO_COLOR"))
+    term_cols = shutil.get_terminal_size((120, 24)).columns
+    is_slim = bool(args.slim or (term_cols < 115 and not args.wide))
+    return bool(args.verbose), do_fetch, do_write, color, is_slim
+
+
+def main():
+    args = _parse_args()
+    verbose, do_fetch, do_write, color, is_slim = _prepare_runtime(args)
+
+    or_map = _load_or_catalog(do_fetch, do_write, verbose)
+    stealth_recs = sorted((rec for rec in or_map.values() if is_stealth_model(rec)), key=lambda r: r.get("id", ""))
+    print(f"  catalog: {len(or_map)} models in OR; stealth: {len(stealth_recs)}")
+
+    aa_map = bc.fetch_or_load_aa(RAW, ROOT, fetch=do_fetch, write=do_write, verbose=verbose) if stealth_recs else {}
+    lm_map = bc.fetch_or_load_lmarena(RAW, fetch=do_fetch, write=do_write, verbose=verbose) if stealth_recs else {}
+    rows = [_build_stealth_row(rec, aa_map, lm_map) for rec in stealth_recs]
+
+    aa_vals, lm_vals, *_ = compute_meanfill_composite(rows)
+    if not aa_vals and not lm_vals:
+        print("  Note: no stealth model found on AA or LMArena — composites will be —", file=sys.stderr)
+
+    rows_sorted = sorted(rows, key=comp_key)
+    print("")
+    print(render_cli_table(rows_sorted, color=color, is_slim=is_slim, n_aa=len(aa_vals), n_lm=len(lm_vals)))
+
+    if not do_write:
+        print("\n(check-only, no files written)")
+        return
+    _write_stealth_outputs(args, rows_sorted, or_map, len(aa_vals), len(lm_vals))
 
 
 if __name__ == "__main__":
