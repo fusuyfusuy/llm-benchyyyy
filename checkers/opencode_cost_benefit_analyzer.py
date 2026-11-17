@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
-"""
-ocgo_check.py — OpenCode Go catalog checker
+"""OpenCode Go catalog & cost/benefit analyzer (`ocheck`).
 
-Checks the OpenCode Go catalog (docs + API) against benchmarks from
-Artificial Analysis / LMArena / OpenRouter, and produces a cost/benefit
-analysis against the Go usage limits (per-model monthly cap; 5h = 20% and
-weekly = 50% of that monthly limit).
-
-Offline by default (rule 7): reads dated snapshots from docs/data/raw/;
---fetch is the only network path. No API keys, stdlib only.
+Checks OpenCode Go (https://opencode.ai/v2/docs/console/go/) models against
+Artificial Analysis, LMArena, LiveBench, and OpenRouter benchmarks under shared
+percentage allowances (5h=20%, wk=50%, mo=100%). Offline by default; --fetch is
+the only network path.
 """
+
 import argparse
 import datetime as dt
-import glob
 import html as html_lib
 import json
-import math
 import os
-import pathlib
 import re
 import shutil
-import statistics
 import sys
-import unicodedata
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -39,74 +31,43 @@ DATA = ROOT / "docs" / "data"
 RAW = DATA / "raw"
 OUT = ROOT / "docs" / "reports"
 
-import benchmark_common as bc
-from benchmark_common import (
-    C_BOLD, C_DIM,
-    BG_EVEN, BG_ODD, BG_HEADER,
-    C_GOLD, C_SILVER, C_BRONZE,
-    C_GREEN, C_CYAN, C_YELLOW, C_MAGENTA, C_WHITE, C_GRAY, C_RED,
-    parse_price,
-    get_z_scores, compute_capability_q, compute_p_success, compute_token_multiplier,
-    compute_effective_cost, compute_avi, compute_fgi, compute_bfi, compute_qvi, compute_cost,
-    parse_lmarena,
-    compute_role_recommendations, render_role_recommendations_cli,
-    render_role_recommendations_html,
-    load_previous_snapshot, diff_model_catalog, render_removed_models_cli,
+import benchmark_common as bc  # noqa: E402
+from benchmark_common import (  # noqa: E402
+    BG_EVEN,
+    BG_HEADER,
+    BG_ODD,
+    C_BOLD,
+    C_BRONZE,
+    C_CYAN,
+    C_DIM,
+    C_GOLD,
+    C_GRAY,
+    C_GREEN,
+    C_MAGENTA,
+    C_RED,
+    C_RESET,
+    C_SILVER,
+    C_WHITE,
+    C_YELLOW,
 )
-# NOTE (memory.md rule 9, S1-m3): norm_id/parse_aa/parse_openrouter/parse_livebench/
-# _safe_float/_safe_int/_safe_int_round/display_len/color_cell/C_RESET are deliberately
-# NOT imported: this module redefines every one of them below with proven, intentional
-# divergences from the benchmark_common originals (e.g. ogc._safe_float REJECTS
-# "$"-prefixed values while bc's strips them). The locals are the contract for this
-# checker and for ogc.* callers (fcheck/scheck); do not "restore" the imports — editing
-# bc's versions does not change this file's behavior, and shadowed imports only invite
-# fixes landing in the wrong function.
 
-
-def pick_latest_raw(name_part):
-    """Newest snapshot in data/raw/ whose name contains name_part, or None."""
-    return bc.pick_latest_raw(RAW, name_part)
-
-
-def offline_data_note():
-    """S1-M3 banner parity with bcheck: name the raw-snapshot dates an offline
-    run reads; sources past CACHE_TTL_H are WARNed and then used (never fetched).
-    Returns (banner line, data label reused by the HTML report)."""
-    labels = (("docs", "opencode_go_docs"), ("api", "opencode_go_models"),
-              ("OpenRouter", "openrouter_models"), ("AA", "artificial_analysis"),
-              ("LMArena", "lmarena"), ("LiveBench", "livebench_2"))
-    dates, stale = [], []
-    for name, part in labels:
-        snap = bc.pick_latest_raw(RAW, part)
-        if snap is None:
-            stale.append(f"{name} missing")
-            continue
-        ds = bc.snapshot_date_str(snap)
-        if ds:
-            dates.append(ds)
-        if bc.snapshot_age_hours(snap) > bc.CACHE_TTL_H:
-            stale.append(f"{name} {bc.snapshot_age_hours(snap) / 24:.0f}d old")
-    span = f"{min(dates)}..{max(dates)}" if dates else "none"
-    label = f"OFFLINE (data: {span})"
-    line = "  " + label
-    if stale:
-        line += "\n  WARN cached responses >24h — run with --fetch: " + ", ".join(stale)
-    return line, label
-
-
-OCGO_DOCS = "https://opencode.ai/v2/docs/console/go/"
+OCGO_DOCS = bc.OCGO_DOCS
 OCGO_API = "https://opencode.ai/zen/go/v1/models"
 OCGO_USAGE_API = "https://opencode.ai/zen/go/v1/usage"
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 LMARENA_URL = "https://arena.ai/leaderboard/code/webdev"
-ARENA_URL = "https://arena.ai/leaderboard/code/webdev"
-
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 
-# ---------- fallback catalog (from live docs 2026-10-19: https://opencode.ai/v2/docs/console/go/#usage-limits) ----------
-# pricing per 1M tokens, usage = monthly_usage_limit_usd
-# Limits are per-model: monthly Usage = the monthly cap; 5h = 20% and weekly = 50% of it.
+_SNAP_LABELS = (
+    ("docs", "opencode_go_docs"),
+    ("OpenCode API", "opencode_go_models"),
+    ("OpenRouter", "openrouter_models"),
+    ("AA", "artificial_analysis"),
+    ("LMArena", "lmarena"),
+    ("LiveBench", "livebench_2"),
+)
+
 FALLBACK_PRICING = {
     "grok-4.6": {"input": 2.00, "output": 6.00, "cached_read": 0.50, "cached_write": None, "usage": 15},
     "gpt-5.6-luna": {"input": 0.20, "output": 1.20, "cached_read": 0.02, "cached_write": 0.25, "usage": 15},
@@ -131,18 +92,13 @@ FALLBACK_PRICING = {
     "qwen3.6-plus": {"input": 0.50, "output": 3.00, "cached_read": 0.05, "cached_write": 0.625, "usage": 60},
     "deepseek-v4-pro": {"input": 0.66, "output": 1.98, "cached_read": 0.022, "cached_write": None, "usage": 15},
     "deepseek-v4-flash": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 30},
+    "deepseek-v4.1-flash": {"input": 0.15, "output": 0.60, "cached_read": 0.003, "cached_write": None, "usage": 100},
     "deepseek-flash": {"input": 0.15, "output": 0.60, "cached_read": 0.003, "cached_write": None, "usage": 15},
     "deepseek-v4-flash-vision-exp": {"input": 0.22, "output": 0.66, "cached_read": 0.007, "cached_write": None, "usage": 15},
     "hy4-preview": {"input": 0.834, "output": 2.501, "cached_read": 0.042, "cached_write": None, "usage": 30},
     "hy3": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
     "longcat-2.0": {"input": 0.30, "output": 1.20, "cached_read": 0.006, "cached_write": None, "usage": 60},
     "omen-alpha": {"input": 0.20, "output": 0.66, "cached_read": 0.04, "cached_write": None, "usage": 100},
-    # --- API-served but ABSENT from the live docs pricing table (2026-09-08) ---
-    # The live /zen/go/v1/models endpoint still serves these 7 ids. They are
-    # deliberately EXCLUDED from DOCS_IDS (main table is docs-backed only) but
-    # retain last-known pricing here so API-driven JSON rows keep real values
-    # instead of falling into the unknown-model default (usage 60, no prices).
-    # Drop an entry once the API stops serving it.
     "grok-4.5": {"input": 2.00, "output": 6.00, "cached_read": 0.30, "cached_write": None, "usage": 15},
     "glm-5": {"input": 1.40, "output": 4.40, "cached_read": 0.26, "cached_write": None, "usage": 60},
     "kimi-k2.5": {"input": 0.95, "output": 4.00, "cached_read": 0.16, "cached_write": None, "usage": 60},
@@ -152,19 +108,16 @@ FALLBACK_PRICING = {
     "hy3-preview": {"input": 0.14, "output": 0.58, "cached_read": 0.035, "cached_write": None, "usage": 60},
 }
 
-# Docs-backed models (exactly those on https://opencode.ai/docs/go/ pricing table, 2026-09-08: 28 models)
 DOCS_IDS = {
     "grok-4.6", "gpt-5.6-luna", "glm-5.3-flash", "glm-5.3", "glm-5.2", "glm-5.1",
-    "kimi-k3", "kimi-k2.7-code", "kimi-k2.6",
-    "mimo-v2.5", "mimo-v2.5-pro",
-    "minimax-m3", "minimax-m2.7", "minimax-m2.5",
-    "muse-spark-1.2-contributor", "muse-spark-1.3-contributor",
-    "qwen3.8-max", "qwen3.8-flash", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus",
-    "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-flash", "deepseek-v4-flash-vision-exp",
-    "hy4-preview", "hy3", "longcat-2.0", "omen-alpha",
+    "kimi-k3", "kimi-k2.7-code", "kimi-k2.6", "mimo-v2.5", "mimo-v2.5-pro",
+    "minimax-m3", "minimax-m2.7", "minimax-m2.5", "muse-spark-1.2-contributor",
+    "muse-spark-1.3-contributor", "qwen3.8-max", "qwen3.8-flash", "qwen3.7-max",
+    "qwen3.7-plus", "qwen3.6-plus", "deepseek-v4-pro", "deepseek-v4-flash",
+    "deepseek-v4.1-flash", "deepseek-v4-flash-vision-exp", "hy4-preview", "hy3",
+    "longcat-2.0", "omen-alpha",
 }
 
-# Per-request token estimates from https://opencode.ai/docs/go/#usage-limits (2026-09-08)
 FALLBACK_TOKENS = {
     "grok-4.6": (390, 32500, 120),
     "glm-5.3-flash": (1000, 55000, 200),
@@ -189,13 +142,13 @@ FALLBACK_TOKENS = {
     "qwen3.6-plus": (500, 57000, 190),
     "deepseek-v4-pro": (750, 82000, 290),
     "deepseek-v4-flash": (410, 71300, 310),
+    "deepseek-v4.1-flash": (410, 71300, 310),
     "deepseek-flash": (410, 71300, 310),
     "deepseek-v4-flash-vision-exp": (410, 71300, 310),
     "hy4-preview": (830, 71500, 295),
     "hy3": (830, 71500, 295),
     "longcat-2.0": (920, 88900, 200),
     "omen-alpha": (300, 40000, 100),
-    # Last-known token estimates for the 7 API-served-but-undocumented ids above.
     "grok-4.5": (1100, 71500, 220),
     "glm-5": (700, 52000, 150),
     "kimi-k2.5": (870, 55000, 200),
@@ -205,32 +158,123 @@ FALLBACK_TOKENS = {
     "hy3-preview": (830, 71500, 295),
 }
 
-def log(msg, verbose=False):
-    if verbose or True:
-        print(msg)
+_MODEL_ID_MAP = {
+    "grok 4.6": "grok-4.6",
+    "gpt 5.6 luna": "gpt-5.6-luna",
+    "glm-5.3-flash": "glm-5.3-flash",
+    "glm-5.3": "glm-5.3",
+    "glm-5.2": "glm-5.2",
+    "glm-5.1": "glm-5.1",
+    "kimi k3": "kimi-k3",
+    "kimi k2.7 code": "kimi-k2.7-code",
+    "kimi k2.6": "kimi-k2.6",
+    "mimo v2.5": "mimo-v2.5",
+    "mimo v2.5 pro": "mimo-v2.5-pro",
+    "mimo-v2.5": "mimo-v2.5",
+    "mimo-v2.5-pro": "mimo-v2.5-pro",
+    "minimax m3": "minimax-m3",
+    "minimax m2.7": "minimax-m2.7",
+    "minimax m2.5": "minimax-m2.5",
+    "muse spark 1.2 contributor": "muse-spark-1.2-contributor",
+    "muse spark 1.3 contributor": "muse-spark-1.3-contributor",
+    "qwen3.8 max": "qwen3.8-max",
+    "qwen3.8 flash": "qwen3.8-flash",
+    "qwen3.7 max": "qwen3.7-max",
+    "qwen3.7 plus": "qwen3.7-plus",
+    "qwen3.6 plus": "qwen3.6-plus",
+    "deepseek v4 pro": "deepseek-v4-pro",
+    "deepseek v4 flash": "deepseek-v4-flash",
+    "deepseek v4.1 flash": "deepseek-v4.1-flash",
+    "deepseek-v4.1-flash": "deepseek-v4.1-flash",
+    "deepseek flash": "deepseek-flash",
+    "deepseek-flash": "deepseek-flash",
+    "deepseek v4 flash vision exp": "deepseek-v4-flash-vision-exp",
+    "hy4 preview": "hy4-preview",
+    "hy3": "hy3",
+    "longcat 2.0": "longcat-2.0",
+    "longcat-2.0": "longcat-2.0",
+    "longcat": "longcat-2.0",
+    "omen alpha": "omen-alpha",
+}
+
+_SLIM_CLI_HEADERS = [
+    ("Rank", 4, "^"), ("Model", 20, "<"), ("Limit", 6, "^"), ("Req/Mo", 7, ">"),
+    ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Val", 6, ">"),
+    ("AVI", 7, ">"), ("FGI", 5, ">"), ("Remain", 10, "^"),
+]
+
+_WIDE_CLI_HEADERS = [
+    ("Rank", 4, "^"), ("Model", 22, "<"), ("Limit", 6, "^"), ("Req/Mo", 7, ">"),
+    ("Q(Cap)", 6, ">"), ("P(Succ)", 7, ">"), ("Eff c/r", 7, ">"), ("Value", 6, ">"),
+    ("AVI", 7, ">"), ("FGI", 5, ">"), ("Remain", 10, "^"), ("Lev", 4, ">"),
+]
+
+_WIN_HEADERS = [
+    ("Window", 14, "<"), ("Budget Cap", 11, ">"), ("Used (%)", 10, ">"),
+    ("Balance ($)", 12, ">"), ("Status", 10, "^"), ("Resets At / Countdown", 34, "<"),
+]
+
+_SLIM_MOD_HEADERS = [
+    ("Model", 18, "<"), ("Tier", 6, "^"), ("5h Cap", 6, ">"), ("5h Limit", 8, ">"),
+    ("Wk Limit", 8, ">"), ("Mo Limit", 8, ">"), ("5h Rem", 9, ">"), ("Mo Rem", 9, ">"),
+    ("Cost/Req", 8, ">"), ("Pricing ($/1M)", 18, "<"),
+]
+
+_WIDE_MOD_HEADERS = [
+    ("Model", 22, "<"), ("Tier", 6, "^"), ("5h Cap", 6, ">"), ("5h Limit", 8, ">"),
+    ("Wk Limit", 8, ">"), ("Mo Limit", 8, ">"), ("5h Rem", 11, ">"), ("Mo Rem", 11, ">"),
+    ("Cost/Req", 8, ">"), ("Pricing ($/1M In · Out · CR · CW)", 26, "<"),
+]
+
+_WINDOW_DEFS = (("rolling", "5h Rolling", 12.00), ("weekly", "Weekly", 30.00), ("monthly", "Monthly", 60.00))
+_RANK_MEDALS = {1: ("🥇#1", C_GOLD), 2: ("🥈#2", C_SILVER), 3: ("🥉#3", C_BRONZE)}
+_EFF_LADDER = [(lambda v: v < 0.002, C_GREEN), (lambda v: v < 0.01, C_CYAN), (lambda v: v < 0.03, C_YELLOW)]
+_PCT_ANSI_LADDER = [(lambda v: v > 50, "\033[38;5;48m"), (lambda v: v > 25, "\033[38;5;221m"), (lambda v: v > 10, "\033[38;5;205m")]
+
+_CLI_GUIDE_ITEMS = [
+    ("Gold Bold", "Pareto Frontier (undefeated capability vs cost).", C_GOLD),
+    ("Green (+)", "Newly added model to OpenCode Go docs or API.", C_GREEN),
+    ("Badges ¹²³", "🥇/🥈/🥉 Rank-1/2/3 leaders per metric column.", C_YELLOW),
+    ("Shared Pool", "All models share 20% (5h) · 50% (wk) · 100% (mo) pool; Limit = model drain denominator.", C_WHITE),
+    ("$15/mo Tier", "Kimi K3, GLM-5.3, Grok 4.6 — flagship reasoning models.", C_YELLOW),
+    ("$30/mo Tier", "DeepSeek V4 Flash (~38k req/mo) — daily driver iterative coder.", C_CYAN),
+    ("$60/mo Tier", "MiMo-V2.5 (~150k), Muse Spark (~227k), LongCat (~80k) — bulk fills.", C_GREEN),
+    ("Eff c/r", "Real Cost/Task = Base cost/req × retry multiplier (T_mult).", C_WHITE),
+    ("Allowed Limits", "Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.", C_WHITE),
+]
+
+_HTML_COLS = [
+    "model", "$Usage/mo", "$c/req", "req/5h", "req/wk", "req/mo", "Q(Cap)",
+    "P(Succ)", "Eff c/r", "Value", "AVI (ROI)", "FGI (Gate)", "AA intel",
+    "AA cod", "LMArena", "int/$", "$c/int", "lev", "remain",
+]
+
+_PLAN_ALIASES = {"go-plus": "go-plus", "go plus": "go-plus", "plus": "go-plus"}
 
 
-def fetch(url, timeout=20, verbose=False):
-    """Fetch URL with UA header. Returns bytes or None."""
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            body = r.read()
-            if verbose:
-                print(f"  fetched {url} -> {r.status} {len(body)} bytes")
-            return body
-    except Exception as e:
-        print(f"  WARN fetch {url}: {e}", file=sys.stderr)
-        return None
+def _sf(val, default=None):
+    return bc._safe_float(val, default=default, strip_currency=False)
 
 
-def _eff_price(cell: str):
-    """Active value in a docs pricing cell.
+def _si(val, default=None):
+    return bc._safe_int(val, default=default, strip_currency=False)
 
-    Promo cells ship a struck-through old price next to the active one
-    (<del>$15</del> <strong>$60</strong> 4x · Limited time). The <strong>
-    tag marks the active price; a bare $-amount is used otherwise.
-    """
+
+def _si_round(val) -> int | None:
+    return int(round(val)) if bc._is_num(val) else None
+
+
+def _tier_color(usage_cap) -> str:
+    if usage_cap is None:
+        return C_GRAY
+    if usage_cap >= 60:
+        return C_GREEN
+    if usage_cap >= 30:
+        return C_CYAN
+    return C_YELLOW if usage_cap >= 15 else C_GRAY
+
+
+def _eff_price(cell: str) -> float | None:
     strong = re.search(r"<strong>.*?\$([\d.]+)", cell or "", flags=re.S)
     if strong:
         try:
@@ -243,17 +287,10 @@ def _eff_price(cell: str):
             return float(nums[-1])
         except ValueError:
             return None
-    return parse_price(cell)
+    return bc.parse_price(cell)
 
 
-def _eff_count(cell: str):
-    """Active request-count in a docs cell (int or None).
-
-    Promo cells fuse the active count with a multiplier suffix after tag
-    stripping ("1,7206,880", "Step 5 Preview4x"), so prefer the <strong>
-    value; else take the LAST comma-group of the plain text (the active
-    figure sits after the struck-through old one).
-    """
+def _eff_count(cell: str) -> int | None:
     strong = re.search(r"<strong>\s*([\d,]+)", cell or "", flags=re.S)
     if strong:
         try:
@@ -269,541 +306,360 @@ def _eff_count(cell: str):
     return None
 
 
-
-def parse_ocgo_docs(html, verbose=False, plan="go"):
-    """Parse pricing, requests, and token estimates from Go docs HTML.
-
-    Supports plan='go' (default $10/mo tier) or plan='go-plus' ($40/mo tier)
-    when rendered in modern tabbed layouts, with fallback to legacy table discovery.
-    """
-    pricing = {}
-    requests = {}
-    tokens = {}
-    # The docs page hosts several tables (requests, pricing, endpoints, privacy);
-    # select by header-cell text or plan tabs.
-    tables = re.findall(r"<table.*?</table>", html, flags=re.S)
-    if verbose:
-        print(f"  docs: found {len(tables)} tables")
-
-    # If modern Starlight tabs exist, extract tables specifically for the requested plan
-    price_tbl = None
-    req_tbl = None
-    tabs_blocks = re.findall(r"<starlight-tabs.*?</starlight-tabs>", html, flags=re.S)
-    target_panels = []
-    for tb in tabs_blocks:
-        links = re.findall(r"<a[^>]*href=\"#([^\"]+)\"[^>]*>(.*?)</a>", tb, flags=re.S)
-        chosen_panel_id = None
-        for href, text in links:
-            clean_text = re.sub(r"<[^>]+>", "", text).strip().lower()
-            if plan == "go" and clean_text == "go":
-                chosen_panel_id = href
-                break
-            elif plan in ("go-plus", "go plus", "plus") and "plus" in clean_text:
-                chosen_panel_id = href
-                break
-        if chosen_panel_id:
-            m = re.search(r"<div id=\"" + chosen_panel_id + r"\"[^>]*>(.*?)</div>", tb, flags=re.S)
-            if m:
-                target_panels.append(m.group(1))
-
-    if len(target_panels) >= 2:
-        m_p = re.search(r"<table.*?</table>", target_panels[0], flags=re.S)
-        m_r = re.search(r"<table.*?</table>", target_panels[1], flags=re.S)
-        if m_p:
-            price_tbl = m_p.group(0)
-        if m_r:
-            req_tbl = m_r.group(0)
-
-    def _table_with(header_phrase: str):
-        for t in tables:
-            m = re.search(r"<tr[^>]*>(.*?)</tr>", t, flags=re.S)
-            if not m:
-                continue
-            hdr = re.sub(r"<[^>]+>", " ", m.group(1)).lower()
-            if header_phrase in hdr:
-                return t
-        return None
-
-    if price_tbl is None:
-        price_tbl = _table_with("cached write")
-    if req_tbl is None:
-        req_tbl = _table_with("requests per 5 hour")
-
-    # --- pricing table ---
-    if price_tbl is not None:
-        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", price_tbl, flags=re.S)
-        for tr in rows[1:]:  # skip header
-            cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
-            if len(cells) < 6:
-                continue
-            # Keep RAW cells: promo rows mark the active price with <strong>
-            # (<del>$15</del> <strong>$60</strong>), which _eff_price reads.
-            # Stripping tags first would fuse "$60" with the "4x" suffix.
-            model_raw = re.sub(r"<[^>]+>", "", cells[0]).strip()
-            inp_raw, out_raw = cells[1], cells[2]
-            cr_raw, cw_raw = cells[3], cells[4]
-            usage_raw = cells[5]
-
-            # Model name to id: normalize like "GLM-5.3" -> "glm-5.3"
-            # Handle variants like "GPT 5.6 Luna (≤ 272K tokens)" -> "gpt-5.6-luna"
-            # and "Qwen3.7 Plus (≤ 256K tokens)" -> "qwen3.7-plus"
-            # and "DeepSeek V4 Pro (Off-Peak)" -> "deepseek-v4-pro"
-            mid = model_to_id(model_raw)
-            if not mid:
-                continue
-            # Skip duplicate tier rows where we already have a cheaper one?
-            # For models with two tiers, keep the cheaper (first) entry
-            if mid in pricing:
-                continue
-            # Promo cells (<del>$15</del> <strong>$60</strong>) need the active
-            # (last) $-amount, not a whole-string float parse.
-            usage = _eff_price(usage_raw)
-            # For pricing, take first occurrence (cheapest tier)
-            pricing[mid] = {
-                "input": _eff_price(inp_raw),
-                "output": _eff_price(out_raw),
-                "cached_read": _eff_price(cr_raw),
-                "cached_write": _eff_price(cw_raw),
-                "usage": usage,
-            }
-            if verbose and mid in ("grok-4.6", "glm-5.3", "hy3"):
-                print(f"    pricing {mid}: {pricing[mid]} from '{model_raw}'")
-
-    # --- requests table ---
-    if req_tbl is not None:
-        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", req_tbl, flags=re.S)
-        for tr in rows[1:]:
-            cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
-            if len(cells) < 4:
-                continue
-            # Model name may carry a fused promo suffix after tag-stripping
-            # ("Step 5 Preview4x · Limited time"); model_to_id drops it.
-            model_raw = re.sub(r"<[^>]+>", "", cells[0])
-            mid = model_to_id(model_raw)
-            if not mid:
-                continue
-            # Pass raw cells so _eff_count can still see <strong> active values.
-            requests[mid] = {
-                "per_5h": _eff_count(cells[1]),
-                "per_week": _eff_count(cells[2]),
-                "per_month": _eff_count(cells[3]),
-            }
-
-    # --- token estimates (ul after tables) ---
-    ul_match = re.search(r"(?:following\s+)?token counts per request.*?<ul>(.*?)</ul>", html, flags=re.S)
-    if not ul_match:
-        ul_match = re.search(r"requests per month.*?</table>(.*?)<h2", html, flags=re.S)
-    if ul_match:
-        seg = ul_match.group(1)
-        lis = re.findall(r"<li[^>]*>(.*?)</li>", seg, flags=re.S)
-        for li in lis:
-            txt = re.sub(r"<[^>]+>", "", li).strip()
-            # e.g. "Grok 4.7 — 390 input, 32,500 cached, 120 output tokens per request"
-            # or "GLM-5.3/5.2 — 700 input, 52,000 cached, 150 output..."
-            m = re.search(r"([\d,]+)\s+input.*?([\d,]+)\s+cached.*?([\d,]+)\s+output", txt)
-            if not m:
-                continue
-            try:
-                inp = int(m.group(1).replace(",", ""))
-                cac = int(m.group(2).replace(",", ""))
-                out = int(m.group(3).replace(",", ""))
-            except Exception:
-                continue
-            # Model part is before the spaced dash separator. Require surrounding
-            # whitespace so hyphens INSIDE model names ("MiMo-V2.6-Flash") survive.
-            model_part = re.split(r"\s+[—–-]\s+", txt)[0].strip()
-            # Handle slash-separated families like "GLM-5.3/5.2"
-            parts = [p.strip() for p in re.split(r"\s*/\s*", model_part) if p.strip()]
-            base_mid = model_to_id(parts[0]) if parts else None
-            for part in parts:
-                if re.fullmatch(r"[\d.]+", part) and base_mid:
-                    # Bare version fragment "5.2" from "GLM-5.3/5.2" — inherit family.
-                    mid = model_to_id(f"{base_mid.split('-')[0]} {part}")
-                else:
-                    mid = model_to_id(part)
-                if not mid:
-                    # "Kimi K2.7" without "Code" covers k2.7-code/k2.6
-                    if "kimi k2.7" in part.lower() or "kimi k2.6" in part.lower():
-                        for k in ("kimi-k2.7-code", "kimi-k2.6"):
-                            tokens[k] = (inp, cac, out)
-                    continue
-                tokens[mid] = (inp, cac, out)
-
-    # Ensure every pricing entry has token estimate fallback
-    for mid in pricing:
-        if mid not in tokens and mid in FALLBACK_TOKENS:
-            tokens[mid] = FALLBACK_TOKENS[mid]
-
-    return pricing, requests, tokens
-
-
-def model_to_id(raw):
-    """Map docs display name to canonical model_id."""
-    raw = raw.strip()
-    # Strip promo suffixes: "Step 5 Preview  4x · Limited time" -> "Step 5 Preview"
-    raw = re.split(r"·", raw)[0].strip()
-    raw = re.sub(r"\s*\d+(?:\.\d+)?x\s*$", "", raw).strip()
-    raw = re.sub(r"\([^)]*\)", "", raw).strip()
-    # Normalize spaces and dashes
-    # Examples:
-    # "Grok 4.6" -> "grok-4.6"
-    # "GPT 5.6 Luna" -> "gpt-5.6-luna"
-    # "GLM-5.3" -> "glm-5.3"
-    # "MiMo V2.5 Pro" -> "mimo-v2.5-pro"
-    # "MiniMax M3" -> "minimax-m3"
-    # "Muse Spark 1.2 Contributor" -> "muse-spark-1.2-contributor"
-    # "Qwen3.8 Max" -> "qwen3.8-max"
-    # "Qwen3.7 Plus" -> "qwen3.7-plus"
-    # "DeepSeek V4 Pro" -> "deepseek-v4-pro"
-    # "DeepSeek V4 Flash Vision Exp" -> "deepseek-v4-flash-vision-exp"
-    # "Hy3" -> "hy3"
-    # "Omen Alpha" -> "omen-alpha"
-    low = raw.lower()
-    # Direct mappings for known oddities (live docs 2026-09-08)
-    mapping = {
-        "grok 4.6": "grok-4.6",
-        "gpt 5.6 luna": "gpt-5.6-luna",
-        "glm-5.3-flash": "glm-5.3-flash",
-        "glm-5.3": "glm-5.3",
-        "glm-5.2": "glm-5.2",
-        "glm-5.1": "glm-5.1",
-        "kimi k3": "kimi-k3",
-        "kimi k2.7 code": "kimi-k2.7-code",
-        "kimi k2.6": "kimi-k2.6",
-        "mimo v2.5": "mimo-v2.5",
-        "mimo v2.5 pro": "mimo-v2.5-pro",
-        "mimo-v2.5": "mimo-v2.5",
-        "mimo-v2.5-pro": "mimo-v2.5-pro",
-        "minimax m3": "minimax-m3",
-        "minimax m2.7": "minimax-m2.7",
-        "minimax m2.5": "minimax-m2.5",
-        "muse spark 1.2 contributor": "muse-spark-1.2-contributor",
-        "muse spark 1.3 contributor": "muse-spark-1.3-contributor",
-        "qwen3.8 max": "qwen3.8-max",
-        "qwen3.8 flash": "qwen3.8-flash",
-        "qwen3.7 max": "qwen3.7-max",
-        "qwen3.7 plus": "qwen3.7-plus",
-        "qwen3.6 plus": "qwen3.6-plus",
-        "deepseek v4 pro": "deepseek-v4-pro",
-        "deepseek v4 flash": "deepseek-v4-flash",
-        "deepseek v4.1 flash": "deepseek-flash",
-        "deepseek-v4.1-flash": "deepseek-flash",
-        "deepseek flash": "deepseek-flash",
-        "deepseek-flash": "deepseek-flash",
-        "deepseek v4 flash vision exp": "deepseek-v4-flash-vision-exp",
-        "hy4 preview": "hy4-preview",
-        "hy3": "hy3",
-        "longcat 2.0": "longcat-2.0",
-        "longcat-2.0": "longcat-2.0",
-        "longcat": "longcat-2.0",
-        "omen alpha": "omen-alpha",
-    }
-    if low in mapping:
-        return mapping[low]
-    # Try generic normalization: replace spaces with dashes, keep dots
-    # e.g. "GLM-5.3" already, "Qwen3.8 Max" -> "qwen3.8-max"
-    # Do: lower, replace " " with "-", strip
-    generic = low.replace(" ", "-").replace("_", "-")
-    generic = re.sub(r"-+", "-", generic).strip("-")
-    # Check if generic matches any fallback key when dots/dashes normalized
-    for k in FALLBACK_PRICING:
-        if k.replace(".", "-") == generic.replace(".", "-"):
-            return k
-    # Fallback: if generic looks like a model id, return it
+def model_to_id(raw: str) -> str | None:
+    """Normalize a docs display model name to its canonical OpenCode Go id."""
+    cleaned = re.split(r"·", raw.strip())[0].strip()
+    cleaned = re.sub(r"\s*\d+(?:\.\d+)?x\s*$", "", cleaned).strip()
+    cleaned = re.sub(r"\([^)]*\)", "", cleaned).strip()
+    low = cleaned.lower()
+    if low in _MODEL_ID_MAP:
+        return _MODEL_ID_MAP[low]
+    generic = re.sub(r"-+", "-", low.replace(" ", "-").replace("_", "-")).strip("-")
+    for key in FALLBACK_PRICING:
+        if key.replace(".", "-") == generic.replace(".", "-"):
+            return key
     if re.match(r"^[a-z0-9][a-z0-9\.\-]*$", generic) and len(generic) >= 2:
         return generic
     return None
 
 
-norm_id = bc.norm_id
-parse_aa = bc.parse_aa
-parse_openrouter = bc.parse_openrouter
-find_aa_for_ocgo = bc.find_aa_for_model
-find_lm_for_ocgo = bc.find_lm_for_model
-find_or_for_ocgo = bc.find_or_for_model
-parse_livebench = bc.parse_livebench
-find_livebench_for_ocgo = bc.find_livebench_for_model
+def _table_header(tbl: str) -> str:
+    m = re.search(r"<tr[^>]*>(.*?)</tr>", tbl, flags=re.S)
+    return re.sub(r"<[^>]+>", " ", m.group(1)).lower() if m else ""
 
 
-def _safe_float(val, default=None):
-    if val is None:
-        return default
-    if isinstance(val, (int, float)):
-        if math.isnan(val) or math.isinf(val):
-            return default
-        return float(val)
-    try:
-        s = str(val).strip()
-        if not s or s.startswith("$") or s.lower() in ("nan", "none", "null", "undefined", "—", "-", "n/a"):
-            return default
-        f = float(s.replace(",", ""))
-        return default if (math.isnan(f) or math.isinf(f)) else f
-    except Exception:
-        return default
+def _pick_plan_tables(html: str, plan: str) -> tuple[str | None, str | None]:
+    plan_norm = _PLAN_ALIASES.get(plan.strip().lower(), plan.strip().lower())
+    panels = bc.extract_panels_by_plan(html, plan_norm)
+    panel_tables = [t for p in panels for t in re.findall(r"<table.*?</table>", p, flags=re.S)]
+    pool = panel_tables if panel_tables else re.findall(r"<table.*?</table>", html, flags=re.S)
+    price_tbl = next((t for t in pool if "cached write" in _table_header(t)), None)
+    req_tbl = next((t for t in pool if "requests per 5 hour" in _table_header(t)), None)
+    if price_tbl is None and len(panel_tables) >= 1:
+        price_tbl = panel_tables[0]
+    if req_tbl is None and len(panel_tables) >= 2:
+        req_tbl = panel_tables[1]
+    return price_tbl, req_tbl
 
 
-def _safe_int(val, default=None):
-    f = _safe_float(val, default=None)
-    if f is None:
-        return default
-    return int(round(f))
+def _parse_pricing_tbl(price_tbl: str | None, verbose: bool) -> dict:
+    pricing: dict = {}
+    if not price_tbl:
+        return pricing
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", price_tbl, flags=re.S)[1:]:
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
+        if len(cells) < 6:
+            continue
+        mid = model_to_id(re.sub(r"<[^>]+>", "", cells[0]).strip())
+        if not mid or mid in pricing:
+            continue
+        pricing[mid] = {
+            "input": _eff_price(cells[1]),
+            "output": _eff_price(cells[2]),
+            "cached_read": _eff_price(cells[3]),
+            "cached_write": _eff_price(cells[4]),
+            "usage": _eff_price(cells[5]),
+        }
+        if verbose and mid in ("grok-4.6", "glm-5.3", "hy3"):
+            print(f"    pricing {mid}: {pricing[mid]}")
+    return pricing
 
 
-def _safe_int_round(v):
-    f = _safe_float(v, default=None)
-    if f is None:
-        return None
-    return int(round(f))
+def _parse_req_tbl(req_tbl: str | None) -> dict:
+    requests: dict = {}
+    if not req_tbl:
+        return requests
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", req_tbl, flags=re.S)[1:]:
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, flags=re.S)
+        if len(cells) < 4:
+            continue
+        mid = model_to_id(re.sub(r"<[^>]+>", "", cells[0]))
+        if mid:
+            requests[mid] = {
+                "per_5h": _eff_count(cells[1]),
+                "per_week": _eff_count(cells[2]),
+                "per_month": _eff_count(cells[3]),
+            }
+    return requests
 
 
-# ---------- usage API ----------
-def _lookup_provider_key(d):
-    """Targeted opencode-go/opencode provider lookup in an auth.json dict (S1-C4).
+def _assign_token_part(part: str, base_mid: str | None, est: tuple[int, int, int], tokens: dict) -> None:
+    if re.fullmatch(r"[\d.]+", part) and base_mid:
+        mid = model_to_id(f"{base_mid.split('-')[0]} {part}")
+    else:
+        mid = model_to_id(part)
+    if mid:
+        tokens[mid] = est
+    elif "kimi k2.7" in part.lower() or "kimi k2.6" in part.lower():
+        for k in ("kimi-k2.7-code", "kimi-k2.6"):
+            tokens[k] = est
 
-    Only the entry for the provider whose endpoint we call is read — a
-    multi-provider credential store must never leak another provider's key.
-    """
+
+def _parse_token_estimates(html: str) -> dict:
+    tokens: dict = {}
+    ul = re.search(r"(?:following\s+)?token counts per request.*?<ul>(.*?)</ul>", html, flags=re.S)
+    if not ul:
+        ul = re.search(r"requests per month.*?</table>(.*?)<h2", html, flags=re.S)
+    if not ul:
+        return tokens
+    for li in re.findall(r"<li[^>]*>(.*?)</li>", ul.group(1), flags=re.S):
+        txt = re.sub(r"<[^>]+>", "", li).strip()
+        m = re.search(r"([\d,]+)\s+input.*?([\d,]+)\s+cached.*?([\d,]+)\s+output", txt)
+        if not m:
+            continue
+        est = tuple(int(m.group(i).replace(",", "")) for i in (1, 2, 3))
+        model_part = re.split(r"\s+[—–-]\s+", txt)[0].strip()
+        parts = [p.strip() for p in re.split(r"\s*/\s*", model_part) if p.strip()]
+        base_mid = model_to_id(parts[0]) if parts else None
+        for part in parts:
+            _assign_token_part(part, base_mid, est, tokens)
+    return tokens
+
+
+def parse_ocgo_docs(html: str, verbose: bool = False, plan: str = "go") -> tuple[dict, dict, dict]:
+    """Parse pricing, request estimates, and token assumptions from Go docs HTML."""
+    price_tbl, req_tbl = _pick_plan_tables(html, plan)
+    pricing = _parse_pricing_tbl(price_tbl, verbose)
+    requests = _parse_req_tbl(req_tbl)
+    tokens = _parse_token_estimates(html)
+    for mid in pricing:
+        if mid not in tokens and mid in FALLBACK_TOKENS:
+            tokens[mid] = FALLBACK_TOKENS[mid]
+    return pricing, requests, tokens
+
+
+def _lookup_provider_key(d) -> str | None:
     if not isinstance(d, dict):
         return None
     for name in ("opencode-go", "opencode"):
         entry = d.get(name)
         if isinstance(entry, dict):
-            k = entry.get("key") or entry.get("token")
-            if k:
-                return str(k).strip()
+            key = entry.get("key") or entry.get("token")
+            if key:
+                return str(key).strip()
     return None
 
 
-def get_api_key():
+def _read_auth_key(path: Path, warn_missing: bool) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        key = _lookup_provider_key(json.loads(path.read_text(encoding="utf-8")))
+    except Exception as exc:  # noqa: BLE001
+        print(f"  WARN {path}: unreadable auth.json: {exc}", file=sys.stderr)
+        return None
+    if key:
+        return key
+    if warn_missing:
+        print(f"  WARN {path}: no opencode-go/opencode provider entry", file=sys.stderr)
+    return None
+
+
+def get_api_key() -> str | None:
+    """Resolve OpenCode Go API key from env vars or opencode-specific auth.json entries."""
     for env_var in ("OPENCODE_GO_API_KEY", "OPENCODE_API_KEY", "OPENCODE_GO_KEY"):
         val = os.environ.get(env_var)
         if val:
             return val.strip()
-    # Check ~/.pi/agent/auth.json
-    pi_auth = pathlib.Path.home() / ".pi" / "agent" / "auth.json"
-    if pi_auth.exists():
-        try:
-            k = _lookup_provider_key(json.loads(pi_auth.read_text(encoding="utf-8")))
-            if k:
-                return k
-        except Exception as e:  # noqa: BLE001
-            print(f"  WARN {pi_auth}: unreadable auth.json: {e}", file=sys.stderr)
-    # opencode's own auth store keeps one entry per provider; targeting only
-    # opencode-go/opencode replaces the first-secret-wins recursive harvest (S1-C4).
-    for p in [
-        pathlib.Path.home() / ".local" / "share" / "opencode" / "auth.json",
-        pathlib.Path.home() / ".config" / "opencode" / "auth.json",
-    ]:
-        if not p.exists():
-            continue
-        try:
-            k = _lookup_provider_key(json.loads(p.read_text(encoding="utf-8")))
-        except Exception as e:  # noqa: BLE001
-            print(f"  WARN {p}: unreadable auth.json: {e}", file=sys.stderr)
-            continue
-        if k:
-            return k
-        print(f"  WARN {p}: no opencode-go/opencode provider entry — usage fetch skipped (no other provider's key is sent)", file=sys.stderr)
+    candidates = [
+        (Path.home() / ".pi" / "agent" / "auth.json", False),
+        (Path.home() / ".local" / "share" / "opencode" / "auth.json", True),
+        (Path.home() / ".config" / "opencode" / "auth.json", True),
+    ]
+    for path, warn in candidates:
+        key = _read_auth_key(path, warn)
+        if key:
+            return key
     return None
 
 
-def fetch_usage(key, verbose=False):
+def fetch_usage(key: str | None, verbose: bool = False):
+    """Fetch authenticated OpenCode Go quota telemetry."""
     if not key:
         return None, "no key"
     req = urllib.request.Request(OCGO_USAGE_API, headers={"User-Agent": UA, "Authorization": f"Bearer {key}"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            body = r.read().decode("utf-8", "replace")
-            data = json.loads(body)
-            # usage may be at top level or under "usage"
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", "replace"))
             usage = data.get("usage", data) if isinstance(data, dict) else data
             if verbose:
-                print(f"  usage: HTTP {r.status} keys={list(usage.keys()) if isinstance(usage, dict) else type(usage)}")
+                print(f"  usage: HTTP {resp.status}")
             return usage, None
-    except urllib.error.HTTPError as e:
-        try:
-            b = e.read().decode("utf-8", "replace")[:500]
-        except Exception:
-            b = str(e)
-        return None, f"HTTP {e.code}: {b[:200]}"
-    except Exception as e:
-        return None, str(e)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")[:200] if hasattr(exc, "read") else str(exc)
+        return None, f"HTTP {exc.code}: {body}"
+    except Exception as exc:  # noqa: BLE001
+        return None, str(exc)
 
-def extract_usage_windows(usage_raw):
-    """Pull per-window percent-used + reset timestamps from a /zen/go/v1/usage
-    payload (live response body or cached snapshot's "usage" object).
-    Returns (percents, resets); both empty when the shape is unknown."""
+
+def extract_usage_windows(usage_raw) -> tuple[dict, dict]:
+    """Extract percent-used and reset ISO strings from a /zen/go/v1/usage payload."""
     percents, resets = {}, {}
     if not isinstance(usage_raw, dict):
         return percents, resets
     for w in ("rolling", "weekly", "monthly"):
         ww = usage_raw.get(w)
-        if isinstance(ww, dict):
-            try:
-                pct = float(ww.get("percent", ww.get("usedPercent", ww.get("used", 0))))
-            except Exception:
-                pct = None
-            if pct is not None:
-                percents[w] = pct
-            if "resetsAt" in ww:
-                resets[w] = ww["resetsAt"]
-            elif "resetAt" in ww:
-                resets[w] = ww["resetAt"]
+        if not isinstance(ww, dict):
+            continue
+        pct = _sf(ww.get("percent", ww.get("usedPercent", ww.get("used", 0))))
+        if pct is not None:
+            percents[w] = pct
+        rst = ww.get("resetsAt") or ww.get("resetAt")
+        if rst is not None:
+            resets[w] = rst
     return percents, resets
 
 
-def _pct_color(pct, for_html=False):
-    # pct = remaining percent 0-100
-    if pct is None:
-        return ("", "") if for_html else ""
-    if for_html:
-        if pct > 50:
-            return "#3fb950", ""  # green
-        if pct > 25:
-            return "#d29922", ""  # yellow
-        if pct > 10:
-            return "#f85149", ""  # red
-        return "#f85149", "font-weight:700"
-    # ANSI
-    if pct > 50:
-        return "\033[38;5;48m"  # green
-    if pct > 25:
-        return "\033[38;5;221m"  # yellow
-    if pct > 10:
-        return "\033[38;5;205m"  # magenta/red
-    return "\033[38;5;196;1m"  # bold bright red
-
-
-# --- ANSI Styling & Theme Constants ---
-C_RESET = "\033[0m"
-def display_len(s):
-    """Calculate terminal display width (accounting for ANSI escapes and wide emoji characters)."""
-    clean = re.sub(r"(?:\033|\x1b)\[[0-9;]*m", "", str(s))
-    w = 0
-    for ch in clean:
-        code = ord(ch)
-        if code in (0xFE0F, 0x200D, 0x200B):
-            continue
-        if (
-            unicodedata.east_asian_width(ch) in ("W", "F")
-            or (0x1F300 <= code <= 0x1FAFF)
-            or code in (0x1F947, 0x1F948, 0x1F949, 0x1F3C6, 0x26A1, 0x2B50)
-        ):
-            w += 2
-        else:
-            w += 1
-    return w
-
-
-def pad_display(text, width, align="<"):
-    """Pad string to exact display width using display_len, safely truncating if too long."""
-    dlen = display_len(text)
-    if dlen > width:
-        cur = ""
-        cur_w = 0
-        for ch in str(text):
-            ch_w = display_len(ch)
-            if cur_w + ch_w > width:
-                break
-            cur += ch
-            cur_w += ch_w
-        pad_needed = max(0, width - cur_w)
-        return cur + (" " * pad_needed)
-
-    pad_needed = max(0, width - dlen)
-    if align == ">":
-        return (" " * pad_needed) + str(text)
-    elif align == "^":
-        left_pad = pad_needed // 2
-        right_pad = pad_needed - left_pad
-        return (" " * left_pad) + str(text) + (" " * right_pad)
-    else:
-        return str(text) + (" " * pad_needed)
-
-
-def color_cell(text, color="", width=None, align="<", bg=""):
-    """Format and colorize an individual cell with 1-space internal padding and exact width."""
-    if width is not None:
-        padded = pad_display(str(text), width, align)
-    else:
-        padded = str(text)
-
-    bg_p = bg if bg else ""
-    return f"{bg_p}{color} {padded} {C_RESET}"
-
-
-def format_compact_num(v):
-    """Format large counts compactly e.g. 45.3k, 7.6k, 880."""
-    if v is None:
+def format_countdown(iso_str: str | None) -> str:
+    """Format an ISO timestamp into a concise relative reset countdown."""
+    if not iso_str:
         return "—"
-    if isinstance(v, (int, float)):
-        if v >= 1_000_000:
-            return f"{v / 1_000_000:.1f}M"
-        if v >= 10_000:
-            return f"{v / 1_000:.1f}k" if (v % 1000 != 0) else f"{v // 1000:.0f}k"
-        if v >= 1_000:
-            return f"{v / 1_000:.1f}k"
-        return f"{v:.0f}"
-    return str(v)
+    target = bc.parse_iso_utc(iso_str)
+    if target is None:
+        return str(iso_str)[:16].replace("T", " ")
+    rel = bc.format_relative_time(target, dt.datetime.now(dt.UTC))
+    time_part = target.strftime("%Y-%m-%d %H:%M UTC")
+    return "resets now" if rel == "now" else f"in {rel} ({time_part})"
 
 
-def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key_present=False, pareto_ids=None, added_ids=None, removed_models=None, color=True, slim=None, wide=False, usage_note=""):
-    """Render structured TUI table with adaptive terminal width, usage limits, and alternating row zebra striping."""
-    if pareto_ids is None:
-        pareto_ids = set()
-    if added_ids is None:
-        added_ids = set()
-    if removed_models is None:
-        removed_models = []
+def build_sort_key(sort_mode: str, eff_cost_fn):
+    return bc.build_analyzer_sort_key(sort_mode, eff_cost_fn)
 
-    # Adaptive width detection (detect split panes or small windows)
-    term_cols = shutil.get_terminal_size((120, 24)).columns
-    is_slim = slim if slim is not None else (term_cols < 120 and not wide)
 
+def _req_field(row: dict, doc_k: str, comp_k: str):
+    reqs = row.get("requests", {})
+    val = reqs.get(doc_k)
+    return val if val is not None else reqs.get(comp_k)
+
+
+def _max_val_row(rows: list[dict], section: str, key: str) -> tuple[dict | None, float]:
+    best, best_v = None, -1.0
+    for row in rows:
+        val = row.get(section, {}).get(key)
+        if bc._is_num(val) and val > best_v:
+            best, best_v = row, float(val)
+    return best, best_v
+
+
+def _cli_banner_summary(models_list: list[dict], is_slim: bool, usage_note: str) -> str:
+    top_val, tv = _max_val_row(models_list, "value", "qvi_score")
+    top_fgi, tf = _max_val_row(models_list, "value", "fgi_score")
+    top_req = max(models_list, key=lambda m: _req_field(m, "per_month_docs", "per_month_computed") or 0) if models_list else None
+    v_info = f"Top Val: {top_val['model_id'][:14]} (Val {tv:.1f})" if top_val else ""
+    f_info = f"Frontier: {top_fgi['model_id'][:14]} (FGI {tf:.1f})" if top_fgi else ""
+    req_cnt = (_req_field(top_req, "per_month_docs", "per_month_computed") or 0) if top_req else 0
+    s_info = f"Max Bulk: {top_req['model_id'][:12]} ({bc.format_compact_num(req_cnt)}/mo)" if top_req else ""
+    u_part = f" │ Usage: {usage_note}" if usage_note else ""
+    base = f" Shared Allowance (20% 5h · 50% wk · 100% mo) │ {v_info} │ {f_info}"
+    return (base if is_slim else f"{base} │ {s_info}") + u_part
+
+
+def _remain_cell(row: dict, usage_err, usage_key_present: bool, has_usage: bool) -> tuple[str, str]:
+    rem = row.get("remaining", {})
+    overall, overall_req = rem.get("overall_pct"), rem.get("overall_req")
+    if overall is not None:
+        txt = f"{overall:.0f}%({bc.format_compact_num(overall_req)})" if overall_req is not None else f"{overall:.0f}%"
+        col = C_GREEN if overall > 50 else (C_YELLOW if overall > 25 else C_MAGENTA)
+        return txt, col
+    if usage_key_present and usage_err:
+        return "ERR", C_DIM
+    return ("N/A" if (not usage_key_present and not has_usage) else "—"), C_DIM
+
+
+def _score_spec(val, fmt: str, medal: int | None, col_fn, width: int, color: bool) -> tuple[str, str, int, str]:
+    if val is None:
+        return "—", C_DIM, width, ">"
+    return fmt.format(val) + bc.medal_badge(medal, color=color), col_fn(val), width, ">"
+
+
+def _cli_prefix_specs(idx: int, row: dict, ctx: dict) -> list[tuple[str, str, int, str]]:
+    rank = idx + 1
+    rank_s, rank_col = _RANK_MEDALS.get(rank, (f" #{rank}", C_WHITE))
+    mid = row["model_id"]
+    is_added = mid in ctx["added_ids"]
+    name_w = 20 if ctx["is_slim"] else 22
+    mid_disp = (f"+{mid}" if is_added else mid)[:name_w]
+    mid_col = (C_BOLD + C_GREEN) if is_added else ((C_BOLD + C_GOLD) if mid in ctx["pareto_ids"] else C_WHITE)
+    usage = row["pricing"]["monthly_usage_limit_usd"]
+    req_mo = _req_field(row, "per_month_docs", "per_month_computed")
+    req_col = C_CYAN if (req_mo is not None and req_mo >= 15000) else C_WHITE
+    return [
+        (rank_s, C_BOLD + rank_col, 4, "^"),
+        (mid_disp, mid_col, name_w, "<"),
+        (f"${usage:.0f}/m" if usage is not None else "Free", _tier_color(usage), 6, "^"),
+        (bc.format_compact_num(req_mo), req_col, 7, ">"),
+    ]
+
+
+def _cli_row_specs(idx: int, row: dict, ctx: dict) -> tuple[list[tuple[str, str, int, str]], str]:
+    bm, val = row["benchmarks"], row["value"]
+    meds = ctx["col_medals"].get(row["model_id"], {})
+    eff_c = val.get("effective_cost_per_request")
+    rem_s, rem_col = _remain_cell(row, ctx["usage_err"], ctx["usage_key_present"], ctx["has_usage"])
+    color = ctx["color"]
+
+    specs = _cli_prefix_specs(idx, row, ctx) + [
+        _score_spec(bm.get("capability_q"), "{:.1f}", meds.get("q"), bc.score_color_q, 6, color),
+        _score_spec(bm.get("p_success"), "{:.1f}%", meds.get("psucc"), bc.score_color_p, 7, color),
+        (f"${eff_c:.4f}" if eff_c is not None else "—", bc.color_ladder(eff_c, _EFF_LADDER, default_color=C_MAGENTA), 7, ">"),
+        _score_spec(val.get("qvi_score"), "{:.1f}", meds.get("value"), bc.score_color_qvi, 6, color),
+        _score_spec(val.get("avi_score"), "{:.1f}", meds.get("avi"), bc.score_color_avi, 7, color),
+        _score_spec(val.get("fgi_score"), "{:.1f}", meds.get("fgi"), bc.score_color_fgi, 5, color),
+        (rem_s, rem_col, 10, "^"),
+    ]
+    if not ctx["is_slim"]:
+        lev = val.get("leverage_vs_10usd_sub")
+        specs.append((f"{lev:.1f}x" if lev else "—", C_DIM, 4, ">"))
+    return specs, (BG_ODD if idx % 2 == 1 else BG_EVEN)
+
+
+def _format_row_line(specs: list[tuple[str, str, int, str]], bg: str, color: bool) -> str:
+    if color:
+        cells = [bc.color_cell(t, col, width=w, align=aln, bg=bg) for t, col, w, aln in specs]
+        sep = f"{bg}{C_DIM}│{C_RESET}"
+        return sep + sep.join(cells) + sep
+    return " ".join(bc.pad_display(t, w, aln) for t, _, w, aln in specs)
+
+
+def _table_chrome(headers: list, inner_w: int, color: bool) -> tuple[list[str], str]:
+    if color:
+        hdrs = [bc.color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER) for h, w, a in headers]
+        sep = f"{BG_HEADER}{C_DIM}│{C_RESET}"
+        head = [
+            f"{C_DIM}┌{'┬'.join('─' * (w + 2) for _, w, _ in headers)}┐{C_RESET}",
+            sep + sep.join(hdrs) + sep,
+            f"{C_DIM}├{'┼'.join('─' * (w + 2) for _, w, _ in headers)}┤{C_RESET}",
+        ]
+        return head, f"{C_DIM}└{'┴'.join('─' * (w + 2) for _, w, _ in headers)}┘{C_RESET}"
+    rule = "-" * (inner_w + 2)
+    return [rule, " ".join(bc.pad_display(h, w, a) for h, w, a in headers), rule], rule
+
+
+def _diff_banner(added_ids: set | None, removed_models: list[dict] | None) -> tuple[list[str], list[str]]:
+    notices, parts = [], []
+    if added_ids:
+        names = ", ".join(sorted(added_ids))
+        notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {names}{C_RESET}")
+        parts.append(f"[+NEW (+{len(added_ids)}): {names}]")
+    if removed_models:
+        rem = ", ".join(m.get("model_id", "unknown") for m in removed_models)
+        notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {rem}{C_RESET}")
+        parts.append(f"[-REMOVED (-{len(removed_models)}): {rem}]")
+    return notices, parts
+
+
+def _cli_footer(models_list: list[dict], removed_models: list[dict] | None, role_recs, is_slim: bool, inner_w: int, color: bool) -> list[str]:
     out = []
-    if is_slim:
-        headers = [
-            ("Rank", 4, "^"),
-            ("Model", 20, "<"),
-            ("Limit", 6, "^"),
-            ("Req/Mo", 7, ">"),
-            ("Q(Cap)", 6, ">"),
-            ("P(Succ)", 7, ">"),
-            ("Eff c/r", 7, ">"),
-            ("Val", 6, ">"),
-            ("AVI", 7, ">"),
-            ("FGI", 5, ">"),
-            ("Remain", 10, "^"),
-        ]
-    else:
-        headers = [
-            ("Rank", 4, "^"),
-            ("Model", 22, "<"),
-            ("Limit", 6, "^"),
-            ("Req/Mo", 7, ">"),
-            ("Q(Cap)", 6, ">"),
-            ("P(Succ)", 7, ">"),
-            ("Eff c/r", 7, ">"),
-            ("Value", 6, ">"),
-            ("AVI", 7, ">"),
-            ("FGI", 5, ">"),
-            ("Remain", 10, "^"),
-            ("Lev", 4, ">"),
-        ]
+    if removed_models:
+        out.extend(["", *bc.render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="model_id")])
+    out.extend(["", *bc.render_metric_guide_cli("OpenCode Go Metrics & Shared Quota Guide", _CLI_GUIDE_ITEMS, color=color)])
+    recs = role_recs if role_recs is not None else bc.compute_role_recommendations(models_list, context="ocheck")
+    if recs:
+        out.extend(["", *bc.render_role_recommendations_cli(recs, color=color, is_slim=is_slim, width=inner_w)])
+    return out
 
-    total_models = len(models_list)
-    top_val = max(
-        (m for m in models_list if m["value"].get("qvi_score") is not None),
-        key=lambda m: m["value"]["qvi_score"],
-        default=None,
-    )
-    top_frontier = max(
-        (m for m in models_list if m["value"].get("fgi_score") is not None),
-        key=lambda m: m["value"]["fgi_score"],
-        default=None,
-    )
-    top_req = max(models_list, key=lambda m: (m["requests"].get("per_month_docs") or m["requests"].get("per_month_computed") or 0)) if models_list else None
 
+def _build_cli_ctx(models_list: list[dict], opts: dict) -> dict:
     col_medals = bc.compute_column_medals(
         models_list,
         {
@@ -815,1512 +671,782 @@ def render_cli_table(models_list, usage_percents=None, usage_err=None, usage_key
         },
         id_key="model_id",
     )
+    return {**opts, "col_medals": col_medals}
 
-    # Total inner width between outer box borders
+
+def render_cli_table(
+    models_list,
+    usage_percents=None,
+    usage_err=None,
+    usage_key_present=False,
+    pareto_ids=None,
+    added_ids=None,
+    removed_models=None,
+    color=True,
+    slim=None,
+    wide=False,
+    usage_note="",
+    role_recs=None,
+):
+    is_slim = slim if slim is not None else (shutil.get_terminal_size((120, 24)).columns < 120 and not wide)
+    headers = _SLIM_CLI_HEADERS if is_slim else _WIDE_CLI_HEADERS
     inner_w = sum(w + 2 for _, w, _ in headers) + len(headers) - 1
+    diff_notices, diff_parts = _diff_banner(added_ids, removed_models)
+    u_sfx = f" │ usage: {usage_note}" if usage_note else ""
 
-    title_str = "⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR (https://opencode.ai/v2/docs/console/go/#usage-limits)"
-    v_info = f"Top Val: {top_val['model_id'][:14]} (Val {top_val['value'].get('qvi_score', 0):.1f})" if top_val else ""
-    f_info = f"Frontier: {top_frontier['model_id'][:14]} (FGI {top_frontier['value'].get('fgi_score', 0):.1f})" if top_frontier else ""
-    top_req_cnt = top_req["requests"].get("per_month_docs") or top_req["requests"].get("per_month_computed") or 0 if top_req else 0
-    s_info = f"Max Bulk: {top_req['model_id'][:12]} ({format_compact_num(top_req_cnt)}/mo)" if top_req else ""
-    usage_part = f" │ Usage: {usage_note}" if usage_note else ""
-    if is_slim:
-        summary_str = f" Caps: per-model $15/$30/$60/mo tiers │ {v_info} │ {f_info}" + usage_part
-    else:
-        summary_str = f" Caps: per-model $15/$30/$60/mo tiers │ {v_info} │ {f_info} │ {s_info}" + usage_part
-
-    diff_notices = []
-    diff_parts = []
-    if added_ids:
-        diff_notices.append(f"{C_BOLD}{C_GREEN}✨ New (+{len(added_ids)}): {', '.join(sorted(added_ids))}{C_RESET}")
-        diff_parts.append(f"[+NEW (+{len(added_ids)}): {', '.join(sorted(added_ids))}]")
-    if removed_models:
-        rem_names = [m.get("model_id", "unknown") for m in removed_models]
-        diff_notices.append(f"{C_BOLD}{C_RED}🔻 Removed (-{len(removed_models)}): {', '.join(rem_names)}{C_RESET}")
-        diff_parts.append(f"[-REMOVED (-{len(removed_models)}): {', '.join(rem_names)}]")
-
-    out.extend(bc.render_banner_box(
-        title_str,
-        summary_lines=[summary_str],
+    out = bc.render_banner_box(
+        f"⚡ OPENCODE GO USAGE LIMITS & AGENTIC RADAR ({OCGO_DOCS}#usage-limits)",
+        summary_lines=[_cli_banner_summary(models_list, is_slim, usage_note)],
         diff_notices=diff_notices,
         inner_w=inner_w,
         color=color,
-        plain_title_line=" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Per-model caps ($15/$30/$60/mo tiers)" + (f" │ usage: {usage_note}" if usage_note else ""),
+        plain_title_line=f" OPENCODE GO USAGE LIMITS & AGENTIC RADAR — Shared Allowance (5h=20% · wk=50% · mo=100%){u_sfx}",
         plain_diff_parts=diff_parts,
-    ))
+    )
+    head_lines, bot_line = _table_chrome(headers, inner_w, color)
+    out.extend(head_lines)
 
-    # Border templates
-    bot_border = ""
-    if color:
-        top_border = "┌" + "┬".join("─" * (w + 2) for _, w, _ in headers) + "┐"
-        mid_border = "├" + "┼".join("─" * (w + 2) for _, w, _ in headers) + "┤"
-        bot_border = "└" + "┴".join("─" * (w + 2) for _, w, _ in headers) + "┘"
-
-        out.append(f"{C_DIM}{top_border}{C_RESET}")
-        hdr_cells = [color_cell(h, C_BOLD + C_WHITE, width=w, align=a, bg=BG_HEADER) for h, w, a in headers]
-        out.append(f"{BG_HEADER}{C_DIM}│{C_RESET}" + f"{BG_HEADER}{C_DIM}│{C_RESET}".join(hdr_cells) + f"{BG_HEADER}{C_DIM}│{C_RESET}")
-        out.append(f"{C_DIM}{mid_border}{C_RESET}")
-    else:
-        out.append("-" * (inner_w + 2))
-        hdr_str = " ".join([pad_display(h, w, a) for h, w, a in headers])
-        out.append(hdr_str)
-        out.append("-" * (inner_w + 2))
-
-    for idx, r in enumerate(models_list):
-        rank_num = idx + 1
-        bg = BG_ODD if (idx % 2 == 1) else BG_EVEN
-
-        if rank_num == 1:
-            rank_str = "🥇#1"
-        elif rank_num == 2:
-            rank_str = "🥈#2"
-        elif rank_num == 3:
-            rank_str = "🥉#3"
-        else:
-            rank_str = f" #{rank_num}"
-
-        is_added = r["model_id"] in added_ids
-        m_name_w = 20 if is_slim else 22
-        raw_mid = r["model_id"]
-        mid_display = f"+{raw_mid}"[:m_name_w] if is_added else raw_mid[:m_name_w]
-
-        usage = r["pricing"]["monthly_usage_limit_usd"]
-        usage_str = f"${usage:.0f}/m" if usage is not None else "Free"
-
-        reqs = r.get("requests", {})
-        req_mo_val = reqs.get("per_month_docs") if reqs.get("per_month_docs") is not None else reqs.get("per_month_computed")
-        req_mo_str = format_compact_num(req_mo_val)
-
-        meds = col_medals.get(r["model_id"], {})
-        q_val = r["benchmarks"].get("capability_q")
-        p_val = r["benchmarks"].get("p_success")
-        eff_c_val = r["value"].get("effective_cost_per_request")
-        eff_c_str = f"${eff_c_val:.4f}" if eff_c_val is not None else "—"
-        qvi_val = r["value"].get("qvi_score")
-        avi_val = r["value"].get("avi_score")
-        fgi_val = r["value"].get("fgi_score")
-        q_disp = f"{q_val:.1f}" + bc.medal_badge(meds.get("q"), color=color) if q_val is not None else "—"
-        p_disp = f"{p_val:.1f}%" + bc.medal_badge(meds.get("psucc"), color=color) if p_val is not None else "—"
-        qvi_disp = f"{qvi_val:.1f}" + bc.medal_badge(meds.get("value"), color=color) if qvi_val is not None else "—"
-        avi_disp = f"{avi_val:.1f}" + bc.medal_badge(meds.get("avi"), color=color) if avi_val is not None else "—"
-        fgi_disp = f"{fgi_val:.1f}" + bc.medal_badge(meds.get("fgi"), color=color) if fgi_val is not None else "—"
-
-        rem = r.get("remaining", {})
-        overall = rem.get("overall_pct")
-        overall_req = rem.get("overall_req")
-        if overall is not None:
-            if overall_req is not None:
-                rem_str = f"{overall:.0f}%({format_compact_num(overall_req)})"
-            else:
-                rem_str = f"{overall:.0f}%"
-        else:
-            if usage_key_present and usage_err:
-                rem_str = "ERR"
-            elif not usage_key_present and not usage_percents:
-                rem_str = "N/A"
-            else:
-                rem_str = "—"
-
-        lev_val = r["value"].get("leverage_vs_10usd_sub")
-        lev_str = f"{lev_val:.1f}x" if lev_val else "—"
-
-        if color:
-            # Usage allowance color
-            if usage == 60:
-                limit_color = C_GREEN
-            elif usage == 30:
-                limit_color = C_CYAN
-            elif usage == 15:
-                limit_color = C_YELLOW
-            else:
-                limit_color = C_GRAY
-
-            # Model name color (added in green, pareto in bold gold, normal in white)
-            if is_added:
-                mid_color = C_BOLD + C_GREEN
-            elif r["model_id"] in pareto_ids:
-                mid_color = (C_BOLD + C_GOLD)
-            else:
-                mid_color = C_WHITE
-
-            # Metric color grading (Monotonic: Green -> Cyan -> Yellow -> Gray)
-            q_color = bc.score_color_q(q_val)
-            p_color = bc.score_color_p(p_val)
-            eff_color = bc.color_ladder(eff_c_val, [
-                (lambda v: v < 0.002, C_GREEN),
-                (lambda v: v < 0.01, C_CYAN),
-                (lambda v: v < 0.03, C_YELLOW),
-            ], default_color=C_MAGENTA)
-            qvi_color = bc.score_color_qvi(qvi_val)
-            avi_color = bc.score_color_avi(avi_val)
-            fgi_color = bc.score_color_fgi(fgi_val)
-
-            # Remaining color
-            rem_color = C_GREEN if (overall and overall > 50) else (C_YELLOW if (overall and overall > 25) else (C_MAGENTA if overall is not None else C_DIM))
-
-            row_cells = [
-                color_cell(rank_str, C_BOLD + (C_GOLD if rank_num == 1 else (C_SILVER if rank_num == 2 else (C_BRONZE if rank_num == 3 else C_WHITE))), width=4, align="^", bg=bg),
-                color_cell(mid_display, mid_color, width=m_name_w, align="<", bg=bg),
-                color_cell(usage_str, limit_color, width=6, align="^", bg=bg),
-                color_cell(req_mo_str, C_CYAN if (req_mo_val and req_mo_val >= 15000) else C_WHITE, width=7, align=">", bg=bg),
-            ]
-            row_cells.extend([
-                color_cell(q_disp, q_color, width=6, align=">", bg=bg),
-                color_cell(p_disp, p_color, width=7, align=">", bg=bg),
-                color_cell(eff_c_str, eff_color, width=7, align=">", bg=bg),
-                color_cell(qvi_disp, qvi_color, width=6, align=">", bg=bg),
-                color_cell(avi_disp, avi_color, width=7, align=">", bg=bg),
-                color_cell(fgi_disp, fgi_color, width=5, align=">", bg=bg),
-                color_cell(rem_str, rem_color, width=10, align="^", bg=bg),
-            ])
-            if not is_slim:
-                row_cells.append(color_cell(lev_str, C_DIM, width=4, align=">", bg=bg))
-
-            out.append(f"{bg}{C_DIM}│{C_RESET}" + f"{bg}{C_DIM}│{C_RESET}".join(row_cells) + f"{bg}{C_DIM}│{C_RESET}")
-        else:
-            row_items = [
-                pad_display(rank_str, 4, "^"),
-                pad_display(mid_display, m_name_w, "<"),
-                pad_display(usage_str, 6, "^"),
-                pad_display(req_mo_str, 7, ">"),
-            ]
-            row_items.extend([
-                pad_display(q_disp, 6, ">"),
-                pad_display(p_disp, 7, ">"),
-                pad_display(eff_c_str, 7, ">"),
-                pad_display(qvi_disp, 6, ">"),
-                pad_display(avi_disp, 7, ">"),
-                pad_display(fgi_disp, 5, ">"),
-                pad_display(rem_str, 10, "^"),
-            ])
-            if not is_slim:
-                row_items.append(pad_display(lev_str, 4, ">"))
-            out.append(" ".join(row_items))
-
-    if color:
-        out.append(f"{C_DIM}{bot_border}{C_RESET}")
-    else:
-        out.append("-" * (inner_w + 2))
-
-    # Removed / Deprecated models display
-    if removed_models:
-        out.append("")
-        out.extend(render_removed_models_cli(removed_models, color=color, is_slim=is_slim, id_key="model_id"))
-
-    out.append("")
-    out.extend(bc.render_metric_guide_cli(
-        "OpenCode Go Usage Limits & Metric Guide",
-        [
-            ("Gold Bold", "Pareto Frontier (undefeated capability vs cost curve).", C_GOLD),
-            ("Green (+)", "Newly added model vs previous baseline snapshot.", C_GREEN),
-            ("Badges ¹²³", "🥇/🥈/🥉 place leaders in respective column.", C_YELLOW),
-            ("Quota Model", "Per-model monthly cap. 5h = 20% of monthly; weekly = 50% of monthly.", C_WHITE),
-            ("$15/mo Tier", "GLM-5.3 (~1.1k req/mo), Kimi K3 (~550) — spec lock, no loops.", C_YELLOW),
-            ("$30/mo Tier", "DeepSeek V4 Flash (~38k req/mo) — daily driver iterative coder.", C_CYAN),
-            ("$60/mo Tier", "MiMo-V2.5 (~150k), Muse Spark (~227k), LongCat (~80k) — bulk fills.", C_GREEN),
-            ("Eff c/r", "Real Cost/Task = Base cost/req × retry multiplier (T_mult).", C_WHITE),
-            ("Allowed Limits", "Run 'ocheck --limits' for full multi-window allowed request caps & quota balance.", C_WHITE),
-        ],
-        color=color,
-    ))
-
-    role_recs = compute_role_recommendations(models_list, context="ocheck")
-    if role_recs:
-        out.append("")
-        out.extend(render_role_recommendations_cli(role_recs, color=color, is_slim=is_slim, width=inner_w))
-
+    ctx = _build_cli_ctx(models_list, {
+        "pareto_ids": pareto_ids or set(),
+        "added_ids": added_ids or set(),
+        "is_slim": is_slim,
+        "color": color,
+        "usage_err": usage_err,
+        "usage_key_present": usage_key_present,
+        "has_usage": bool(usage_percents),
+    })
+    out.extend(_format_row_line(*_cli_row_specs(i, r, ctx), color) for i, r in enumerate(models_list))
+    out.append(bot_line)
+    out.extend(_cli_footer(models_list, removed_models, role_recs, is_slim, inner_w, color))
     return "\n".join(out)
 
 
-def format_countdown(iso_str: str | None) -> str:
-    """Format an ISO reset timestamp into a human-readable relative countdown."""
-    if not iso_str:
-        return "—"
-    try:
-        target = dt.datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        now = dt.datetime.now(dt.timezone.utc)
-        diff = target - now
-        total_sec = int(diff.total_seconds())
-        if total_sec <= 0:
-            return "resets now"
-        days = total_sec // 86400
-        hours = (total_sec % 86400) // 3600
-        mins = (total_sec % 3600) // 60
-        time_part = target.strftime("%Y-%m-%d %H:%M UTC")
-        if days > 0:
-            return f"in {days}d {hours}h ({time_part})"
-        elif hours > 0:
-            return f"in {hours}h {mins}m ({time_part})"
-        else:
-            return f"in {mins}m ({time_part})"
-    except Exception:
-        return str(iso_str)[:16].replace("T", " ")
+def _limits_chrome(headers: list, color: bool) -> tuple[list[str], str, str]:
+    pipe = f"{C_CYAN}│{C_RESET}" if color else "|"
+    if color:
+        top = f"{C_CYAN}┌{'┬'.join('─' * (w + 2) for _, w, _ in headers)}┐{C_RESET}"
+        sep = f"{C_CYAN}├{'┼'.join('─' * (w + 2) for _, w, _ in headers)}┤{C_RESET}"
+        bot = f"{C_CYAN}└{'┴'.join('─' * (w + 2) for _, w, _ in headers)}┘{C_RESET}"
+    else:
+        top = sep = bot = "+" + "+".join("-" * (w + 2) for _, w, _ in headers) + "+"
+    cells = [bc.color_cell(h, C_BOLD + C_WHITE, width=w, align=a) if color else f" {bc.pad_display(h, w, a)} " for h, w, a in headers]
+    return [top, pipe + pipe.join(cells) + pipe, sep], bot, pipe
+
+
+def _window_status(pct_used: float) -> tuple[str, str]:
+    pct_rem = max(0.0, 100.0 - pct_used)
+    if pct_rem > 50:
+        return "● OK", C_GREEN
+    return ("▲ WARN", C_YELLOW) if pct_rem > 20 else ("✖ CRIT", C_RED)
+
+
+def _render_window_row(idx: int, w_def: tuple, usage_percents: dict, usage_resets: dict, usage_key_present: bool, color: bool, pipe: str) -> str:
+    w_key, w_name, w_cap = w_def
+    pct_used = usage_percents.get(w_key)
+    bg = (BG_EVEN if idx % 2 == 0 else BG_ODD) if color else ""
+    if pct_used is None:
+        pct_s, bal_s, pct_col = "N/A", f"${w_cap:.2f}", C_DIM
+        stat_s, stat_col = "—", C_GRAY
+        rst_s = "No active key" if not usage_key_present else "N/A"
+    else:
+        pct_rem = max(0.0, 100.0 - pct_used)
+        pct_s, bal_s = f"{pct_used:.0f}%", f"${w_cap * (pct_rem / 100.0):.2f}"
+        pct_col = bc.color_ladder(pct_rem, _PCT_ANSI_LADDER, default_color="\033[38;5;196;1m")
+        stat_s, stat_col = _window_status(pct_used)
+        rst_s = format_countdown(usage_resets.get(w_key))
+    bal_col = C_BOLD + (C_GREEN if (pct_used or 0) < 50 else C_YELLOW)
+    specs = [
+        (w_name, C_BOLD + C_WHITE, 14, "<"),
+        (f"${w_cap:.2f}", C_CYAN, 11, ">"),
+        (pct_s, pct_col, 10, ">"),
+        (bal_s, bal_col, 12, ">"),
+        (stat_s, stat_col, 10, "^"),
+        (rst_s, C_DIM, 34, "<"),
+    ]
+    if color:
+        return _format_row_line(specs, bg, True)
+    return pipe + pipe.join(f" {bc.pad_display(t, w, a)} " for t, _, w, a in specs) + pipe
+
+
+def _rem_label(rem_req, pct_rem, base_s: str, usage_cap, is_slim: bool) -> str:
+    if rem_req is not None and pct_rem is not None:
+        comp = bc.format_compact_num(rem_req)
+        return comp if is_slim else f"{comp} ({pct_rem:.0f}%)"
+    if usage_cap is None:
+        return "Unlim" if is_slim else "Unlimited"
+    return base_s
+
+
+def _price_summary(pr: dict, is_slim: bool) -> str:
+    inp_p, outp_p, cr_p, cw_p = pr.get("input_per_1m"), pr.get("output_per_1m"), pr.get("cached_read_per_1m"), pr.get("cached_write_per_1m")
+    if inp_p is None:
+        return "Free / Unpriced" if is_slim else "Free tier"
+    out_v = outp_p or 0.0
+    if is_slim:
+        return f"${inp_p:.2f} · ${out_v:.2f}"
+    cr_s = f" · ${cr_p:.3f}" if cr_p is not None else ""
+    cw_s = f" · ${cw_p:.2f}w" if cw_p is not None else ""
+    return f"${inp_p:.2f} / ${out_v:.2f}{cr_s}{cw_s}"
+
+
+def _limit_req_triplet(row: dict) -> tuple[str, str, str]:
+    r5 = _req_field(row, "per_5h_docs", "per_5h_computed")
+    rw = _req_field(row, "per_week_docs", "per_week_computed")
+    rm = _req_field(row, "per_month_docs", "per_month_computed")
+    return (
+        bc.format_compact_num(r5) if r5 is not None else "—",
+        bc.format_compact_num(rw) if rw is not None else "—",
+        bc.format_compact_num(rm) if rm is not None else "—",
+    )
+
+
+def _limit_model_specs(row: dict, is_slim: bool) -> list[tuple[str, str, int, str]]:
+    pr = row.get("pricing", {})
+    usage_cap = pr.get("monthly_usage_limit_usd")
+    tier_s = f"${usage_cap:.0f}/m" if usage_cap is not None else "Free"
+    cap5_s = f"${usage_cap * 0.20:.2f}" if usage_cap is not None else "Unlim"
+    r5_s, rw_s, rm_s = _limit_req_triplet(row)
+    rem = row.get("remaining", {})
+    rem_d, pct_d = rem.get("requests", {}), rem.get("percent", {})
+    rem_w = 9 if is_slim else 11
+    mid_w = 18 if is_slim else 22
+    c_req = row.get("cost_per_request_usd")
+    return [
+        (row["model_id"][:mid_w], C_BOLD + C_WHITE, mid_w, "<"),
+        (tier_s, _tier_color(usage_cap), 6, "^"),
+        (cap5_s, C_DIM, 6, ">"),
+        (r5_s, C_BOLD + C_GREEN, 8, ">"),
+        (rw_s, C_CYAN, 8, ">"),
+        (rm_s, C_WHITE, 8, ">"),
+        (_rem_label(rem_d.get("rolling"), pct_d.get("rolling"), r5_s, usage_cap, is_slim), C_YELLOW, rem_w, ">"),
+        (_rem_label(rem_d.get("monthly"), pct_d.get("monthly"), rm_s, usage_cap, is_slim), C_DIM, rem_w, ">"),
+        (f"${c_req:.4f}" if c_req is not None else "—", C_DIM, 8, ">"),
+        (_price_summary(pr, is_slim), C_GRAY, 18 if is_slim else 26, "<"),
+    ]
+
+
+def _render_limit_model_row(idx: int, row: dict, is_slim: bool, color: bool, pipe: str) -> str:
+    specs = _limit_model_specs(row, is_slim)
+    if color:
+        return _format_row_line(specs, BG_EVEN if idx % 2 == 0 else BG_ODD, True)
+    return pipe + pipe.join(f" {bc.pad_display(t, w, a)} " for t, _, w, a in specs) + pipe
+
+
+def _limits_footer(color: bool) -> list[str]:
+    if not color:
+        return [
+            "OpenCode Go Limits & Tiering Guide:",
+            "  • $15-$20/mo Tier ($3.00-$4.00/5h ceiling): High reasoning models.",
+            "  • $30/mo Tier ($6.00/5h ceiling): Daily drivers (DeepSeek V4 Flash).",
+            "  • $60-$100/mo Tier ($12.00-$20.00/5h ceiling): Bulk generation & high-cap Flash tiers.",
+        ]
+    return [
+        f"🧭 {C_BOLD}OpenCode Go Limits & Tiering Guide:{C_RESET}",
+        f"  • {C_YELLOW}$15–$20/mo Tier{C_RESET} {C_DIM}($3.00–$4.00/5h ceiling): High reasoning models (GLM-5.3, Kimi K3, Grok 4.6).{C_RESET}",
+        f"  • {C_CYAN}$30/mo Tier{C_RESET} {C_DIM}($6.00/5h ceiling): Daily drivers (DeepSeek V4 Flash).{C_RESET}",
+        f"  • {C_GREEN}$60–$100/mo Tier{C_RESET} {C_DIM}($12.00–$20.00/5h ceiling): Bulk generation (MiMo-V2.5, DeepSeek V4.1 Flash, Omen Alpha).{C_RESET}",
+    ]
+
+
+def _limits_win_section(usage_percents: dict, usage_resets: dict, usage_key_present: bool, usage_note: str, color: bool) -> list[str]:
+    win_inner_w = sum(w + 2 for _, w, _ in _WIN_HEADERS) + len(_WIN_HEADERS) - 1
+    top_banner = "⚡ OPENCODE GO SUBSCRIPTION POOLED WINDOWS & LIVE BALANCE"
+    summary = ["Official limits: $12.00 / 5h rolling · $30.00 / weekly · $60.00 / monthly"]
+    if usage_note:
+        summary.append(f"Usage data source: {usage_note}")
+    u_sfx = f" │ usage: {usage_note}" if usage_note else ""
+    out = bc.render_banner_box(top_banner, summary_lines=summary, inner_w=win_inner_w, color=color, plain_title_line=f" {top_banner}{u_sfx}")
+    w_head, w_bot, w_pipe = _limits_chrome(_WIN_HEADERS, color)
+    out.extend(w_head)
+    out.extend(_render_window_row(i, wd, usage_percents, usage_resets, usage_key_present, color, w_pipe) for i, wd in enumerate(_WINDOW_DEFS))
+    out.extend([w_bot, ""])
+    return out
 
 
 def render_limits_table(
     models_list: list[dict],
-    usage_raw: dict | None = None,
     usage_percents: dict | None = None,
     usage_resets: dict | None = None,
-    usage_err: str | None = None,
     usage_key_present: bool = False,
     usage_note: str = "",
     color: bool = True,
     slim: bool | None = None,
     wide: bool = False,
 ) -> str:
-    """Render comprehensive OpenCode Go allowed limits, multi-window quotas, and live subscription balance."""
-    if usage_percents is None:
-        usage_percents = {}
-    if usage_resets is None:
-        usage_resets = {}
+    """Render OpenCode Go subscription pooled windows and per-model tier caps."""
+    is_slim = slim if slim is not None else (shutil.get_terminal_size((120, 24)).columns < 120 and not wide)
+    out = _limits_win_section(usage_percents or {}, usage_resets or {}, usage_key_present, usage_note, color)
 
-    term_cols = shutil.get_terminal_size((120, 24)).columns
-    is_slim = slim if slim is not None else (term_cols < 120 and not wide)
-
-    out = []
-
-    # 1. Section: Subscription Windows Summary Box
-    win_headers = [
-        ("Window", 14, "<"),
-        ("Budget Cap", 11, ">"),
-        ("Used (%)", 10, ">"),
-        ("Balance ($)", 12, ">"),
-        ("Status", 10, "^"),
-        ("Resets At / Countdown", 34, "<"),
-    ]
-    win_inner_w = sum(w + 2 for _, w, _ in win_headers) + len(win_headers) - 1
-
-    top_banner = "⚡ OPENCODE GO SUBSCRIPTION POOLED WINDOWS & LIVE BALANCE"
-    sub_banner = "Official limits: $12.00 / 5h rolling · $30.00 / weekly · $60.00 / monthly"
-    limits_summary = [sub_banner] + ([f"Usage data source: {usage_note}"] if usage_note else [])
-    out.extend(bc.render_banner_box(
-        top_banner,
-        summary_lines=limits_summary,
-        inner_w=win_inner_w,
-        color=color,
-        plain_title_line=f" {top_banner}" + (f" │ usage: {usage_note}" if usage_note else ""),
-    ))
-
-    window_defs = [
-        ("rolling", "5h Rolling", 12.00),
-        ("weekly", "Weekly", 30.00),
-        ("monthly", "Monthly", 60.00),
-    ]
-
-    pipe = f"{C_CYAN}│{C_RESET}" if color else "|"
-    if color:
-        top_border = f"{C_CYAN}┌" + "┬".join("─" * (w + 2) for _, w, _ in win_headers) + f"┐{C_RESET}"
-        sep_border = f"{C_CYAN}├" + "┼".join("─" * (w + 2) for _, w, _ in win_headers) + f"┤{C_RESET}"
-        bot_border = f"{C_CYAN}└" + "┴".join("─" * (w + 2) for _, w, _ in win_headers) + f"┘{C_RESET}"
-    else:
-        top_border = "+" + "+".join("-" * (w + 2) for _, w, _ in win_headers) + "+"
-        sep_border = "+" + "+".join("-" * (w + 2) for _, w, _ in win_headers) + "+"
-        bot_border = "+" + "+".join("-" * (w + 2) for _, w, _ in win_headers) + "+"
-
-    out.append(top_border)
-    hdr_cells = []
-    for hname, hw, halign in win_headers:
-        if halign == ">":
-            cell = f" {hname.rjust(hw)} "
-        elif halign == "^":
-            cell = f" {hname.center(hw)} "
-        else:
-            cell = f" {hname.ljust(hw)} "
-        hdr_cells.append(f"{C_BOLD}{C_WHITE}{cell}{C_RESET}" if color else cell)
-    out.append(pipe + pipe.join(hdr_cells) + pipe)
-    out.append(sep_border)
-
-    for idx, (w_key, w_name, w_cap) in enumerate(window_defs):
-        bg = (BG_EVEN if idx % 2 == 0 else BG_ODD) if color else ""
-        pct_used = usage_percents.get(w_key)
-        reset_iso = usage_resets.get(w_key)
-
-        if pct_used is not None:
-            pct_str = f"{pct_used:.0f}%"
-            pct_rem = max(0.0, 100.0 - pct_used)
-            bal_usd = w_cap * (pct_rem / 100.0)
-            bal_str = f"${bal_usd:.2f}"
-
-            if pct_rem > 50:
-                stat_str = "● OK"
-                stat_col = C_GREEN
-            elif pct_rem > 20:
-                stat_str = "▲ WARN"
-                stat_col = C_YELLOW
-            else:
-                stat_str = "✖ CRIT"
-                stat_col = C_RED
-            countdown_str = format_countdown(reset_iso)
-        else:
-            pct_str = "N/A"
-            bal_str = f"${w_cap:.2f}"
-            stat_str = "—"
-            stat_col = C_GRAY
-            countdown_str = "No active key" if not usage_key_present else "N/A"
-
-        row_vals = [
-            (w_name, 14, "<", C_BOLD + C_WHITE if color else ""),
-            (f"${w_cap:.2f}", 11, ">", C_CYAN if color else ""),
-            (pct_str, 10, ">", _pct_color(100 - pct_used if pct_used is not None else None) if color else ""),
-            (bal_str, 12, ">", C_BOLD + (C_GREEN if (pct_used or 0) < 50 else C_YELLOW) if color else ""),
-            (stat_str, 10, "^", stat_col if color else ""),
-            (countdown_str, 34, "<", C_DIM if color else ""),
-        ]
-
-        row_cells = []
-        for rtext, rw, ralign, rcol in row_vals:
-            if ralign == ">":
-                pad_t = rtext.rjust(rw)
-            elif ralign == "^":
-                pad_t = rtext.center(rw)
-            else:
-                pad_t = rtext.ljust(rw)
-            if color:
-                cell_text = f"{bg} {rcol}{pad_t}{C_RESET}{bg} "
-            else:
-                cell_text = f" {pad_t} "
-            row_cells.append(cell_text)
-
-        out.append(pipe + pipe.join(row_cells) + pipe)
-
-    out.append(bot_border)
-    out.append("")
-
-    # 2. Section: Per-Model Allowed Limits & Request Capacities
-    if is_slim:
-        mod_headers = [
-            ("Model", 18, "<"),
-            ("Tier", 6, "^"),
-            ("5h Cap", 6, ">"),
-            ("5h Limit", 8, ">"),
-            ("Wk Limit", 8, ">"),
-            ("Mo Limit", 8, ">"),
-            ("5h Rem", 9, ">"),
-            ("Mo Rem", 9, ">"),
-            ("Cost/Req", 8, ">"),
-            ("Pricing ($/1M)", 18, "<"),
-        ]
-    else:
-        mod_headers = [
-            ("Model", 22, "<"),
-            ("Tier", 6, "^"),
-            ("5h Cap", 6, ">"),
-            ("5h Limit", 8, ">"),
-            ("Wk Limit", 8, ">"),
-            ("Mo Limit", 8, ">"),
-            ("5h Rem", 11, ">"),
-            ("Mo Rem", 11, ">"),
-            ("Cost/Req", 8, ">"),
-            ("Pricing ($/1M In · Out · CR · CW)", 26, "<"),
-        ]
-
+    mod_headers = _SLIM_MOD_HEADERS if is_slim else _WIDE_MOD_HEADERS
     mod_inner_w = sum(w + 2 for _, w, _ in mod_headers) + len(mod_headers) - 1
-
-    sec2_title = "📋 OPENCODE GO MODEL ALLOWANCES & MULTI-WINDOW REQUEST LIMITS"
-    sec2_sub = "Cap formula: Window Limit = Window Pool ($12, $30, $60) * (Tier Cap / $60) / Cost_per_req"
-
     out.extend(bc.render_banner_box(
-        sec2_title,
-        summary_lines=[sec2_sub],
+        "📋 OPENCODE GO MODEL ALLOWANCES & MULTI-WINDOW REQUEST LIMITS",
+        summary_lines=["Cap formula: Window Limit = Window Pool ($12, $30, $60) * (Tier Cap / $60) / Cost_per_req"],
         inner_w=mod_inner_w,
         color=color,
-        plain_title_line=f" {sec2_title}",
+        plain_title_line=" 📋 OPENCODE GO MODEL ALLOWANCES & MULTI-WINDOW REQUEST LIMITS",
     ))
-
-    if color:
-        m_top = f"{C_CYAN}┌" + "┬".join("─" * (w + 2) for _, w, _ in mod_headers) + f"┐{C_RESET}"
-        m_sep = f"{C_CYAN}├" + "┼".join("─" * (w + 2) for _, w, _ in mod_headers) + f"┤{C_RESET}"
-        m_bot = f"{C_CYAN}└" + "┴".join("─" * (w + 2) for _, w, _ in mod_headers) + f"┘{C_RESET}"
-    else:
-        m_top = "+" + "+".join("-" * (w + 2) for _, w, _ in mod_headers) + "+"
-        m_sep = "+" + "+".join("-" * (w + 2) for _, w, _ in mod_headers) + "+"
-        m_bot = "+" + "+".join("-" * (w + 2) for _, w, _ in mod_headers) + "+"
-
-    out.append(m_top)
-    m_hdr_cells = []
-    for hname, hw, halign in mod_headers:
-        if halign == ">":
-            cell = f" {hname.rjust(hw)} "
-        elif halign == "^":
-            cell = f" {hname.center(hw)} "
-        else:
-            cell = f" {hname.ljust(hw)} "
-        m_hdr_cells.append(f"{C_BOLD}{C_WHITE}{cell}{C_RESET}" if color else cell)
-    out.append(pipe + pipe.join(m_hdr_cells) + pipe)
-    out.append(m_sep)
-
-    def _sort_lim_key(r):
-        req5 = r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed") or 0
-        return (-req5, r["model_id"])
-
-    models_sorted = sorted(models_list, key=_sort_lim_key)
-
-    for idx, r in enumerate(models_sorted):
-        bg = (BG_EVEN if idx % 2 == 0 else BG_ODD) if color else ""
-        mid = r["model_id"]
-        pr = r.get("pricing", {})
-        usage_cap = pr.get("monthly_usage_limit_usd")
-
-        if usage_cap is None:
-            tier_str = "Free"
-            tier_col = C_CYAN
-            cap5_str = "—"
-        elif usage_cap <= 15:
-            tier_str = "$15/m"
-            tier_col = C_YELLOW
-            cap5_str = "$3.00"
-        elif usage_cap <= 30:
-            tier_str = "$30/m"
-            tier_col = C_CYAN
-            cap5_str = "$6.00"
-        else:
-            tier_str = "$60/m"
-            tier_col = C_GREEN
-            cap5_str = "$12.00"
-
-        reqs = r.get("requests", {})
-        req_5h = reqs.get("per_5h_docs") or reqs.get("per_5h_computed")
-        req_wk = reqs.get("per_week_docs") or reqs.get("per_week_computed")
-        req_mo = reqs.get("per_month_docs") or reqs.get("per_month_computed")
-
-        req_5h_str = format_compact_num(req_5h) if req_5h else "—"
-        req_wk_str = format_compact_num(req_wk) if req_wk else "—"
-        req_mo_str = format_compact_num(req_mo) if req_mo else "—"
-
-        rem_dict = r.get("remaining", {}).get("requests", {})
-        rem_5h = rem_dict.get("rolling")
-        rem_mo = rem_dict.get("monthly")
-
-        pct_rem_5h = r.get("remaining", {}).get("percent", {}).get("rolling")
-        pct_rem_mo = r.get("remaining", {}).get("percent", {}).get("monthly")
-
-        if rem_5h is not None and pct_rem_5h is not None:
-            rem_5h_str = f"{format_compact_num(rem_5h)} ({pct_rem_5h:.0f}%)" if not is_slim else format_compact_num(rem_5h)
-        elif usage_cap is None:
-            rem_5h_str = "Unlimited" if not is_slim else "Unlim"
-        else:
-            rem_5h_str = req_5h_str
-
-        if rem_mo is not None and pct_rem_mo is not None:
-            rem_mo_str = f"{format_compact_num(rem_mo)} ({pct_rem_mo:.0f}%)" if not is_slim else format_compact_num(rem_mo)
-        elif usage_cap is None:
-            rem_mo_str = "Unlimited" if not is_slim else "Unlim"
-        else:
-            rem_mo_str = req_mo_str
-
-        cost_req = r.get("cost_per_request_usd")
-        cost_str = f"${cost_req:.4f}" if cost_req is not None else "—"
-
-        inp_p = pr.get("input_per_1m")
-        outp_p = pr.get("output_per_1m")
-        cr_p = pr.get("cached_read_per_1m")
-        cw_p = pr.get("cached_write_per_1m")
-
-        if is_slim:
-            price_str = f"${inp_p or 0:.2f} · ${outp_p or 0:.2f}" if inp_p is not None else "Free / Unpriced"
-        else:
-            cr_str = f" · ${cr_p:.3f}" if cr_p is not None else ""
-            cw_str = f" · ${cw_p:.2f}w" if cw_p is not None else ""
-            price_str = f"${inp_p or 0:.2f} / ${outp_p or 0:.2f}{cr_str}{cw_str}" if inp_p is not None else "Free tier"
-
-        mid_w = 18 if is_slim else 22
-        m_name = mid[:mid_w]
-
-        m_vals = [
-            (m_name, mid_w, "<", C_BOLD + C_WHITE if color else ""),
-            (tier_str, 6, "^", tier_col if color else ""),
-            (cap5_str, 6, ">", C_DIM if color else ""),
-            (req_5h_str, 8, ">", C_BOLD + C_GREEN if color else ""),
-            (req_wk_str, 8, ">", C_CYAN if color else ""),
-            (req_mo_str, 8, ">", C_WHITE if color else ""),
-            (rem_5h_str, 9 if is_slim else 11, ">", C_YELLOW if color else ""),
-            (rem_mo_str, 9 if is_slim else 11, ">", C_DIM if color else ""),
-            (cost_str, 8, ">", C_DIM if color else ""),
-            (price_str, 18 if is_slim else 26, "<", C_GRAY if color else ""),
-        ]
-
-        m_row_cells = []
-        for rtext, rw, ralign, rcol in m_vals:
-            if ralign == ">":
-                pad_t = rtext.rjust(rw)
-            elif ralign == "^":
-                pad_t = rtext.center(rw)
-            else:
-                pad_t = rtext.ljust(rw)
-            if color:
-                cell_text = f"{bg} {rcol}{pad_t}{C_RESET}{bg} "
-            else:
-                cell_text = f" {pad_t} "
-            m_row_cells.append(cell_text)
-
-        out.append(pipe + pipe.join(m_row_cells) + pipe)
-
-    out.append(m_bot)
-    out.append("")
-    out.append(f"🧭 {C_BOLD}OpenCode Go Limits & Tiering Guide:{C_RESET}" if color else "OpenCode Go Limits & Tiering Guide:")
-    out.append(f"  • {C_YELLOW}$15/mo Tier{C_RESET} {C_DIM}($3.00/5h window ceiling): High reasoning models (GLM-5.3, Kimi K3, Grok-4.5/4.6). Best for spec lock and deep audits.{C_RESET}" if color else "  • $15/mo Tier ($3.00/5h window ceiling): High reasoning models (GLM-5.3, Kimi K3, Grok-4.5/4.6). Best for spec lock and deep audits.")
-    out.append(f"  • {C_CYAN}$30/mo Tier{C_RESET} {C_DIM}($6.00/5h window ceiling): Daily drivers (DeepSeek V4 Flash). High-frequency iteration without quota starvation.{C_RESET}" if color else "  • $30/mo Tier ($6.00/5h window ceiling): Daily drivers (DeepSeek V4 Flash). High-frequency iteration without quota starvation.")
-    out.append(f"  • {C_GREEN}$60/mo Tier{C_RESET} {C_DIM}($12.00/5h window ceiling): Bulk generation (MiMo-V2.5, Muse Spark, Minimax M3, Hy3). Massive throughput for boilerplate.{C_RESET}" if color else "  • $60/mo Tier ($12.00/5h window ceiling): Bulk generation (MiMo-V2.5, Muse Spark, Minimax M3, Hy3). Massive throughput for boilerplate.")
-    out.append(f"  • {C_BOLD}Live Remaining{C_RESET} {C_DIM}Request headroom vs your live /zen/go/v1/usage state — offline runs reuse the newest cached ocgo_usage_* snapshot (see 'Usage' source in the header).{C_RESET}" if color else "  • Live Remaining: Request headroom vs your live /zen/go/v1/usage state — offline runs reuse the newest cached ocgo_usage_* snapshot (see 'Usage' source in the header).")
-
+    m_head, m_bot, m_pipe = _limits_chrome(mod_headers, color)
+    out.extend(m_head)
+    out.extend(_render_limit_model_row(i, r, is_slim, color, m_pipe) for i, r in enumerate(models_list))
+    out.extend([m_bot, "", *_limits_footer(color)])
     return "\n".join(out)
 
 
-def build_sort_key(sort_mode, eff_cost_fn):
-    """Return a row sort key for the given --sort mode.
-
-    All modes sort primary metric descending, then capability_q descending,
-    then model_id ascending — None/0-valued primaries fall to -1 (last).
-    """
-    def _cq(r):
-        return r.get("benchmarks", {}).get("capability_q") or -1
-
-    def _avi(r):
-        return r.get("value", {}).get("avi_score") or -1
-
-    def _qvi(r):
-        return r.get("value", {}).get("qvi_score") or -1
-
-    if sort_mode in ("value", "qvi"):
-        return lambda r: (-_qvi(r), -_cq(r), r["model_id"])
-    if sort_mode == "fgi":
-        return lambda r: (-(r.get("value", {}).get("fgi_score") or -1), -_cq(r), r["model_id"])
-    if sort_mode == "bfi":
-        return lambda r: (-(r.get("value", {}).get("bfi_score") or -1), -_cq(r), r["model_id"])
-    if sort_mode == "cap":
-        return lambda r: (-_cq(r), -_avi(r), r["model_id"])
-    if sort_mode == "quality":
-        # Raw AA Quality Index (intelligenceIndex), NOT the z-derived capability_q composite
-        return lambda r: (-(r["benchmarks"].get("aa_intelligence") or -1), -_cq(r), r["model_id"])
-    if sort_mode in ("reqmo", "req5h"):
-        return lambda r: (-(r["requests"].get("per_month_docs") or r["requests"].get("per_month_computed") or 0), -_avi(r), r["model_id"])
-    if sort_mode == "cost":
-        return lambda r: (eff_cost_fn(r), -_cq(r), r["model_id"])
-    if sort_mode == "intel":
-        return lambda r: (-(r.get("value", {}).get("intelligence_per_dollar") or -1), -_cq(r), r["model_id"])
-    if sort_mode == "avi":
-        return lambda r: (-_avi(r), -_cq(r), r["model_id"])
-    raise ValueError(f"unknown sort mode: {sort_mode}")
+def _fmt(val, pattern: str, fallback: str = "—") -> str:
+    return pattern.format(val) if bc._is_num(val) else fallback
 
 
-def main():
-    ap = argparse.ArgumentParser(description="OpenCode Go catalog checker — benchmarks + cost/benefit (offline cache by default; live only with --fetch)")
-    ap.add_argument("--fetch", "--refresh", action="store_true",
-                    help="network path: live-fetch docs/API/OpenRouter/AA/LMArena (+ authenticated usage) and save dated "
-                         "snapshots to docs/data/raw/. The default run is fully offline on the snapshot cache: >24h-old "
-                         "sources are WARNed and used, never fetched.")
-    ap.add_argument("--check", action="store_true",
-                    help="print only: writes NOTHING (baseline, reports, raw snapshots) — even combined with --fetch")
-    ap.add_argument("--podium", "--winners", action="store_true",
-                    help="Display top 3 winners podium table across every metric/column")
-    ap.add_argument("--json", action="store_true",
-                    help="Output machine-readable JSON to docs/data/ocgo_live.json and docs/reports/ocgo_cost_benefit.json")
-    ap.add_argument("--html", action="store_true",
-                    help="Generate HTML dashboard in docs/reports/ocgo_cost_benefit.html")
-    ap.add_argument("--verbose", action="store_true", help="verbose logging")
-    ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors and box drawing")
-    ap.add_argument("--slim", action="store_true", help="Force compact 102-column table layout (for split panes)")
-    ap.add_argument("--wide", action="store_true", help="Force full 120-column table layout")
-    ap.add_argument(
-        "--limits",
-        "--allowed-limits",
-        "--allowances",
-        action="store_true",
-        help="Show detailed OpenCode Go allowed limits, window allowances, and live quota balance",
+def _html_row_class(row: dict, pareto_ids: set, added_ids: set, aa_int, usage, ipd) -> str:
+    if row["model_id"] in added_ids:
+        return "added"
+    if row["model_id"] in pareto_ids:
+        return "pareto"
+    if aa_int is not None and aa_int >= 58:
+        return "flagship"
+    if usage is not None and usage >= 60 and ipd is not None and ipd > 800:
+        return "value"
+    return "free" if usage is None else ""
+
+
+def _rem_html_td(row: dict) -> str:
+    rem = row.get("remaining", {})
+    ov, ov_r = rem.get("overall_pct"), rem.get("overall_req")
+    if ov is None:
+        return '<td class="n">—</td>'
+    rem_s = f"{ov:.0f}%" if ov_r is None else f"{ov:.0f}% ({ov_r})"
+    rem_col = "#3fb950" if ov > 50 else ("#d29922" if ov > 25 else "#f85149")
+    return f'<td class="n" style="color:{rem_col};font-weight:700;">{rem_s}</td>'
+
+
+def _render_html_tr(row: dict, pareto_ids: set, added_ids: set) -> str:
+    bm, val = row.get("benchmarks", {}), row.get("value", {})
+    raw_mid = html_lib.escape(row["model_id"])
+    mid = f'{raw_mid}<span class="badge badge-new">+NEW</span>' if row["model_id"] in added_ids else raw_mid
+    usage = row["pricing"].get("monthly_usage_limit_usd")
+    req5 = _req_field(row, "per_5h_docs", "per_5h_computed")
+    reqw = _req_field(row, "per_week_docs", "per_week_computed")
+    reqm = _req_field(row, "per_month_docs", "per_month_computed")
+    aa_int, ipd = bm.get("aa_intelligence"), val.get("intelligence_per_dollar")
+    cls = _html_row_class(row, pareto_ids, added_ids, aa_int, usage, ipd)
+    lm_r = bm.get("lmarena_rank")
+    lm_s = f"#{int(lm_r)}" if bc._is_num(lm_r) else "—"
+    return (
+        f'<tr class="{cls}"><td class="m">{mid}</td><td class="n">{_fmt(usage, "${:.0f}")}</td>'
+        f'<td class="n">{_fmt(row.get("cost_per_request_usd"), "${:.5f}")}</td>'
+        f'<td class="n">{_fmt(req5, "{:,}")}</td><td class="n">{_fmt(reqw, "{:,}")}</td><td class="n">{_fmt(reqm, "{:,}")}</td>'
+        f'<td class="n" style="font-weight:700; color:#2563eb;">{_fmt(bm.get("capability_q"), "{:.1f}")}</td>'
+        f'<td class="n">{_fmt(bm.get("p_success"), "{:.1f}%")}</td>'
+        f'<td class="n">{_fmt(val.get("effective_cost_per_request"), "${:.5f}")}</td>'
+        f'<td class="n" style="font-weight:700; color:#059669;">{_fmt(val.get("qvi_score"), "{:.1f}")}</td>'
+        f'<td class="n" style="font-weight:700; color:#10b981;">{_fmt(val.get("avi_score"), "{:.1f}")}</td>'
+        f'<td class="n" style="font-weight:700; color:#8b5cf6;">{_fmt(val.get("fgi_score"), "{:.1f}")}</td>'
+        f'<td class="n">{_fmt(aa_int, "{:.1f}")}<span class="mid">{html_lib.escape(bm.get("aa_slug") or "")}</span></td>'
+        f'<td class="n">{_fmt(bm.get("aa_coding"), "{:.1f}")}</td>'
+        f'<td class="n">{lm_s}<span class="mid">{_fmt(bm.get("lmarena_elo"), "{:.0f}")}</span></td>'
+        f'<td class="n">{_fmt(ipd, "{:.0f}")}</td>'
+        f'<td class="n">{_fmt(val.get("cost_per_intelligence_pt_usd"), "${:.5f}")}</td>'
+        f'<td class="n">{_fmt(val.get("leverage_vs_10usd_sub"), "{:.1f}×")}</td>'
+        f'{_rem_html_td(row)}</tr>'
     )
+
+
+def render_html(
+    rows,
+    work_sentence=None,
+    pareto_ids=None,
+    added_ids=None,
+    removed_models=None,
+    data_note=None,
+    usage_note=None,
+    role_recs=None,
+):
+    pareto_ids = pareto_ids or set()
+    added_ids = added_ids or set()
+    removed_models = removed_models or []
+    work_sentence = one_sentence_work(rows) if work_sentence is None else work_sentence
+    recs = role_recs if role_recs is not None else bc.compute_role_recommendations(rows, context="ocheck")
+    role_recs_html = bc.render_role_recommendations_html(recs) if recs else ""
+
+    def _oc_removed_limit(rm: dict) -> str:
+        pr = rm.get("pricing", {}).get("monthly_usage_limit_usd")
+        return f"${pr:.0f}/mo" if pr is not None else "Free"
+
+    removed_html = bc.render_removed_html_section(
+        removed_models,
+        _oc_removed_limit,
+        "These models were present in the previous catalog snapshot but are no longer active in the current OpenCode Go docs or API:",
+    )
+    title = f"OpenCode Go — Cost/Benefit ({dt.date.today().isoformat()})"
+    subtitle_html = (
+        f'{html_lib.escape(data_note or "Live check")} — OpenCode Go <code>$10/mo</code> (Go Plus <code>$40/mo</code>) · '
+        f'Shared allowance (<b>5h = 20%</b>, <b>weekly = 50%</b>, <b>monthly = 100%</b>; model limit = drain denominator) · '
+        f'usage source: <b>{html_lib.escape(usage_note or "unavailable")}</b> · '
+        f'<a href="{OCGO_DOCS}#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.UTC).isoformat()}'
+    )
+    legend_top = (
+        '<b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · '
+        '<span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> '
+        '$60+ usage + high int/$ · <b>Q(Cap)</b> = Capability · <b>P(Succ)</b> = 1-turn pass rate · '
+        '<b>Eff c/r</b> = Cost per solved task · <b>Value</b> = Quota utility · <b>AVI</b> = ROI · <b>FGI</b> = Gate · <b>lev</b> = <code>usage/10</code>.'
+    )
+    takeaway = (
+        "<b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — "
+        "ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request "
+        "but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). "
+        "Use the <code>int/$</code> column to pick your tier."
+    )
+    footer_note = (
+        'Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · '
+        'Raw snapshots in <code>docs/data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. '
+        'Re-run: <code>uv run python checkers/opencode_cost_benefit_analyzer.py</code>.'
+    )
+    return bc.render_analyzer_html_shell(
+        title=title,
+        subtitle_html=subtitle_html,
+        legend_top_html=legend_top,
+        th_cols=_HTML_COLS,
+        trs=[_render_html_tr(r, pareto_ids, added_ids) for r in rows],
+        legend_bot='Click headers to sort. “—” = not benchmarked / free. AA from artificialanalysis.ai; Arena from arena.ai; pricing from opencode.ai/docs/go.',
+        removed_html=removed_html,
+        role_recs_html=role_recs_html,
+        takeaway_html=takeaway,
+        footer_note_html=footer_note,
+        work_sentence=work_sentence,
+        out_href="docs/reports/ocgo_cost_benefit.html",
+    )
+
+
+def _best_go_value_id(rows: list[dict]) -> str | None:
+    best, best_ipd = None, -1.0
+    for row in rows:
+        ipd = row["value"].get("intelligence_per_dollar")
+        usage = row["pricing"].get("monthly_usage_limit_usd")
+        if usage == 60 and ipd and ipd > best_ipd:
+            best, best_ipd = row["model_id"], ipd
+    return best
+
+
+def one_sentence_work(rows: list[dict], usage_percents: dict | None = None) -> str:
+    have_int = sum(1 for r in rows if r["benchmarks"]["aa_intelligence"] is not None)
+    best = _best_go_value_id(rows)
+    flag_row = next((r for r in rows if r["benchmarks"]["aa_intelligence"] and r["benchmarks"]["aa_intelligence"] >= 59), None)
+    flagship = flag_row["model_id"] if flag_row else None
+    rem = f", {100 - max(usage_percents.values()):.0f}% quota remaining" if usage_percents else ""
+    if best and flagship:
+        return f"Current work: live cost/benefit of {len(rows)} Go models ({have_int} ranked) — best value {best}, flagship {flagship}{rem}."
+    if best:
+        return f"Current work: live check of {len(rows)} Go models ({have_int} ranked) — best value {best}{rem}."
+    return f"Current work: live check of {len(rows)} Go models ({have_int} ranked){rem}."
+
+
+def _fetch_ocgo_catalog(do_write: bool, verbose: bool) -> tuple[dict, dict, dict, list[str]]:
+    pricing_live, requests_live, tokens_live, api_ids = {}, {}, {}, []
+    if (body := bc.fetch_bytes(OCGO_DOCS, verbose=verbose)):
+        html_txt = body.decode(errors="ignore")
+        if do_write:
+            snap = RAW / f"opencode_go_docs_{dt.date.today().isoformat().replace('-', '')}.html"
+            bc.atomic_write_text(snap, html_txt)
+            print(f"  saved docs snapshot -> {snap.relative_to(ROOT)} ({len(html_txt)} bytes)")
+        pricing_live, requests_live, tokens_live = parse_ocgo_docs(html_txt, verbose=verbose)
+        print(f"  docs: pricing={len(pricing_live)}, requests={len(requests_live)}, tokens={len(tokens_live)}")
+    else:
+        print("  WARN docs fetch failed, trying snapshot/fallback", file=sys.stderr)
+
+    if (api_body := bc.fetch_bytes(OCGO_API, verbose=verbose)):
+        try:
+            payload = json.loads(api_body)
+            if do_write:
+                snap = RAW / f"opencode_go_models_{dt.date.today().isoformat().replace('-', '')}.json"
+                bc.atomic_write_text(snap, json.dumps(payload, indent=2))
+                print(f"  saved API snapshot -> {snap.relative_to(ROOT)}")
+            api_ids = [m["id"] for m in payload.get("data", []) if m.get("id")]
+            print(f"  API models: {len(api_ids)}")
+        except Exception as exc:
+            print(f"  WARN API parse: {exc}", file=sys.stderr)
+    return pricing_live, requests_live, tokens_live, api_ids
+
+
+def _load_offline_docs(verbose: bool) -> tuple[dict, dict, dict]:
+    snap = bc.pick_latest_raw(RAW, "opencode_go_docs")
+    if snap is None:
+        return {}, {}, {}
+    try:
+        pl, rl, tl = parse_ocgo_docs(snap.read_text(errors="ignore"), verbose=verbose)
+        if pl:
+            print(f"  offline docs pricing: {len(pl)} models ({snap.name})")
+        return pl, rl, tl
+    except Exception as exc:
+        print(f"  WARN offline docs parse: {exc}", file=sys.stderr)
+        return {}, {}, {}
+
+
+def _load_offline_api_ids() -> list[str]:
+    snap = bc.pick_latest_raw(RAW, "opencode_go_models")
+    if snap is None:
+        return []
+    try:
+        ids = [m["id"] for m in json.loads(snap.read_text(errors="ignore")).get("data", []) if m.get("id")]
+        if ids:
+            print(f"  offline API models: {len(ids)} ({snap.name})")
+        return ids
+    except Exception as exc:
+        print(f"  WARN offline API parse: {exc}", file=sys.stderr)
+        return []
+
+
+def _merge_catalog(pricing_live: dict, tokens_live: dict, api_ids: list[str]) -> tuple[list[str], dict, dict]:
+    if not api_ids:
+        all_ids = list(FALLBACK_PRICING.keys())
+        print(f"  using fallback API ids: {len(all_ids)}")
+    else:
+        seen = set(api_ids)
+        extras = [k for k in list(FALLBACK_PRICING) + list(pricing_live) if k not in seen and not seen.add(k)]
+        all_ids = list(api_ids) + extras
+    default_pr = {"input": None, "output": None, "cached_read": None, "cached_write": None, "usage": 60}
+    merged_pr = {mid: pricing_live.get(mid) or FALLBACK_PRICING.get(mid) or default_pr for mid in all_ids}
+    merged_tok = {mid: tokens_live.get(mid) or FALLBACK_TOKENS.get(mid) or (500, 60000, 200) for mid in all_ids}
+    return all_ids, merged_pr, merged_tok
+
+
+def _fetch_and_parse_map(url: str, tag: str, parser, do_write: bool, verbose: bool) -> dict | None:
+    body = bc.fetch_bytes(url, verbose=verbose)
+    if not body:
+        return None
+    try:
+        raw_txt = body.decode(errors="ignore")
+        payload = json.loads(raw_txt) if tag == "openrouter_models" else raw_txt
+        parsed = parser(payload, verbose=verbose)
+        if do_write:
+            ext = "json" if tag == "openrouter_models" else "html"
+            snap = RAW / f"{tag}_{dt.date.today().isoformat().replace('-', '')}.{ext}"
+            bc.atomic_write_text(snap, json.dumps(payload, indent=2) if ext == "json" else raw_txt)
+        return parsed
+    except Exception as exc:
+        print(f"  WARN {tag} live parse: {exc}", file=sys.stderr)
+        return None
+
+
+def _load_map(url: str, tag: str, parser, do_fetch: bool, do_write: bool, verbose: bool) -> dict:
+    if do_fetch and (live := _fetch_and_parse_map(url, tag, parser, do_write, verbose)) is not None:
+        return live
+    snap = bc.pick_latest_raw(RAW, tag)
+    if snap is None:
+        return {}
+    try:
+        raw_txt = snap.read_text(errors="ignore")
+        data = parser(json.loads(raw_txt) if snap.suffix == ".json" else raw_txt, verbose=verbose)
+        print(f"  offline {tag}: {len(data)} entries ({snap.name})")
+        return data
+    except Exception as exc:
+        print(f"  WARN offline {tag} parse: {exc}", file=sys.stderr)
+        return {}
+
+
+def _load_usage_state(do_fetch: bool, do_write: bool, verbose: bool) -> tuple[dict, dict, str | None, bool, str]:
+    percents, resets, err, key_present, note = {}, {}, None, False, ""
+    if do_fetch and (key := get_api_key()):
+        key_present = True
+        usage_raw, err = fetch_usage(key, verbose=verbose)
+        percents, resets = extract_usage_windows(usage_raw)
+        if percents:
+            note = "live (fetched now)"
+            if do_write:
+                snap = RAW / f"ocgo_usage_{dt.date.today().isoformat().replace('-', '')}.json"
+                bc.atomic_write_text(snap, json.dumps({"fetched_at": dt.datetime.now(dt.UTC).isoformat(), "usage": usage_raw}, indent=2))
+            return percents, resets, err, key_present, note
+        if err:
+            print(f"  usage: {err} — trying cached snapshot", file=sys.stderr)
+
+    snap = bc.pick_latest_raw(RAW, "ocgo_usage")
+    if snap is not None:
+        try:
+            raw_j = json.loads(snap.read_text(errors="ignore"))
+            percents, resets = extract_usage_windows(raw_j.get("usage", raw_j))
+            if percents:
+                key_present = True
+                note = f"cached {snap.name}{bc.staleness_tag(snap)}"
+        except Exception as exc:
+            print(f"  WARN usage snapshot parse: {exc}", file=sys.stderr)
+    return percents, resets, err, key_present, note
+
+
+def _or_pair_price(prc: dict) -> tuple[float | None, float | None] | None:
+    pin, pout = _sf(prc.get("prompt")), _sf(prc.get("completion"))
+    if (pin is not None and pin > 0) or (pout is not None and pout > 0):
+        return (pin * 1_000_000 if pin is not None else None), (pout * 1_000_000 if pout is not None else None)
+    return None
+
+
+def _or_fallback_price(mid: str, or_map: dict) -> tuple[float | None, float | None]:
+    nmid = bc.norm_id(mid)
+    for or_id, or_rec in or_map.items():
+        nor = bc.norm_id(or_id)
+        if (nmid in nor or nor in nmid) and (pair := _or_pair_price(or_rec.get("pricing") or {})):
+            return pair
+    return None, None
+
+
+def _compute_remaining(usage_percents: dict, caps: tuple, cost_req, usage_cap) -> dict:
+    rem, rem_req = {}, {}
+    if not usage_percents:
+        return {"percent": rem, "requests": rem_req, "overall_pct": None, "overall_req": None}
+    for win, cap in zip(("rolling", "weekly", "monthly"), caps):
+        pct_used = _sf(usage_percents.get(win))
+        if pct_used is None:
+            continue
+        pct_rem = max(0.0, 100.0 - pct_used)
+        rem[win] = round(pct_rem, 1)
+        if usage_cap is not None and cap is not None and cost_req and cost_req > 0:
+            rem_req[win] = _si_round((cap * pct_rem / 100.0) / cost_req)
+    return {
+        "percent": rem,
+        "requests": rem_req,
+        "overall_pct": min(rem.values()) if rem else None,
+        "overall_req": min(rem_req.values()) if rem_req else None,
+    }
+
+
+def _pick(rec: dict | None, key: str, fn=_sf):
+    return fn(rec.get(key)) if rec else None
+
+
+def _clean_aa_slug(aa_rec: dict | None) -> str | None:
+    raw = aa_rec.get("slug") if aa_rec else None
+    return str(raw) if raw and not str(raw).startswith("$") else None
+
+
+def _build_benchmarks(mid: str, aa_map: dict, lm_map: dict, or_map: dict, live_map: dict) -> dict:
+    aa_rec = bc.find_aa_for_model(mid, aa_map) if aa_map else None
+    lm_rec = bc.find_lm_for_model(mid, lm_map) if lm_map else None
+    or_oid, or_rec = bc.find_or_for_model(mid, or_map) if or_map else (None, None)
+    live_rec = bc.find_livebench_for_model(mid, live_map) if live_map else None
+    or_prompt = _sf((or_rec.get("pricing") or {}).get("prompt")) if or_rec else None
+    return {
+        "aa_slug": _clean_aa_slug(aa_rec),
+        "aa_intelligence": _pick(aa_rec, "intelligenceIndex"),
+        "aa_coding": _pick(aa_rec, "codingIndex"),
+        "aa_agentic": _pick(aa_rec, "agenticIndex"),
+        "aa_median_tps": _pick(aa_rec, "medianOutputTokensPerSecond"),
+        "aa_context": _pick(aa_rec, "contextWindowTokens", _si),
+        "lmarena_rank": _pick(lm_rec, "rank", _si),
+        "lmarena_elo": _pick(lm_rec, "elo"),
+        "lmarena_votes": _pick(lm_rec, "votes", _si),
+        "livebench": live_rec,
+        "openrouter_id": or_oid,
+        "openrouter_context": or_rec.get("context_length") if or_rec else None,
+        "openrouter_prompt_per_1m": or_prompt * 1_000_000 if or_prompt is not None else None,
+    }
+
+
+def _req_block(caps: tuple, cost_req, usage, docs_req: dict) -> dict:
+    cap_5h, cap_wk, cap_mo = caps
+    pos = cost_req is not None and cost_req > 0 and usage is not None
+    return {
+        "per_5h_computed": _si_round(cap_5h / cost_req) if pos else None,
+        "per_week_computed": _si_round(cap_wk / cost_req) if pos else None,
+        "per_month_computed": _si_round(cap_mo / cost_req) if pos else None,
+        "per_5h_docs": docs_req.get("per_5h"),
+        "per_week_docs": docs_req.get("per_week"),
+        "per_month_docs": docs_req.get("per_month"),
+    }
+
+
+def _val_block(aa_int, cost_req, usage) -> dict:
+    pos = cost_req is not None and cost_req > 0
+    ipd = (aa_int / cost_req) if (aa_int is not None and pos) else None
+    cpi = (cost_req / aa_int) if (aa_int and pos) else None
+    return {
+        "intelligence_per_dollar": round(ipd, 2) if ipd else None,
+        "cost_per_intelligence_pt_usd": round(cpi, 6) if cpi else None,
+        "requests_per_dollar": round(1.0 / cost_req, 1) if pos else None,
+        "leverage_vs_10usd_sub": round(usage / 10.0, 2) if usage else None,
+    }
+
+
+def _build_model_row(mid: str, pr: dict, toks: tuple, docs_req: dict, usage_percents: dict, maps: tuple[dict, dict, dict, dict]) -> dict:
+    or_map, aa_map, lm_map, live_map = maps
+    inp, outp, cr, cw, usage = pr.get("input"), pr.get("output"), pr.get("cached_read"), pr.get("cached_write"), pr.get("usage")
+    if inp is None and or_map:
+        inp, outp = _or_fallback_price(mid, or_map)
+
+    est_in, est_ca, est_out = toks
+    cost_req = bc.compute_cost(inp, outp, cr, est_in, est_ca, est_out)
+    cap_mo = _sf(usage)
+    caps = (cap_mo * 0.20, cap_mo * 0.50, cap_mo) if cap_mo is not None else (None, None, None)
+    bm = _build_benchmarks(mid, aa_map, lm_map, or_map, live_map)
+    return {
+        "model_id": mid,
+        "display": mid,
+        "is_docs_model": False,
+        "pricing": {"input_per_1m": inp, "output_per_1m": outp, "cached_read_per_1m": cr, "cached_write_per_1m": cw, "monthly_usage_limit_usd": usage},
+        "caps": {"cap_5h_usd": caps[0], "cap_wk_usd": caps[1], "cap_mo_usd": caps[2]},
+        "tokens": {"est_input": est_in, "est_cached": est_ca, "est_output": est_out},
+        "cost_per_request_usd": round(cost_req, 6) if cost_req is not None else None,
+        "requests": _req_block(caps, cost_req, usage, docs_req),
+        "remaining": _compute_remaining(usage_percents, caps, cost_req, usage),
+        "benchmarks": bm,
+        "value": _val_block(bm["aa_intelligence"], cost_req, usage),
+    }
+
+
+def _eff_cost(row: dict) -> float:
+    if row["pricing"].get("monthly_usage_limit_usd") is None or "free" in row["model_id"].lower():
+        return 0.0
+    val = row["value"].get("effective_cost_per_request")
+    raw = val if val is not None else row.get("cost_per_request_usd")
+    num = _sf(raw)
+    return 999.0 if num is None else num
+
+
+def _prev_docs_count(prev_snapshot, fallback_len: int) -> int:
+    if not isinstance(prev_snapshot, dict) or "models" not in prev_snapshot:
+        return fallback_len
+    return sum(1 for m in prev_snapshot.get("models", []) if m and m.get("is_docs_model"))
+
+
+def _write_outputs(
+    rows_sorted: list[dict],
+    docs_rows: list[dict],
+    pareto_ids: set,
+    catalog_diff: dict,
+    prev_snapshot,
+    usage_percents: dict,
+    usage_note: str,
+    data_label: str,
+    role_recs: dict,
+    verbose: bool,
+) -> None:
+    live = {
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
+        "sources": {
+            "opencode_docs": OCGO_DOCS,
+            "opencode_api": OCGO_API,
+            "openrouter_api": OPENROUTER_API,
+            "artificial_analysis": AA_URL,
+            "lmarena": LMARENA_URL,
+            "usage_limits": f"{OCGO_DOCS}#usage-limits",
+            "limit_model": "shared percentage allowance (5h=20%, weekly=50%, monthly=100%); model Monthly limit is drain denominator",
+            "usage_source": usage_note or "unavailable",
+        },
+        "catalog_diff": {
+            "added": sorted(catalog_diff["added_ids"]),
+            "removed": sorted(catalog_diff["removed_ids"]),
+            "total_current": len(docs_rows),
+            "total_previous": _prev_docs_count(prev_snapshot, len(docs_rows)),
+        },
+        "role_recommendations": role_recs,
+        "models": rows_sorted,
+    }
+    DATA.mkdir(parents=True, exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
+    out_json = DATA / "ocgo_live.json"
+    cb_json = OUT / "ocgo_cost_benefit.json"
+    html_path = OUT / "ocgo_cost_benefit.html"
+    bc.atomic_write_text(out_json, json.dumps(live, indent=2))
+    bc.atomic_write_text(cb_json, json.dumps(rows_sorted, indent=2))
+    bc.atomic_write_text(
+        html_path,
+        render_html(
+            docs_rows,
+            work_sentence=one_sentence_work(docs_rows, usage_percents),
+            pareto_ids=pareto_ids,
+            added_ids=catalog_diff["added_ids"],
+            removed_models=catalog_diff["removed_models"],
+            data_note=data_label,
+            usage_note=usage_note,
+            role_recs=role_recs,
+        ),
+    )
+    if verbose:
+        print(f"wrote {out_json.relative_to(ROOT)}, {cb_json.relative_to(ROOT)}, {html_path.relative_to(ROOT)}")
+
+
+def _parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(description="OpenCode Go catalog checker (offline cache by default; live only with --fetch)")
+    ap.add_argument("--fetch", "--refresh", action="store_true", help="Live-fetch Go docs + API + OpenRouter/AA/LMArena snapshots")
+    ap.add_argument("--check", action="store_true", help="Print only: writes NOTHING (even with --fetch)")
+    ap.add_argument("--limits", action="store_true", help="Show multi-window pooled limits & per-model allowance breakdown")
+    ap.add_argument("--verbose", action="store_true", help="Verbose logging")
+    ap.add_argument("--plain", "--no-color", action="store_true", help="Disable ANSI colors")
+    ap.add_argument("--slim", action="store_true", help="Force compact table layout")
+    ap.add_argument("--wide", action="store_true", help="Force full table layout")
     ap.add_argument(
         "--sort",
         choices=["value", "qvi", "avi", "fgi", "bfi", "cap", "quality", "reqmo", "req5h", "cost", "intel"],
         default="value",
         help="Sort order (default: value)",
     )
-    args = ap.parse_args()
+    return ap.parse_args()
 
-    verbose = args.verbose
-    do_fetch = bool(args.fetch)
-    do_write = not args.check
 
-    print("OpenCode Go — catalog check")
-    print(f"  date: {dt.datetime.now(dt.timezone.utc).isoformat()}")
-    print(f"  mode: {'fetch (network)' if do_fetch else 'OFFLINE (cache-only)'}" + (" · check: no writes" if args.check else ""))
+def _gather_inputs(do_fetch: bool, do_write: bool, verbose: bool):
     data_label = "live fetch"
     if not do_fetch:
-        note, data_label = offline_data_note()
+        note, data_label = bc.offline_snapshot_note(RAW, _SNAP_LABELS)
         print(note)
+    pl, rl, tl, api_ids = _fetch_ocgo_catalog(do_write, verbose) if do_fetch else ({}, {}, {}, [])
+    if not pl:
+        pl, rl_off, tl_off = _load_offline_docs(verbose)
+        rl, tl = rl or rl_off, tl or tl_off
+    if not api_ids:
+        api_ids = _load_offline_api_ids()
 
-    # ---- 1. Fetch OC Go docs + API ----
-    pricing_live = {}
-    requests_live = {}
-    tokens_live = {}
-    ocgo_api_ids = []
+    lm_payload = bc.fetch_lmarena_hf_snapshot(RAW, verbose=verbose, do_write=do_write) if do_fetch else None
+    lm_map = bc.parse_lmarena_hf(lm_payload, verbose=verbose) if lm_payload else bc.load_lmarena_map(RAW, verbose=verbose)
+    or_map = _load_map(OPENROUTER_API, "openrouter_models", bc.parse_openrouter, do_fetch, do_write, verbose)
+    aa_map = _load_map(AA_URL, "artificial_analysis", bc.parse_aa, do_fetch, do_write, verbose)
+    live_map = bc.load_livebench_snapshots(RAW, verbose=verbose)
+    return pl, rl, tl, api_ids, (or_map, aa_map, lm_map, live_map), data_label
 
-    if do_fetch:
-        body = fetch(OCGO_DOCS, verbose=verbose)
-        if body:
-            html = body.decode(errors="ignore")
-            if do_write:
-                snap = RAW / f"opencode_go_docs_{dt.date.today().isoformat().replace('-','')}.html"
-                bc.atomic_write_text(snap, html)
-                print(f"  saved docs snapshot -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
-            pl, rl, tl = parse_ocgo_docs(html, verbose=verbose)
-            if pl:
-                pricing_live = pl
-                print(f"  docs pricing: {len(pl)} models")
-            if rl:
-                requests_live = rl
-            if tl:
-                tokens_live = tl
-            if verbose:
-                print(f"  docs tokens: {len(tl)} models")
-        else:
-            print("  WARN docs fetch failed, trying snapshot/fallback", file=sys.stderr)
 
-        body = fetch(OCGO_API, verbose=verbose)
-        if body:
-            try:
-                j = json.loads(body)
-                if do_write:
-                    snap = RAW / f"opencode_go_models_{dt.date.today().isoformat().replace('-','')}.json"
-                    bc.atomic_write_text(snap, json.dumps(j, indent=2))
-                    print(f"  saved API snapshot -> {snap.relative_to(ROOT)}")
-                ids = [m["id"] for m in j.get("data", []) if m.get("id")]
-                ocgo_api_ids = ids
-                if verbose:
-                    print(f"  API models: {len(ids)} -> {ids}")
-                else:
-                    print(f"  API models: {len(ids)}")
-            except Exception as e:
-                print(f"  WARN API parse: {e}", file=sys.stderr)
-        else:
-            print("  WARN API fetch failed", file=sys.stderr)
-
-    if not pricing_live:
-        snap_docs = pick_latest_raw("opencode_go_docs")
-        if snap_docs:
-            try:
-                html = snap_docs.read_text(errors="ignore")
-                pl, rl, tl = parse_ocgo_docs(html, verbose=verbose)
-                if pl:
-                    pricing_live = pl
-                    print(f"  offline docs pricing: {len(pl)} models ({snap_docs.name})")
-                if rl:
-                    requests_live = rl
-                if tl:
-                    tokens_live = tl
-            except Exception as e:
-                print(f"  WARN offline docs parse: {e}", file=sys.stderr)
-
-    if not ocgo_api_ids:
-        snap_api = pick_latest_raw("opencode_go_models")
-        if snap_api:
-            try:
-                j = json.loads(snap_api.read_text(errors="ignore"))
-                ids = [m["id"] for m in j.get("data", []) if m.get("id")]
-                if ids:
-                    ocgo_api_ids = ids
-                    print(f"  offline API models: {len(ids)} ({snap_api.name})")
-            except Exception as e:
-                print(f"  WARN offline API parse: {e}", file=sys.stderr)
-
-    if not ocgo_api_ids:
-        ocgo_api_ids = list(FALLBACK_PRICING.keys())
-        print(f"  using fallback API ids: {len(ocgo_api_ids)}")
+def _print_report(args, docs_rows: list[dict], pareto_ids: set, catalog_diff: dict, usage_state: tuple, role_recs: dict) -> None:
+    usage_percents, usage_resets, usage_err, usage_key_present, usage_note = usage_state
+    use_color = not (args.plain or os.getenv("NO_COLOR"))
+    slim_opt = True if args.slim else (False if args.wide else None)
+    if args.limits:
+        body = render_limits_table(
+            docs_rows, usage_percents=usage_percents, usage_resets=usage_resets,
+            usage_key_present=usage_key_present, usage_note=usage_note, color=use_color, slim=slim_opt, wide=args.wide,
+        )
     else:
-        for k in FALLBACK_PRICING:
-            if k not in ocgo_api_ids:
-                ocgo_api_ids.append(k)
-        for k in pricing_live:
-            if k not in ocgo_api_ids:
-                ocgo_api_ids.append(k)
+        body = render_cli_table(
+            docs_rows, usage_percents=usage_percents, usage_err=usage_err, usage_key_present=usage_key_present,
+            pareto_ids=pareto_ids, added_ids=catalog_diff["added_ids"], removed_models=catalog_diff["removed_models"],
+            color=use_color, slim=slim_opt, wide=args.wide, usage_note=usage_note, role_recs=role_recs,
+        )
+    print("\n" + body)
 
-    # Merge pricing: live docs override fallback
-    merged_pricing = {}
-    for mid in ocgo_api_ids:
-        if mid in pricing_live:
-            merged_pricing[mid] = pricing_live[mid]
-        elif mid in FALLBACK_PRICING:
-            merged_pricing[mid] = FALLBACK_PRICING[mid]
-        else:
-            # Unknown new model not in fallback: try to find pricing from docs via normalized
-            merged_pricing[mid] = {"input": None, "output": None, "cached_read": None, "cached_write": None, "usage": 60}
 
-    merged_tokens = {}
-    for mid in ocgo_api_ids:
-        if mid in tokens_live:
-            merged_tokens[mid] = tokens_live[mid]
-        elif mid in FALLBACK_TOKENS:
-            merged_tokens[mid] = FALLBACK_TOKENS[mid]
-        else:
-            merged_tokens[mid] = (500, 60000, 200)  # median fallback
+def main():
+    args = _parse_args()
+    do_fetch, do_write = bool(args.fetch), not args.check
+    mode_tag = "fetch (network)" if do_fetch else "OFFLINE (cache-only)"
+    check_tag = " · check: no writes" if args.check else ""
+    print(f"OpenCode Go — catalog check\n  date: {dt.datetime.now(dt.UTC).isoformat()}\n  mode: {mode_tag}{check_tag}")
 
-    # ---- 2. Fetch OpenRouter ----
-    or_map = {}
-    if do_fetch:
-        body = fetch(OPENROUTER_API, verbose=verbose)
-        if body:
-            try:
-                j = json.loads(body)
-                if do_write:
-                    snap = RAW / f"openrouter_models_{dt.date.today().isoformat().replace('-','')}.json"
-                    bc.atomic_write_text(snap, json.dumps(j, indent=2))
-                    print(f"  saved OpenRouter -> {snap.relative_to(ROOT)} ({len(body)} bytes)")
-                or_map = parse_openrouter(j, verbose=verbose)
-            except Exception as e:
-                print(f"  WARN OpenRouter json: {e}", file=sys.stderr)
-    if not or_map:
-        snap_or = pick_latest_raw("openrouter_models")
-        if snap_or:
-            try:
-                j = json.loads(snap_or.read_text(errors="ignore"))
-                or_map = parse_openrouter(j, verbose=verbose)
-                print(f"  offline OpenRouter: {len(or_map)} models ({snap_or.name})")
-            except Exception as e:
-                print(f"  WARN offline OpenRouter parse: {e}", file=sys.stderr)
+    pl, rl, tl, api_ids, maps, data_label = _gather_inputs(do_fetch, do_write, args.verbose)
+    usage_state = _load_usage_state(do_fetch, do_write, args.verbose)
+    all_ids, merged_pr, merged_tok = _merge_catalog(pl, tl, api_ids)
+    rows = [_build_model_row(mid, merged_pr[mid], merged_tok[mid], rl.get(mid, {}), usage_state[0], maps) for mid in all_ids]
+    bc.score_analyzer_rows(rows)
 
-    # ---- 3. Fetch AA ----
-    aa_map = {}
-    if do_fetch:
-        body = fetch(AA_URL, verbose=verbose)
-        if body:
-            html = body.decode(errors="ignore")
-            if do_write:
-                snap = RAW / f"artificial_analysis_{dt.date.today().isoformat().replace('-','')}.html"
-                bc.atomic_write_text(snap, html)
-                print(f"  saved AA -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
-            aa_map = parse_aa(html, verbose=verbose)
-        else:
-            print("  WARN AA fetch failed", file=sys.stderr)
-    if not aa_map:
-        snap_aa = pick_latest_raw("artificial_analysis")
-        if snap_aa:
-            try:
-                html = snap_aa.read_text(errors="ignore")
-                aa_map = parse_aa(html, verbose=verbose)
-                print(f"  offline AA: {len(aa_map)} entries ({snap_aa.name})")
-            except Exception as e:
-                print(f"  WARN offline AA parse: {e}", file=sys.stderr)
-
-    # ---- 4. Fetch LMArena ----
-    lm_map = {}
-    if do_fetch:
-        body = fetch(LMARENA_URL, verbose=verbose)
-        if body:
-            html = body.decode(errors="ignore")
-            if do_write:
-                snap = RAW / f"lmarena_{dt.date.today().isoformat().replace('-','')}.html"
-                bc.atomic_write_text(snap, html)
-                print(f"  saved LMArena -> {snap.relative_to(ROOT)} ({len(html)} bytes)")
-            lm_map = parse_lmarena(html, verbose=verbose)
-        else:
-            print("  WARN LMArena fetch failed", file=sys.stderr)
-    if not lm_map:
-        snap_lm = pick_latest_raw("lmarena")
-        if snap_lm:
-            try:
-                html = snap_lm.read_text(errors="ignore")
-                lm_map = parse_lmarena(html, verbose=verbose)
-                print(f"  offline LMArena: {len(lm_map)} entries ({snap_lm.name})")
-            except Exception as e:
-                print(f"  WARN offline LMArena parse: {e}", file=sys.stderr)
-
-    # ---- 4b. LiveBench snapshots: newest CSV is primary; older files only fill
-    # keys missing from it (S1-C3) — a corrupt snapshot is a logged skip, not a pass.
-    live_map = {}
-    csv_matches = [p for p in sorted(glob.glob(str(RAW / "*livebench*20*.csv"))) if "cost" not in p]
-    for p_csv in reversed(csv_matches):
-        try:
-            p = pathlib.Path(p_csv)
-            date_part = "".join(filter(str.isdigit, p.stem))
-            cat_p = RAW / f"livebench_categories_{date_part}.json"
-            cat_json = cat_p.read_text(encoding="utf-8", errors="ignore") if cat_p.exists() else None
-            data = parse_livebench(p.read_text(encoding="utf-8", errors="ignore"), categories_json=cat_json)
-            filled = sum(1 for k in data if k not in live_map)
-            for k, v in data.items():
-                live_map.setdefault(k, v)
-            if verbose:
-                print(f"  LiveBench {p.name}: {len(data)} rows, {filled} new keys")
-        except Exception as e:  # noqa: BLE001 — never swallow silently (S1-C3)
-            print(f"  WARN LiveBench snapshot skipped ({p_csv}): {e}", file=sys.stderr)
-    if live_map:
-        print(f"  offline LiveBench: {len(live_map)} models loaded")
-
-    # ---- 4c. Usage windows: live (authenticated) else newest cached snapshot ----
-    usage_raw = None
-    usage_err = None
-    usage_percents = {}  # window -> percent used (0-100)
-    usage_resets = {}
-    usage_key_present = False
-    usage_note = ""
-    if do_fetch:
-        k = get_api_key()
-        usage_key_present = bool(k)
-        if k:
-            usage_raw, usage_err = fetch_usage(k, verbose=verbose)
-            usage_percents, usage_resets = extract_usage_windows(usage_raw)
-            if usage_percents:
-                usage_note = "live (fetched now)"
-                print(f"  usage: {', '.join(f'{w} {usage_percents[w]:.0f}% used' for w in usage_percents)} [live]")
-                if do_write:
-                    snap_u = RAW / f"ocgo_usage_{dt.date.today().isoformat().replace('-','')}.json"
-                    bc.atomic_write_text(snap_u, json.dumps({"fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(), "usage": usage_raw}, indent=2))
-                    print(f"  saved usage snapshot -> {snap_u.relative_to(ROOT)}")
-            elif usage_raw:
-                print(f"  usage: got data but no rolling/weekly/monthly percent — keys={list(usage_raw.keys())[:8]}", file=sys.stderr)
-                if verbose:
-                    print(f"    raw={str(usage_raw)[:600]}", file=sys.stderr)
-            elif usage_err:
-                print(f"  usage: {usage_err} — falling back to cached snapshot (use $OPENCODE_API_KEY)", file=sys.stderr)
-        else:
-            if verbose:
-                print("  usage: no key ($OPENCODE_API_KEY / auth.json opencode entry)")
-    if not usage_percents:
-        # Offline parity with every other source: judge the newest cached
-        # /zen/go/v1/usage snapshot, staleness tagged by filename date.
-        snap_u = pick_latest_raw("ocgo_usage")
-        if snap_u:
-            try:
-                j = json.loads(snap_u.read_text(errors="ignore"))
-                usage_raw = j.get("usage", j)
-                usage_percents, usage_resets = extract_usage_windows(usage_raw)
-            except Exception as e:  # noqa: BLE001
-                print(f"  WARN usage snapshot parse: {e}", file=sys.stderr)
-            if usage_percents:
-                usage_key_present = True
-                usage_note = f"cached {snap_u.name}{bc.staleness_tag(snap_u)}"
-                print(f"  usage: {', '.join(f'{w} {usage_percents[w]:.0f}% used' for w in usage_percents)} [{usage_note}]")
-    if not usage_percents and verbose:
-        print("  usage: no live data and no cached snapshot — remaining % N/A")
-
-    # most restrictive = max percent used
-    usage_max_pct = max(usage_percents.values()) if usage_percents else None
-    usage_remaining_pct = (100 - usage_max_pct) if usage_max_pct is not None else None
-
-    # ---- 5. Build cost/benefit ----
-    rows = []
-    for mid in ocgo_api_ids:
-        pr = merged_pricing.get(mid, {})
-        inp = pr.get("input")
-        outp = pr.get("output")
-        cr = pr.get("cached_read")
-        cw = pr.get("cached_write")
-        usage = pr.get("usage")
-
-        # For models where docs pricing is None (free) try OpenRouter pricing
-        if inp is None and or_map:
-            for or_id, or_rec in or_map.items():
-                if norm_id(mid) in norm_id(or_id) or norm_id(or_id) in norm_id(mid):
-                    prc = or_rec.get("pricing", {})
-                    try:
-                        p_prompt = float(prc.get("prompt", 0)) * 1_000_000
-                        p_compl = float(prc.get("completion", 0)) * 1_000_000
-                        if p_prompt > 0 or p_compl > 0:
-                            inp = inp if inp is not None else p_prompt
-                            outp = outp if outp is not None else p_compl
-                            break
-                    except (ValueError, TypeError):
-                        pass
-
-        est_in, est_ca, est_out = merged_tokens.get(mid, (500, 60000, 200))
-        # DeepSeek flash off-peak vs peak: we use off-peak as Go likely uses off-peak pricing?
-        # Docs show both; we already picked off-peak via first table entry.
-
-        cost_req = compute_cost(inp, outp, cr, est_in, est_ca, est_out)
-
-        # Scaled caps
-        cap_mo = bc._safe_float(usage)
-        if cap_mo is None:
-            cap_mo = cap_wk = cap_5h = None
-        else:
-            cap_wk = cap_mo * 0.50
-            cap_5h = cap_mo * 0.20
-
-        # Requests per window (computed)
-        if cost_req and cost_req > 0 and usage is not None:
-            req_5h = cap_5h / cost_req if cap_5h else None
-            req_wk = cap_wk / cost_req if cap_wk else None
-            req_mo = cap_mo / cost_req if cap_mo else None
-        else:
-            req_5h = req_wk = req_mo = None
-
-        # Docs estimated requests (if parsed)
-        docs_req = requests_live.get(mid, {})
-
-        # Benchmarks
-        aa_rec = find_aa_for_ocgo(mid, aa_map) if aa_map else None
-        lm_rec = find_lm_for_ocgo(mid, lm_map) if lm_map else None
-        or_oid, or_rec = find_or_for_ocgo(mid, or_map) if or_map else (None, None)
-        live_rec = find_livebench_for_ocgo(mid, live_map) if live_map else None
-
-        aa_int = _safe_float(aa_rec.get("intelligenceIndex")) if aa_rec else None
-        aa_cod = _safe_float(aa_rec.get("codingIndex")) if aa_rec else None
-        aa_age = _safe_float(aa_rec.get("agenticIndex")) if aa_rec else None
-        aa_tps = _safe_float(aa_rec.get("medianOutputTokensPerSecond")) if aa_rec else None
-        aa_ctx = _safe_int(aa_rec.get("contextWindowTokens")) if aa_rec else None
-        aa_slug = str(aa_rec.get("slug") or "") if aa_rec and not str(aa_rec.get("slug", "")).startswith("$") else None
-
-        lm_rank = _safe_int(lm_rec.get("rank")) if lm_rec else None
-        lm_elo = _safe_float(lm_rec.get("elo")) if lm_rec else None
-        lm_votes = _safe_int(lm_rec.get("votes")) if lm_rec else None
-
-        or_ctx = None
-        or_price_prompt = None
-        if or_rec:
-            or_ctx = or_rec.get("context_length")
-            try:
-                or_price_prompt = float(or_rec.get("pricing", {}).get("prompt", 0)) * 1_000_000
-            except (ValueError, TypeError):
-                pass
-
-        # Value metrics
-        intel_per_dollar = (aa_int / cost_req) if (aa_int is not None and cost_req and cost_req > 0) else None
-        cost_per_intel = (cost_req / aa_int) if (aa_int and cost_req) else None
-        req_per_dollar = (1 / cost_req) if cost_req else None
-        # Leverage: $60 of API usage for $10 sub = 6x, but scaled by usage/60
-        # Effective: if you max out monthly cap, you get `usage` dollars of API for $10
-        leverage = (usage / 10.0) if usage else None
-
-        # Usage remaining (per-window) — from authenticated /zen/go/v1/usage if key present
-        # usage_percents holds percent *used* per window (0-100). Remaining % = 100 - used.
-        remaining = {}
-        remaining_req = {}
-        overall_remaining_pct = None
-        if usage_percents and cost_req and cost_req > 0 and usage is not None:
-            for w, cap in (("rolling", cap_5h), ("weekly", cap_wk), ("monthly", cap_mo)):
-                pct_used = usage_percents.get(w)
-                if pct_used is None or cap is None:
-                    continue
-                try:
-                    pct_rem = max(0.0, 100.0 - float(pct_used))
-                except (ValueError, TypeError):
-                    continue
-                try:
-                    remaining[w] = round(pct_rem, 1)
-                except (ValueError, TypeError):
-                    continue
-                try:
-                    rem_usd = cap * pct_rem / 100.0
-                    remaining_req[w] = _safe_int_round(rem_usd / cost_req)
-                except (ValueError, TypeError):
-                    continue
-            if remaining:
-                try:
-                    overall_remaining_pct = min(remaining.values())  # most restrictive window
-                except (ValueError, TypeError):
-                    overall_remaining_pct = None
-        elif usage_percents and usage is None:
-            # free model: no cap, remaining is same % but no request count
-            for w, pct_used in usage_percents.items():
-                try:
-                    remaining[w] = round(max(0.0, 100.0 - float(pct_used)), 1)
-                except (ValueError, TypeError):
-                    continue
-        elif usage_key_present and not usage_percents:
-            # key present but fetch failed — leave empty, UI will show N/A + error
-            pass
-
-        rows.append({
-            "model_id": mid,
-            "display": mid,
-            "pricing": {"input_per_1m": inp, "output_per_1m": outp, "cached_read_per_1m": cr, "cached_write_per_1m": cw, "monthly_usage_limit_usd": usage},
-            "caps": {"cap_5h_usd": cap_5h, "cap_wk_usd": cap_wk, "cap_mo_usd": cap_mo},
-            "tokens": {"est_input": est_in, "est_cached": est_ca, "est_output": est_out},
-            "cost_per_request_usd": round(cost_req, 6) if cost_req is not None else None,
-            "requests": {
-                "per_5h_computed": _safe_int_round(req_5h),
-                "per_week_computed": _safe_int_round(req_wk),
-                "per_month_computed": _safe_int_round(req_mo),
-                "per_5h_docs": docs_req.get("per_5h"),
-                "per_week_docs": docs_req.get("per_week"),
-                "per_month_docs": docs_req.get("per_month"),
-            },
-            "remaining": {
-                "percent": remaining,  # per-window remaining %
-                "requests": remaining_req,  # per-window remaining requests
-                "overall_pct": overall_remaining_pct,  # min across windows
-                "overall_req": min(remaining_req.values()) if remaining_req else None,
-            },
-            "benchmarks": {
-                "aa_slug": aa_slug,
-                "aa_intelligence": aa_int,
-                "aa_coding": aa_cod,
-                "aa_agentic": aa_age,
-                "aa_median_tps": aa_tps,
-                "aa_context": aa_ctx,
-                "lmarena_rank": lm_rank,
-                "lmarena_elo": lm_elo,
-                "lmarena_votes": lm_votes,
-                "livebench": live_rec,
-                "openrouter_id": or_oid,
-                "openrouter_context": or_ctx,
-                "openrouter_prompt_per_1m": or_price_prompt,
-            },
-            "value": {
-                "intelligence_per_dollar": round(intel_per_dollar, 2) if intel_per_dollar else None,
-                "cost_per_intelligence_pt_usd": round(cost_per_intel, 6) if cost_per_intel else None,
-                "requests_per_dollar": round(req_per_dollar, 1) if req_per_dollar else None,
-                "leverage_vs_10usd_sub": round(leverage, 2) if leverage else None,
-            },
-        })
-
-    # ---- 5b. Normalized Composite Capability & Agentic Indices (bcheck formulas) ----
-    z_int = get_z_scores([r["benchmarks"]["aa_intelligence"] for r in rows])
-    z_cod = get_z_scores([r["benchmarks"]["aa_coding"] for r in rows])
-    z_age = get_z_scores([r["benchmarks"]["aa_agentic"] for r in rows])
-    z_elo = get_z_scores([r["benchmarks"]["lmarena_elo"] for r in rows])
-    z_live = get_z_scores([
-        r["benchmarks"].get("livebench", {}).get("overall")
-        if isinstance(r["benchmarks"].get("livebench"), dict)
-        else None
-        for r in rows
-    ])
-
-    for i, r in enumerate(rows):
-        b = r["benchmarks"]
-        v = r["value"]
-        p = r["pricing"]
-
-        coverage = []
-        if b["aa_intelligence"] is not None:
-            coverage.append("AA")
-        if b["lmarena_elo"] is not None:
-            coverage.append("LM")
-        if not coverage:
-            coverage = ["—"]
-        r["coverage"] = coverage
-
-        # Weighted composite Z-score across available signals
-        weights = []
-        z_parts = []
-        if b["aa_intelligence"] is not None:
-            weights.append(0.35); z_parts.append(0.35 * z_int[i])
-        if b["aa_coding"] is not None:
-            weights.append(0.25); z_parts.append(0.25 * z_cod[i])
-        if b["aa_agentic"] is not None:
-            weights.append(0.20); z_parts.append(0.20 * z_age[i])
-        if b["lmarena_elo"] is not None:
-            weights.append(0.20); z_parts.append(0.20 * z_elo[i])
-        if not weights:
-            b["composite_score"] = None
-            b["capability_q"] = None
-            b["p_success"] = None
-            b["token_multiplier"] = None
-            v["effective_cost_per_request"] = None
-            v["effective_requests_per_5h"] = None
-            v["effective_requests_per_month"] = None
-            v["qvi_score"] = None
-            v["value_score"] = None
-            v["avi_score"] = None
-            v["fgi_score"] = None
-            v["bfi_score"] = None
-            b["qvi_score"] = None
-            b["avi_score"] = None
-            b["fgi_score"] = None
-            b["bfi_score"] = None
-            continue
-
-        tot_w = sum(weights)
-        cz = sum(z_parts) / tot_w
-        q_score = compute_capability_q(cz)
-        b["composite_score"] = q_score
-        b["capability_q"] = q_score
-
-        # Task pass probability on non-trivial agentic task
-        p_succ = compute_p_success(q_score)
-        b["p_success"] = p_succ
-
-        # Retry / debug token multiplier
-        t_mult = compute_token_multiplier(p_succ)
-        b["token_multiplier"] = t_mult
-
-        # Effective costs: unknown price stays None (never 0.0 — that would
-        # fabricate $0.00 blended + inflated BFI for unpriced rows). Real 0.0
-        # is a genuine free tier and keeps its 0.0 effective cost.
-        pin = bc._safe_float(p.get("input_per_1m"))
-        pout = bc._safe_float(p.get("output_per_1m"))
-        if pin is None or pout is None:
-            b["blended_price"] = None
-            b["effective_cost"] = None
-            v["effective_blended_price"] = None
-        else:
-            blended_price = (0.80 * pin) + (0.20 * pout)
-            b["blended_price"] = round(blended_price, 2)
-            effective_blended_price = compute_effective_cost(blended_price, t_mult)
-            b["effective_cost"] = effective_blended_price
-            v["effective_blended_price"] = effective_blended_price
-
-        c_req = r.get("cost_per_request_usd")
-        eff_c_req = (c_req * t_mult) if c_req is not None else None
-        v["effective_cost_per_request"] = round(eff_c_req, 6) if eff_c_req is not None else None
-
-        req_5h_val = r["requests"].get("per_5h_docs") or r["requests"].get("per_5h_computed")
-        eff_req_5h = _safe_int_round(req_5h_val / t_mult) if req_5h_val else None
-        v["effective_requests_per_5h"] = eff_req_5h
-
-        req_mo_val = r["requests"].get("per_month_docs") or r["requests"].get("per_month_computed")
-        eff_req_mo = _safe_int_round(req_mo_val / t_mult) if req_mo_val else None
-        v["effective_requests_per_month"] = eff_req_mo
-
-        # Value indices
-        qvi = compute_qvi(q_score, eff_req_5h)
-        b["qvi_score"] = qvi
-        v["qvi_score"] = qvi
-        v["value_score"] = qvi
-        # AVI cost basis: cache-aware effective $/1M of the model's OWN request
-        # mix (eff cost per request / est tokens × 1M) — NOT the 80/20 fresh
-        # blended rate, which ignores cached-read discounts and flips AVI rank
-        # order against the Eff c/r column for cache-heavy models. Unknown
-        # price → eff_c_req None → no AVI (free/unknown never score ~900 noise).
-        toks_tot = (r["tokens"].get("est_input", 0) or 0) + (r["tokens"].get("est_cached", 0) or 0) + (r["tokens"].get("est_output", 0) or 0)
-        avi_cost = (eff_c_req * 1_000_000.0 / toks_tot) if (eff_c_req is not None and eff_c_req > 0 and toks_tot > 0) else None
-        avi = compute_avi(q_score, avi_cost) if avi_cost is not None else None
-        b["avi_score"] = avi
-        v["avi_score"] = avi
-
-        fgi = compute_fgi(q_score, p_succ)
-        b["fgi_score"] = fgi
-        v["fgi_score"] = fgi
-
-        speed = _safe_float(b.get("aa_median_tps"), default=60.0) or 60.0
-        _bl = b.get("blended_price")
-        _bfi = compute_bfi(q_score, speed, _bl) if _bl is not None else None
-        b["bfi_score"] = _bfi
-        v["bfi_score"] = _bfi
-
-    # Sort by chosen sort mode (default: value)
-    sort_mode = getattr(args, "sort", "value")
-
-    def _eff_cost(r):
-        # S2-M1 class guard (parity with bc.compute_pareto_frontier._row_cost):
-        # 0.0 is a REAL cost — free tiers dominate the frontier/sort; only
-        # None falls through, and 999 is for fully-unknown cost only.
-        if r["pricing"].get("monthly_usage_limit_usd") is None or "free" in r["model_id"].lower():
-            return 0.0
-        v = r["value"].get("effective_cost_per_request")
-        if v is None:
-            v = r.get("cost_per_request_usd")
-        return 999.0 if v is None else (bc._safe_float(v) if bc._safe_float(v) is not None else 999.0)
-
-    sort_key_fn = build_sort_key(sort_mode, _eff_cost)
-
-    rows_sorted = sorted(rows, key=sort_key_fn)
-
-    # Pareto frontier (effective cost vs capability) — docs-backed only, for bold highlighting
-    dynamic_docs_ids = set(pricing_live.keys()) | DOCS_IDS | ({"ox-alpha-free"} if "ox-alpha-free" in ocgo_api_ids else set())
-    pareto_ids = set()
-    try:
-        cand = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids and r["benchmarks"].get("capability_q") is not None]
-        for a in cand:
-            a_cost = _eff_cost(a)
-            a_q = a["benchmarks"].get("capability_q") or 0.0
-            candidates = [
-                (_eff_cost(b), b["benchmarks"].get("capability_q") or 0.0)
-                for b in cand
-                if b is not a
-            ]
-            if not bc.pareto_dominated(a_cost, a_q, candidates, cost_epsilon=0.0001):
-                pareto_ids.add(a["model_id"])
-    except Exception:
-        pareto_ids = set()
-
-    # Load previous baseline snapshot for catalog diffing (additions in green, removals in red)
-    prev_snapshot = load_previous_snapshot(DATA / "ocgo_live.json")
-
-    # Run diff on full rows_sorted to carry first_seen/is_new across all model records
-    rows_sorted = diff_model_catalog(rows_sorted, prev_snapshot)["rows"]
-
-    # ---- 6. Console report ----
-    # Docs-backed and live pricing models
-    docs_rows = [r for r in rows_sorted if r["model_id"] in dynamic_docs_ids]
-    for r in docs_rows:
-        r["is_docs_model"] = True
-
-    catalog_diff = diff_model_catalog(docs_rows, prev_snapshot)
+    rows_sorted = sorted(rows, key=build_sort_key(args.sort, _eff_cost))
+    docs_set = set(pl.keys()) | DOCS_IDS | ({"ox-alpha-free"} if "ox-alpha-free" in api_ids else set())
+    for row in rows_sorted:
+        row["is_docs_model"] = row["model_id"] in docs_set
+    docs_rows = [r for r in rows_sorted if r["is_docs_model"]]
+    pareto_ids = bc.compute_pareto_ids(rows_sorted, _eff_cost, docs_set)
+    prev_snapshot = bc.load_previous_snapshot(DATA / "ocgo_live.json")
+    catalog_diff = bc.diff_model_catalog(docs_rows, prev_snapshot)
     docs_rows = catalog_diff["rows"]
-    added_ids = catalog_diff["added_ids"]
-    removed_ids = catalog_diff["removed_ids"]
-    removed_models = catalog_diff["removed_models"]
+    role_recs = bc.compute_role_recommendations(docs_rows, context="ocheck")
 
-    use_color = not (getattr(args, "plain", False) or os.getenv("NO_COLOR"))
-    slim_opt = True if getattr(args, "slim", False) else (False if getattr(args, "wide", False) else None)
-    if getattr(args, "limits", False):
-        print("\n" + render_limits_table(
-            docs_rows,
-            usage_raw=usage_raw,
-            usage_percents=usage_percents,
-            usage_resets=usage_resets,
-            usage_err=usage_err,
-            usage_key_present=usage_key_present,
-            usage_note=usage_note,
-            color=use_color,
-            slim=slim_opt,
-            wide=getattr(args, "wide", False),
-        ))
-    else:
-        print("\n" + render_cli_table(
-            docs_rows,
-            usage_percents=usage_percents,
-            usage_err=usage_err,
-            usage_key_present=usage_key_present,
-            usage_note=usage_note,
-            pareto_ids=pareto_ids,
-            added_ids=added_ids,
-            removed_models=removed_models,
-            color=use_color,
-            slim=slim_opt,
-            wide=getattr(args, "wide", False),
-        ))
-
-    # Write outputs
+    _print_report(args, docs_rows, pareto_ids, catalog_diff, usage_state, role_recs)
     if do_write:
-        # data/ocgo_live.json
-        role_recs_export = compute_role_recommendations(docs_rows, context="ocheck")
-        live = {
-            "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "sources": {
-                "opencode_docs": OCGO_DOCS,
-                "opencode_api": OCGO_API,
-                "openrouter_api": OPENROUTER_API,
-                "artificial_analysis": AA_URL,
-                "lmarena": LMARENA_URL,
-                "usage_limits": "https://opencode.ai/v2/docs/console/go/#usage-limits",
-                "limit_model": "per-model monthly cap; 5h window = 20% of monthly, weekly = 50% of monthly",
-                "usage_source": usage_note or "unavailable",
-                "note": "per-model monthly Usage from docs pricing table; window caps derived (5h=0.2x, wk=0.5x)"
-            },
-            "catalog_diff": {
-                "added": sorted(list(added_ids)),
-                "removed": sorted(list(removed_ids)),
-                "total_current": len(docs_rows),
-                # S1-M1: compare like with like — total_previous counted the FULL
-                # baseline (incl. non-docs rows) against the docs-only current set.
-                "total_previous": (len([m for m in prev_snapshot.get("models", []) if isinstance(m, dict) and m.get("is_docs_model")]) if (isinstance(prev_snapshot, dict) and "models" in prev_snapshot) else len(docs_rows)),
-            },
-            "role_recommendations": role_recs_export,
-            "models": rows_sorted,
-        }
-        DATA.mkdir(parents=True, exist_ok=True)
-        out_json = DATA / "ocgo_live.json"
-        bc.atomic_write_text(out_json, json.dumps(live, indent=2))
-        if verbose:
-            print(f"wrote {out_json.relative_to(ROOT)} ({len(json.dumps(live))} bytes)")
-
-        # outputs json
-        OUT.mkdir(parents=True, exist_ok=True)
-        cb_json = OUT / "ocgo_cost_benefit.json"
-        bc.atomic_write_text(cb_json, json.dumps(rows_sorted, indent=2))
-        if verbose:
-            print(f"wrote {cb_json.relative_to(ROOT)}")
-
-        # HTML — with one-sentence current work in footer next to path
-        work = one_sentence_work(docs_rows, usage_percents)
-        html_path = OUT / "ocgo_cost_benefit.html"
-        bc.atomic_write_text(html_path, render_html(docs_rows, work_sentence=work, pareto_ids=pareto_ids, added_ids=added_ids, removed_models=removed_models, data_note=data_label, usage_note=usage_note))
-        if verbose:
-            print(f"wrote {html_path.relative_to(ROOT)} ({html_path.stat().st_size} bytes)")
+        _write_outputs(rows_sorted, docs_rows, pareto_ids, catalog_diff, prev_snapshot, usage_state[0], usage_state[4], data_label, role_recs, args.verbose)
     else:
         print("\n(check-only, no files written)")
-
-
-def render_html(rows, work_sentence=None, usage_percents=None, pareto_ids=None, added_ids=None, removed_models=None, data_note=None, usage_note=None):
-    if work_sentence is None:
-        try:
-            work_sentence = one_sentence_work(rows, usage_percents)
-        except Exception:
-            work_sentence = ""
-    if pareto_ids is None:
-        pareto_ids = set()
-    if added_ids is None:
-        added_ids = set()
-    if removed_models is None:
-        removed_models = []
-    if data_note is None:
-        data_note = "Live check"
-
-    title = f"OpenCode Go — Cost/Benefit ({dt.date.today().isoformat()})"
-    role_recs = compute_role_recommendations(rows, context="ocheck")
-    role_recs_html = render_role_recommendations_html(role_recs) if role_recs else ""
-    # Build table rows
-    trs = []
-    for r in rows:
-        is_added = r["model_id"] in added_ids
-        raw_mid = html_lib.escape(r["model_id"])
-        mid = f'{raw_mid}<span class="badge badge-new">+NEW</span>' if is_added else raw_mid
-        usage = r["pricing"]["monthly_usage_limit_usd"]
-        usage_s = f"${usage:.0f}" if usage is not None else "—"
-        c = r["cost_per_request_usd"]
-        c_s = f"${c:.5f}" if isinstance(c, float) else "—"
-        reqs = r.get("requests", {})
-        req5 = reqs.get("per_5h_docs") if reqs.get("per_5h_docs") is not None else reqs.get("per_5h_computed")
-        reqw = reqs.get("per_week_docs") if reqs.get("per_week_docs") is not None else reqs.get("per_week_computed")
-        reqm = reqs.get("per_month_docs") if reqs.get("per_month_docs") is not None else reqs.get("per_month_computed")
-        req5_s = f"{req5:,}" if isinstance(req5, int) else "—"
-        reqw_s = f"{reqw:,}" if isinstance(reqw, int) else "—"
-        reqm_s = f"{reqm:,}" if isinstance(reqm, int) else "—"
-
-        q_val = r["benchmarks"].get("capability_q")
-        q_s = f"{q_val:.1f}" if isinstance(q_val, (int, float)) else "—"
-        p_val = r["benchmarks"].get("p_success")
-        p_s = f"{p_val:.1f}%" if isinstance(p_val, (int, float)) else "—"
-        eff_c = r["value"].get("effective_cost_per_request")
-        eff_c_s = f"${eff_c:.5f}" if isinstance(eff_c, float) else "—"
-        qvi_val = r["value"].get("qvi_score")
-        qvi_s = f"{qvi_val:.1f}" if isinstance(qvi_val, (int, float)) else "—"
-        avi_val = r["value"].get("avi_score")
-        avi_s = f"{avi_val:.1f}" if isinstance(avi_val, (int, float)) else "—"
-        fgi_val = r.get("value", {}).get("fgi_score")
-        fgi_s = f"{fgi_val:.1f}" if isinstance(fgi_val, (int, float)) else "—"
-        b_bm = r.get("benchmarks", {})
-        b_val = r.get("value", {})
-        aa_int = b_bm.get("aa_intelligence")
-        aa_int_s = f"{aa_int:.1f}" if isinstance(aa_int, (int, float)) else "—"
-        aa_cod = b_bm.get("aa_coding")
-        aa_cod_s = f"{aa_cod:.1f}" if isinstance(aa_cod, (int, float)) else "—"
-        aa_age = b_bm.get("aa_agentic")
-        aa_age_s = f"{aa_age:.1f}" if isinstance(aa_age, (int, float)) else "—"
-        lm_r = b_bm.get("lmarena_rank")
-        lm_s = f"#{lm_r}" if isinstance(lm_r, int) else "—"
-        elo = b_bm.get("lmarena_elo")
-        elo_s = f"{elo:.0f}" if isinstance(elo, (int, float)) else "—"
-        ipd = b_val.get("intelligence_per_dollar")
-        ipd_s = f"{ipd:.0f}" if isinstance(ipd, (int, float)) else "—"
-        cpi = b_val.get("cost_per_intelligence_pt_usd")
-        cpi_s = f"${cpi:.5f}" if isinstance(cpi, float) else "—"
-        lev = b_val.get("leverage_vs_10usd_sub")
-        lev_s = f"{lev:.1f}×" if isinstance(lev, (int, float)) else "—"
-        aa_slug = html_lib.escape(b_bm.get("aa_slug") or "")
-        # Remaining % visual
-        rem = r.get("remaining", {})
-        overall = rem.get("overall_pct")
-        overall_req = rem.get("overall_req")
-        if overall is not None:
-            col, weight = _pct_color(overall, for_html=True)
-            try:
-                pct = max(0, min(100, float(overall)))
-            except Exception:
-                pct = 0
-            bar = f'<div style="background:var(--line);border-radius:4px;height:6px;width:60px;display:inline-block;vertical-align:middle;margin-left:6px"><div style="background:{col};height:6px;width:{pct:.0f}%;border-radius:4px"></div></div>'
-            if overall_req is not None:
-                rem_html = f'<span style="color:{col};{weight}">{overall:.0f}%</span><span class="mid">{overall_req:,} req</span>{bar}'
-            else:
-                rem_html = f'<span style="color:{col};{weight}">{overall:.0f}%</span>{bar}'
-        else:
-            # no key / error / free
-            if r["pricing"]["monthly_usage_limit_usd"] is None:
-                rem_html = '<span class="mid">free</span>'
-            else:
-                rem_html = '<span class="mid">N/A*</span>'
-        # Highlight — added / pareto
-        cls = ""
-        if is_added:
-            cls = "added"
-        elif r["model_id"] in pareto_ids:
-            cls = "pareto"
-        elif aa_int and aa_int >= 58:
-            cls = "flagship"
-        elif r["pricing"]["monthly_usage_limit_usd"] == 60 and ipd and ipd > 800:
-            cls = "value"
-        elif r["pricing"]["monthly_usage_limit_usd"] is None:
-            cls = "free"
-
-        trs.append(
-            f'<tr class="{cls}">'
-            f'<td class="m">{mid}</td>'
-            f'<td class="n">{usage_s}</td>'
-            f'<td class="n">{c_s}</td>'
-            f'<td class="n">{req5_s}</td><td class="n">{reqw_s}</td><td class="n">{reqm_s}</td>'
-            f'<td class="n" style="font-weight:700; color:#2563eb;">{q_s}</td>'
-            f'<td class="n">{p_s}</td>'
-            f'<td class="n">{eff_c_s}</td>'
-            f'<td class="n" style="font-weight:700; color:#059669;">{qvi_s}</td>'
-            f'<td class="n" style="font-weight:700; color:#10b981;">{avi_s}</td>'
-            f'<td class="n" style="font-weight:700; color:#8b5cf6;">{fgi_s}</td>'
-            f'<td class="n">{aa_int_s}<span class="mid">{aa_slug}</span></td>'
-            f'<td class="n">{aa_cod_s}</td>'
-            f'<td class="n">{lm_s}<span class="mid">{elo_s}</span></td>'
-            f'<td class="n">{ipd_s}</td><td class="n">{cpi_s}</td><td class="n">{lev_s}</td>'
-            f'<td class="n">{rem_html}</td>'
-            f'</tr>'
-        )
-
-    removed_html = ""
-    if removed_models:
-        rem_tags = []
-        for rm in removed_models:
-            rm_id = html_lib.escape(rm.get("model_id", "unknown"))
-            pr_lim = rm.get("pricing", {}).get("monthly_usage_limit_usd")
-            lim_s = f"${pr_lim:.0f}/mo" if pr_lim is not None else "Free"
-            fgi = rm.get("value", {}).get("fgi_score") or rm.get("benchmarks", {}).get("fgi_score")
-            fgi_s = f"FGI {fgi:.1f}" if isinstance(fgi, (int, float)) else "FGI —"
-            avi = rm.get("value", {}).get("avi_score") or rm.get("benchmarks", {}).get("avi_score")
-            avi_s = f"AVI {avi:.1f}" if isinstance(avi, (int, float)) else "AVI —"
-            rem_tags.append(f'<span class="removed-tag">❌ <b>{rm_id}</b> <span class="mid">(Prior: {lim_s}, {fgi_s}, {avi_s})</span></span>')
-
-        removed_html = f"""
-<div class="removed-section">
-  <div class="removed-title">🔻 Removed / Deprecated Models ({len(removed_models)})</div>
-  <div class="sub" style="margin-bottom:8px;">These models were present in the previous catalog snapshot but are no longer active in the current OpenCode Go docs or API:</div>
-  <div>{''.join(rem_tags)}</div>
-</div>
-"""
-    body = f"""
-<h1>{html_lib.escape(title)}</h1>
-<p class="sub">{html_lib.escape(data_note)} — OpenCode Go <code>$10/mo</code> (Go Plus <code>$40/mo</code>) · Per-model monthly cap; <b>5h = 20%</b>, <b>weekly = 50%</b> of monthly · usage source: <b>{html_lib.escape(usage_note or 'unavailable')}</b> · <a href="https://opencode.ai/v2/docs/console/go/#usage-limits" style="color:#58a6ff">docs</a> · Generated {dt.datetime.now(dt.timezone.utc).isoformat()}</p>
-
-<div class="card"><b>How to read:</b> <span style="color:#d29922">■ pareto</span> cost/intelligence frontier · <span style="color:#3fb950">■ flagship</span> intelligence ≥58 · <span style="color:#58a6ff">■ value</span> $60-usage + high int/$ · <b>Q(Cap)</b> = Composite Capability (0-100) · <b>P(Succ)</b> = 1-turn pass rate · <b>Eff c/r</b> = Cost per solved task · <b>Value</b> = Quota utility · <b>AVI (ROI)</b> = Agentic Value Index · <b>FGI (Gate)</b> = Frontier Gate Index · <b>lev</b> = monthly leverage vs $10 sub (<code>usage/10</code>).</div>
-
-<div class="card">
-<table id="tbl">
-<thead><tr>
-<th>model</th><th>$Usage/mo</th><th>$c/req</th><th>req/5h</th><th>req/wk</th><th>req/mo</th><th>Q(Cap)</th><th>P(Succ)</th><th>Eff c/r</th><th>Value</th><th>AVI (ROI)</th><th>FGI (Gate)</th><th>AA intel</th><th>AA cod</th><th>LMArena</th><th>int/$</th><th>$c/int</th><th>lev</th><th>remain</th>
-</tr></thead>
-<tbody>
-{''.join(trs)}
-</tbody>
-</table>
-<div class="legend">Click headers to sort. “—” = not benchmarked / free. AA Intelligence/Coding/Agentic from artificialanalysis.ai leaderboard; Arena rank/ELO from arena.ai text leaderboard; pricing from opencode.ai/docs/go. Cross-source scores incomparable.</div>
-</div>
-
-{removed_html}
-
-{role_recs_html}
-
-<div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from the pooled cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
-
-<p class="note">Full JSON: <a href="ocgo_cost_benefit.json" style="color:#58a6ff">ocgo_cost_benefit.json</a> · Raw snapshots in <code>data/raw/</code> when run with <code>--fetch</code>. Stdlib only, no API keys. Re-run: <code>python3 checkers/opencode_cost_benefit_analyzer.py</code>.</p>
-<div class="call"><b>Takeaway:</b> Cheapest per-request (MiMo-V2.5, Muse Spark, Hy3, DeepSeek Flash) buy the most requests from their monthly cap — ideal for high-volume use. Flagship intelligence (Kimi K3, GLM-5.3, Qwen3.8-Max, Grok 4.6, GPT-5.6-Luna) cost more per request but score higher. Best “intelligence per dollar” usually sits in the middle (DeepSeek Flash, Qwen3.7-Plus, GLM-5.2, MiniMax M3). Use the <code>int/$</code> column to pick your tier.</div>
-"""
-    return f"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{html_lib.escape(title)}</title><style>{bc.HTML_CSS_COMMON}</style></head><body><div class=\"wrap\">{body}</div>{bc.HTML_SORT_SCRIPT}</body></html>\n"
-
-
-def one_sentence_work(rows, usage_percents=None):
-    try:
-        n = len(rows)
-        have_int = sum(1 for r in rows if r["benchmarks"]["aa_intelligence"] is not None)
-        # best value among $60 usage
-        best = None
-        for r in sorted(rows, key=lambda x: -(x["value"]["intelligence_per_dollar"] or -1)):
-            if r["pricing"]["monthly_usage_limit_usd"] == 60 and r["value"]["intelligence_per_dollar"]:
-                best = r["model_id"]
-                break
-        # flagship
-        flagship = None
-        for r in rows:
-            if r["benchmarks"]["aa_intelligence"] and r["benchmarks"]["aa_intelligence"] >= 59:
-                flagship = r["model_id"]
-                break
-        rem = "" 
-        if usage_percents:
-            mx = max(usage_percents.values())
-            rem = f", {100-mx:.0f}% quota remaining"
-        if best and flagship:
-            return f"Current work: live cost/benefit of {n} Go models ({have_int} ranked) — best value {best}, flagship {flagship}{rem}."
-        if best:
-            return f"Current work: live check of {n} Go models ({have_int} ranked) — best value {best}{rem}."
-        return f"Current work: live check of {n} Go models ({have_int} ranked){rem}."
-    except Exception:
-        return f"Current work: live check of {len(rows)} Go models."
 
 
 if __name__ == "__main__":
