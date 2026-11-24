@@ -96,7 +96,7 @@ _FEED_SPECS = (
 
 _DATED_SNAP_RE = re.compile(r"^(.+)_(\d{8})\.[^.]+$")
 _PROTECTED_RAW = frozenset({"livebench_20260625.csv", "livebench_categories_20260625.json"})
-_RADAR_TARGET_LINK = "[[30-Agents/Model-Benchmarks-Live|Live Model Benchmarks & Pricing Radar]]"
+_RADAR_TARGET_LINK = "[[systems/agents/Model-Benchmarks-Live|Live Model Benchmarks & Pricing Radar]]"
 _MEDAL_BADGES = {1: "🥇#1", 2: "🥈#2", 3: "🥉#3"}
 _FETCH_ERRORS = (
     urllib.error.URLError,
@@ -238,15 +238,15 @@ def sync_lock():
 
 
 def find_akatsuki_vault() -> pathlib.Path | None:
-    """Resolve the Akatsuki vault path from env or canonical location."""
-    env_vault = os.getenv("AKATSUKI_VAULT")
+    """Resolve the Black Pearl vault path from env or canonical ~/black-pearl location."""
+    env_vault = os.getenv("BLACK_PEARL_VAULT") or os.getenv("AKATSUKI_VAULT")
     if env_vault:
         p = pathlib.Path(env_vault).expanduser().resolve()
         if p.is_dir():
             return p
     if "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules:
         return None
-    default_p = pathlib.Path.home() / "configs" / "knowledge-base" / "akatsuki"
+    default_p = pathlib.Path.home() / "black-pearl"
     return default_p if default_p.is_dir() else None
 
 
@@ -547,10 +547,10 @@ def generate_akatsuki_radar_content(today_str: str) -> str:
     lines.extend([
         "",
         "## 🔗 Related",
-        "- [[30-Agents/Agents-MOC|Agents MOC]]",
-        "- [[20-Projects/llm-benchyyyy|llm-benchyyyy]]",
-        "- [[30-Agents/Model-Benchmarks-2026|Model Benchmarks 2026]]",
-        "- [[30-Agents/Provider-Quota-Telemetry-Spec|Provider Quota Telemetry Spec]]",
+        "- [[systems/agents/Agents-MOC|Agents MOC]]",
+        "- [[systems/projects/llm-benchyyyy|llm-benchyyyy]]",
+        "- [[systems/agents/Model-Benchmarks-2026|Model Benchmarks 2026]]",
+        "- [[systems/agents/Provider-Quota-Telemetry-Spec|Provider Quota Telemetry Spec]]",
         "",
     ])
     return "\n".join(lines)
@@ -567,36 +567,16 @@ def _normalize_radar_content_for_diff(text: str) -> str:
     )
 
 
-def _write_akatsuki_via_cli(akatsuki_bin: pathlib.Path, note_rel: str, content: str, verbose: bool) -> bool:
-    try:
-        proc = subprocess.run(
-            [str(akatsuki_bin), "write", note_rel, "--overwrite"],
-            input=content,
-            text=True,
-            capture_output=True,
-            timeout=15,
-        )
-        if proc.returncode == 0:
-            if verbose:
-                log(f"  Saved Akatsuki note via CLI -> {note_rel}")
-            return True
-        log(f"  WARN: akatsuki write returned {proc.returncode}: {proc.stderr.strip()[:100]}")
-        return False
-    except (OSError, subprocess.SubprocessError) as e:
-        log(f"  WARN: Failed to execute akatsuki write: {e}")
-        return False
-
-
 def _ensure_vault_links(vault: pathlib.Path, verbose: bool) -> None:
     link_specs = (
         (
-            vault / "30-Agents" / "Agents-MOC.md",
+            vault / "systems" / "agents" / "Agents-MOC.md",
             "## 🔬 Model Benchmarking & Empirical Evaluations",
             f"\n\n- {_RADAR_TARGET_LINK}: Automated daily sync of benchmark evaluations, OpenCode/CommandCode pricing, and free-tier rankings.",
-            "Agents-MOC.md",
+            "systems/agents/Agents-MOC.md",
         ),
-        (vault / "20-Projects" / "llm-benchyyyy.md", "## 🔗 Related", f"\n- {_RADAR_TARGET_LINK}", "20-Projects/llm-benchyyyy.md"),
-        (vault / "30-Agents" / "Model-Benchmarks-2026.md", "## 🔗 Related", f"\n- {_RADAR_TARGET_LINK}", "30-Agents/Model-Benchmarks-2026.md"),
+        (vault / "systems" / "projects" / "llm-benchyyyy.md", "## 🔗 Related", f"\n- {_RADAR_TARGET_LINK}", "systems/projects/llm-benchyyyy.md"),
+        (vault / "systems" / "agents" / "Model-Benchmarks-2026.md", "## 🔗 Related", f"\n- {_RADAR_TARGET_LINK}", "systems/agents/Model-Benchmarks-2026.md"),
     )
     for path, heading, addition, label in link_specs:
         if not path.exists():
@@ -612,45 +592,64 @@ def _ensure_vault_links(vault: pathlib.Path, verbose: bool) -> None:
             log(f"  WARN: Failed to link in {label}: {e}")
 
 
-def _log_akatsuki_work(akatsuki_bin: pathlib.Path, verbose: bool) -> None:
-    summary = "sync upstream -> refreshed benchmarks, frontier (openai/claude/gemini) & ocgo/ccgo prices; saved to akatsuki"
-    try:
-        proc = subprocess.run(
-            [str(akatsuki_bin), "log", "--project", "llm-benchyyyy", "--summary", summary],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        if proc.returncode == 0:
-            if verbose:
-                log("  Deposited Akatsuki work log telemetry")
-            return
-        log(f"  WARN: akatsuki log exit {proc.returncode}: {proc.stderr.strip()[:100]}")
-    except (OSError, subprocess.SubprocessError) as e:
-        log(f"  WARN: Failed to deposit akatsuki log: {e}")
-
-
-def _find_akatsuki_bin() -> pathlib.Path | None:
-    if os.getenv("AKATSUKI_VAULT") is not None:
+def _find_pearl_bin() -> pathlib.Path | None:
+    if os.getenv("BLACK_PEARL_VAULT") is not None or os.getenv("AKATSUKI_VAULT") is not None:
         return None
-    raw_bin = shutil.which("akatsuki") or (pathlib.Path.home() / ".local" / "bin" / "akatsuki")
+    raw_bin = shutil.which("pearl") or (pathlib.Path.home() / ".local" / "bin" / "pearl")
     return pathlib.Path(raw_bin) if raw_bin and pathlib.Path(raw_bin).exists() else None
 
 
-def _persist_akatsuki_note(
-    akatsuki_bin: pathlib.Path | None,
-    note_file: pathlib.Path,
-    note_rel: str,
-    content: str,
-    verbose: bool,
-) -> bool:
-    if akatsuki_bin and _write_akatsuki_via_cli(akatsuki_bin, note_rel, content, verbose):
-        return True
+def _pearl_articles_args() -> list[str]:
+    cfg = pathlib.Path(
+        os.getenv("BLACK_PEARL_ARTICLES")
+        or (pathlib.Path.home() / ".config" / "black-pearl" / "articles.toml")
+    ).expanduser()
+    return ["--articles", str(cfg)] if cfg.is_file() else []
+
+
+def _log_pearl_work(pearl_bin: pathlib.Path, today_str: str, verbose: bool) -> None:
+    summary = "sync upstream -> refreshed benchmarks, frontier (openai/claude/gemini) & ocgo/ccgo prices; saved to black-pearl"
+    cmd_id = f"llm-bench-sync-{today_str}"
+    try:
+        proc = subprocess.run(
+            [str(pearl_bin), "log", *_pearl_articles_args(), "-p", "llm-benchyyyy", "-s", summary, "--command-id", cmd_id],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if proc.returncode == 0:
+            if verbose:
+                log("  Deposited Black Pearl work log telemetry")
+            return
+        log(f"  WARN: pearl log exit {proc.returncode}: {proc.stderr.strip()[:100]}")
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"  WARN: Failed to deposit pearl log: {e}")
+
+
+def _sync_pearl_graph(pearl_bin: pathlib.Path, verbose: bool) -> None:
+    try:
+        proc = subprocess.run(
+            [str(pearl_bin), "sync", *_pearl_articles_args()],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if proc.returncode != 0:
+            log(f"  WARN: pearl sync exit {proc.returncode}: {proc.stderr.strip()[:100]}")
+        elif verbose:
+            log("  Synced Black Pearl Light Graph")
+    except (OSError, subprocess.SubprocessError) as e:
+        log(f"  WARN: Failed to sync Black Pearl graph: {e}")
+
+
+def _persist_vault_note(note_file: pathlib.Path, content: str, verbose: bool) -> bool:
     try:
         note_file.parent.mkdir(parents=True, exist_ok=True)
         bc.atomic_write_text(note_file, content)
         if verbose:
-            log(f"  Saved Akatsuki note directly -> {note_file}")
+            log(f"  Saved Black Pearl note -> {note_file}")
         return True
     except OSError as e:
         log(f"  WARN: Failed to write note directly: {e}")
@@ -667,30 +666,31 @@ def _is_note_unchanged(note_file: pathlib.Path, content: str) -> bool:
 
 
 def save_results_to_akatsuki(verbose: bool = True) -> bool:
-    """Save synthesized benchmark and pricing radar to Akatsuki vault and log telemetry."""
+    """Save synthesized benchmark and pricing radar to Black Pearl vault and log telemetry."""
     vault = find_akatsuki_vault()
     if not vault:
         if verbose:
-            log("  Akatsuki vault not found — skipping Akatsuki persistence")
+            log("  Black Pearl vault not found — skipping vault persistence")
         return False
 
     today_str = dt.datetime.now(dt.UTC).strftime("%Y%m%d")
     content = generate_akatsuki_radar_content(today_str)
-    note_rel = "30-Agents/Model-Benchmarks-Live.md"
+    note_rel = "systems/agents/Model-Benchmarks-Live.md"
     note_file = vault / note_rel
 
     if _is_note_unchanged(note_file, content):
         if verbose:
-            log("  Akatsuki note content unchanged — skipping rewrite and telemetry to prevent bloat")
+            log("  Black Pearl note content unchanged — skipping rewrite and telemetry to prevent bloat")
         return True
 
-    akatsuki_bin = _find_akatsuki_bin()
-    if not _persist_akatsuki_note(akatsuki_bin, note_file, note_rel, content, verbose):
+    if not _persist_vault_note(note_file, content, verbose):
         return False
 
     _ensure_vault_links(vault, verbose)
-    if akatsuki_bin:
-        _log_akatsuki_work(akatsuki_bin, verbose)
+    pearl_bin = _find_pearl_bin()
+    if pearl_bin:
+        _sync_pearl_graph(pearl_bin, verbose)
+        _log_pearl_work(pearl_bin, today_str, verbose)
     return True
 
 
@@ -886,10 +886,10 @@ def get_cache_status() -> dict:
     vault = find_akatsuki_vault()
     akatsuki_status = "Vault not found"
     if vault:
-        ak_file = vault / "30-Agents" / "Model-Benchmarks-Live.md"
+        ak_file = vault / "systems" / "agents" / "Model-Benchmarks-Live.md"
         if ak_file.exists():
             ak_mtime = dt.datetime.fromtimestamp(ak_file.stat().st_mtime)
-            akatsuki_status = f"Saved (30-Agents/Model-Benchmarks-Live.md, {ak_mtime.strftime('%Y-%m-%d %H:%M:%S')})"
+            akatsuki_status = f"Saved (systems/agents/Model-Benchmarks-Live.md, {ak_mtime.strftime('%Y-%m-%d %H:%M:%S')})"
         else:
             akatsuki_status = "Vault located (note not yet created)"
 
